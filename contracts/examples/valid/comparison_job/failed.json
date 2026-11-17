@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "id": "550e8400-e29b-41d4-a716-446655440002",
+  "status": "failed",
+  "request": {
+    "schema_version": 1,
+    "before": { "source": "{% unknown %}" },
+    "after": { "source": "ok" },
+    "observer": "sale_badge",
+    "seed": 0,
+    "budget": { "search_pairs": 256, "shrink_pairs": 128 }
+  },
+  "finding": null,
+  "stats": {
+    "search_pairs": 0,
+    "shrink_pairs": 0,
+    "parity_rejections": 0,
+    "exhausted_by": null,
+    "first_difference_ms": null,
+    "elapsed_ms": 3
+  },
+  "error": {
+    "code": "syntax_error",
+    "message": "Unknown tag 'unknown'",
+    "span": { "start_byte": 0, "end_byte": 13, "line": 1, "column": 1 }
+  },
+  "result_url": "/comparisons/550e8400-e29b-41d4-a716-446655440002",
+  "created_at": "2026-11-17T03:00:00Z",
+  "completed_at": "2026-11-17T03:00:01Z"
+}

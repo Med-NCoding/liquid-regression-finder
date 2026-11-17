@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liquid-regression-finder.local/contracts/schemas/finding.schema.json",
+  "title": "Finding",
+  "description": "Confirmed regression finding with product projection, replay bundle, custom traced renders, reference renders, and explanation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["product", "replay", "before", "after", "reference", "explanation"],
+  "properties": {
+    "product": {
+      "$ref": "projection.schema.json"
+    },
+    "replay": {
+      "$ref": "replay_bundle.schema.json"
+    },
+    "before": {
+      "$ref": "#/$defs/successful_render_result"
+    },
+    "after": {
+      "$ref": "#/$defs/successful_render_result"
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["before", "after"],
+      "properties": {
+        "before": {
+          "$ref": "#/$defs/successful_reference_render_result"
+        },
+        "after": {
+          "$ref": "#/$defs/successful_reference_render_result"
+        }
+      }
+    },
+    "explanation": {
+      "$ref": "#/$defs/explanation"
+    }
+  },
+  "$defs": {
+    "successful_render_result": {
+      "allOf": [
+        { "$ref": "render_result.schema.json" },
+        {
+          "properties": {
+            "status": { "const": "ok" }
+          }
+        }
+      ]
+    },
+    "successful_reference_render_result": {
+      "allOf": [
+        { "$ref": "render_result.schema.json" },
+        {
+          "properties": {
+            "status": { "const": "ok" },
+            "events": { "maxItems": 0 }
+          }
+        }
+      ]
+    },
+    "anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line", "event_seq"],
+      "properties": {
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "event_seq": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "explanation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "before", "after", "summary"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["aligned_change", "structural_change", "undetermined"]
+        },
+        "before": {
+          "oneOf": [
+            { "$ref": "#/$defs/anchor" },
+            { "type": "null" }
+          ]
+        },
+        "after": {
+          "oneOf": [
+            { "$ref": "#/$defs/anchor" },
+            { "type": "null" }
+          ]
+        },
+        "summary": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

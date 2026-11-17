@@ -1,0 +1,56 @@
+{
+  "product": {
+    "price": 1000,
+    "price_min": 1000,
+    "price_max": 1000,
+    "price_varies": false,
+    "compare_at_price": null,
+    "compare_at_price_min": null,
+    "compare_at_price_max": null,
+    "compare_at_price_varies": false,
+    "available": true
+  },
+  "replay": {
+    "request": {
+      "schema_version": 1,
+      "before": { "source": "a" },
+      "after": { "source": "b" },
+      "observer": "sale_badge",
+      "seed": 0,
+      "budget": { "search_pairs": 10, "shrink_pairs": 0 }
+    },
+    "fixture": {
+      "schema_version": 1,
+      "currency": "USD",
+      "variants": [
+        { "id": "v1", "price": 1000, "compare_at_price": null, "available": true }
+      ]
+    },
+    "before_sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+    "after_sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d",
+    "interpreter_version": "0.1.0",
+    "liquid_version": "5.14.0",
+    "projection_version": "1.0.0"
+  },
+  "before": { "status": "ok", "html": "", "observed": false, "events": [], "error": null },
+  "after": { "status": "ok", "html": "", "observed": false, "events": [], "error": null },
+  "reference": {
+    "before": {
+      "status": "ok",
+      "html": "",
+      "observed": false,
+      "events": [
+        {
+          "seq": 0,
+          "node_id": "n0",
+          "scope": [],
+          "span": { "start_byte": 0, "end_byte": 1, "line": 1, "column": 1 },
+          "data": { "kind": "emit", "output_start_byte": 0, "output_end_byte": 1, "active_branch_seqs": [] }
+        }
+      ],
+      "error": null
+    },
+    "after": { "status": "ok", "html": "", "observed": false, "events": [], "error": null }
+  },
+  "explanation": { "kind": "undetermined", "before": null, "after": null, "summary": "Invalid reference events" }
+}

@@ -1,0 +1,7 @@
+{
+  "id": "req-1",
+  "op": "compile",
+  "before": "hello",
+  "after": "world",
+  "observer": "sale_badge"
+}

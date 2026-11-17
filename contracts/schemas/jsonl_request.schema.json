@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liquid-regression-finder.local/contracts/schemas/jsonl_request.schema.json",
+  "title": "JsonlRequest",
+  "description": "UTF-8 JSON Lines request sent from Python search to the persistent Ruby render worker.",
+  "oneOf": [
+    { "$ref": "#/$defs/compile_request" },
+    { "$ref": "#/$defs/render_pair_request" },
+    { "$ref": "#/$defs/quit_request" }
+  ],
+  "$defs": {
+    "compile_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "op", "before", "after", "observer"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "op": {
+          "type": "string",
+          "const": "compile"
+        },
+        "before": {
+          "type": "string"
+        },
+        "after": {
+          "type": "string"
+        },
+        "observer": {
+          "type": "string",
+          "enum": ["sale_badge"]
+        }
+      }
+    },
+    "render_pair_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "op", "fixture", "engine", "trace"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "op": {
+          "type": "string",
+          "const": "render_pair"
+        },
+        "fixture": {
+          "$ref": "fixture.schema.json"
+        },
+        "engine": {
+          "type": "string",
+          "enum": ["custom", "reference"]
+        },
+        "trace": {
+          "type": "boolean"
+        }
+      }
+    },
+    "quit_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "op"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "op": {
+          "type": "string",
+          "const": "quit"
+        }
+      }
+    }
+  }
+}

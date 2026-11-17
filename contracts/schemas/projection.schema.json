@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liquid-regression-finder.local/contracts/schemas/projection.schema.json",
+  "title": "Projection",
+  "description": "Derived product aggregate fields computed from a Fixture.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "price",
+    "price_min",
+    "price_max",
+    "price_varies",
+    "compare_at_price",
+    "compare_at_price_min",
+    "compare_at_price_max",
+    "compare_at_price_varies",
+    "available"
+  ],
+  "properties": {
+    "price": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000000
+    },
+    "price_min": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000000
+    },
+    "price_max": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000000
+    },
+    "price_varies": {
+      "type": "boolean"
+    },
+    "compare_at_price": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 10000000
+    },
+    "compare_at_price_min": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 10000000
+    },
+    "compare_at_price_max": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 10000000
+    },
+    "compare_at_price_varies": {
+      "type": "boolean"
+    },
+    "available": {
+      "type": "boolean"
+    }
+  }
+}

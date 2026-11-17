@@ -1,0 +1,16 @@
+{
+  "status": "error",
+  "html": null,
+  "observed": null,
+  "events": [],
+  "error": {
+    "code": "syntax_error",
+    "message": "Unknown tag 'bogus'",
+    "span": {
+      "start_byte": 0,
+      "end_byte": 11,
+      "line": 1,
+      "column": 1
+    }
+  }
+}

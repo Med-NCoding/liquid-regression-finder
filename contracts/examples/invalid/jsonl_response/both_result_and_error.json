@@ -1,0 +1,11 @@
+{
+  "id": "req-5",
+  "result": {
+    "ok": true
+  },
+  "error": {
+    "code": "conflict",
+    "message": "Cannot have both result and error",
+    "span": null
+  }
+}

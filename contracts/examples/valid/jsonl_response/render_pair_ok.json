@@ -1,0 +1,30 @@
+{
+  "id": "req-2",
+  "result": {
+    "before": {
+      "status": "ok",
+      "html": "hello",
+      "observed": false,
+      "events": [],
+      "error": null
+    },
+    "after": {
+      "status": "ok",
+      "html": "world",
+      "observed": false,
+      "events": [],
+      "error": null
+    },
+    "product": {
+      "price": 1000,
+      "price_min": 1000,
+      "price_max": 1000,
+      "price_varies": false,
+      "compare_at_price": 1500,
+      "compare_at_price_min": 1500,
+      "compare_at_price_max": 1500,
+      "compare_at_price_varies": false,
+      "available": true
+    }
+  }
+}

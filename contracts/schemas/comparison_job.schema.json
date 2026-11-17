@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liquid-regression-finder.local/contracts/schemas/comparison_job.schema.json",
+  "title": "ComparisonJob",
+  "description": "Persisted comparison job record returned by the API.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "status",
+    "request",
+    "finding",
+    "stats",
+    "error",
+    "result_url",
+    "created_at",
+    "completed_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["queued", "running", "difference_found", "no_difference_found", "failed"]
+    },
+    "request": {
+      "$ref": "compare_request.schema.json"
+    },
+    "finding": {
+      "oneOf": [
+        { "$ref": "finding.schema.json" },
+        { "type": "null" }
+      ]
+    },
+    "stats": {
+      "oneOf": [
+        { "$ref": "#/$defs/stats" },
+        { "type": "null" }
+      ]
+    },
+    "error": {
+      "oneOf": [
+        { "$ref": "render_result.schema.json#/$defs/diagnostic" },
+        { "type": "null" }
+      ]
+    },
+    "result_url": {
+      "type": "string"
+    },
+    "created_at": {
+      "$ref": "#/$defs/rfc3339"
+    },
+    "completed_at": {
+      "oneOf": [
+        { "$ref": "#/$defs/rfc3339" },
+        { "type": "null" }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": { "enum": ["queued", "running"] }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "finding": { "type": "null" },
+          "stats": { "type": "null" },
+          "error": { "type": "null" },
+          "completed_at": { "type": "null" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": { "const": "difference_found" }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "finding": { "$ref": "finding.schema.json" },
+          "stats": { "$ref": "#/$defs/stats" },
+          "error": { "type": "null" },
+          "completed_at": { "$ref": "#/$defs/rfc3339" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": { "const": "no_difference_found" }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "finding": { "type": "null" },
+          "stats": { "$ref": "#/$defs/stats" },
+          "error": { "type": "null" },
+          "completed_at": { "$ref": "#/$defs/rfc3339" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": { "const": "failed" }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "finding": { "type": "null" },
+          "error": { "$ref": "render_result.schema.json#/$defs/diagnostic" },
+          "completed_at": { "$ref": "#/$defs/rfc3339" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "rfc3339": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}[Tt][0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?([Zz]|[+-][0-9]{2}:[0-9]{2})$"
+    },
+    "stats": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "search_pairs",
+        "shrink_pairs",
+        "parity_rejections",
+        "exhausted_by",
+        "first_difference_ms",
+        "elapsed_ms"
+      ],
+      "properties": {
+        "search_pairs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shrink_pairs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "parity_rejections": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "exhausted_by": {
+          "type": ["string", "null"],
+          "enum": ["pair_limit", "candidate_space", null]
+        },
+        "first_difference_ms": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "elapsed_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

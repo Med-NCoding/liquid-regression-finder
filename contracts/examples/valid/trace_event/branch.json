@@ -1,0 +1,17 @@
+{
+  "seq": 2,
+  "node_id": "n3:branch",
+  "scope": [],
+  "span": {
+    "start_byte": 0,
+    "end_byte": 70,
+    "line": 1,
+    "column": 1
+  },
+  "data": {
+    "kind": "branch",
+    "expression": "on_sale",
+    "condition": true,
+    "taken": true
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "seq": 1,
+  "node_id": "n2:comparison",
+  "scope": [],
+  "span": {
+    "start_byte": 0,
+    "end_byte": 10,
+    "line": 1,
+    "column": 1
+  },
+  "data": {
+    "kind": "comparison",
+    "op": "contains",
+    "left": "abc",
+    "right": "a",
+    "result": true
+  }
+}

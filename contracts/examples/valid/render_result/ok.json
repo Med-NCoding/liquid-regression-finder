@@ -1,0 +1,25 @@
+{
+  "status": "ok",
+  "html": "<span data-regression-badge=\"sale\">Sale</span>",
+  "observed": true,
+  "events": [
+    {
+      "seq": 0,
+      "node_id": "n1:emit",
+      "scope": [],
+      "span": {
+        "start_byte": 0,
+        "end_byte": 40,
+        "line": 1,
+        "column": 1
+      },
+      "data": {
+        "kind": "emit",
+        "output_start_byte": 0,
+        "output_end_byte": 40,
+        "active_branch_seqs": []
+      }
+    }
+  ],
+  "error": null
+}

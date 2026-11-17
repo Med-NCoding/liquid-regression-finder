@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "json"
+require "fileutils"
+
+repo_root = File.expand_path("../..", __dir__)
+$LOAD_PATH.unshift(File.join(repo_root, "interpreter/lib"))
+
+require "liquid_interpreter"
+require "liquid_interpreter/conformance"
+
+manifest = LiquidInterpreter::Conformance.build_manifest
+out_path = ARGV[0] || File.join(repo_root, "contracts/conformance-manifest.json")
+FileUtils.mkdir_p(File.dirname(out_path))
+File.write(out_path, JSON.pretty_generate(manifest) + "\n", encoding: Encoding::UTF_8)
+
+totals = manifest.fetch("totals")
+puts "Wrote #{out_path}"
+puts "  all_suites=#{totals["all_suites"]} inventoried=#{totals["inventoried"]} selected=#{totals["selected"]} (plain_text=#{totals["plain_text_selected"]}) skipped_in_inventoried=#{totals["skipped_in_inventoried"]}"

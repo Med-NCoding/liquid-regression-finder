@@ -1,0 +1,40 @@
+{
+  "request": {
+    "schema_version": 1,
+    "before": {
+      "source": "{% assign on_sale = false %}{% for v in product.variants %}{% if v.compare_at_price != nil and v.compare_at_price > v.price %}{% assign on_sale = true %}{% endif %}{% endfor %}{% if on_sale %}<span data-regression-badge=\"sale\">Sale</span>{% endif %}"
+    },
+    "after": {
+      "source": "{% if product.compare_at_price != nil and product.compare_at_price > product.price %}<span data-regression-badge=\"sale\">Sale</span>{% endif %}"
+    },
+    "observer": "sale_badge",
+    "seed": 0,
+    "budget": {
+      "search_pairs": 256,
+      "shrink_pairs": 128
+    }
+  },
+  "fixture": {
+    "schema_version": 1,
+    "currency": "USD",
+    "variants": [
+      {
+        "id": "v1",
+        "price": 1999,
+        "compare_at_price": null,
+        "available": true
+      },
+      {
+        "id": "v2",
+        "price": 2499,
+        "compare_at_price": 2999,
+        "available": true
+      }
+    ]
+  },
+  "before_sha256": "59151f272e8c63397cb9304e433c1093d1bfe0ed4ab7944f36a6eb7ff85745bb",
+  "after_sha256": "0b5896b86c36cc5f4a7880f21ce455c9474b3d843f2a08d3342fd2dc894dc5a9",
+  "interpreter_version": "0.1.0",
+  "liquid_version": "5.14.0",
+  "projection_version": "1.0.0"
+}

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "queued",
+  "request": {
+    "schema_version": 1,
+    "before": {
+      "source": "{% assign on_sale = false %}{% for v in product.variants %}{% if v.compare_at_price != nil and v.compare_at_price > v.price %}{% assign on_sale = true %}{% endif %}{% endfor %}{% if on_sale %}<span data-regression-badge=\"sale\">Sale</span>{% endif %}"
+    },
+    "after": {
+      "source": "{% if product.compare_at_price != nil and product.compare_at_price > product.price %}<span data-regression-badge=\"sale\">Sale</span>{% endif %}"
+    },
+    "observer": "sale_badge",
+    "seed": 0,
+    "budget": {
+      "search_pairs": 256,
+      "shrink_pairs": 128
+    }
+  },
+  "finding": null,
+  "stats": null,
+  "error": null,
+  "result_url": "/comparisons/550e8400-e29b-41d4-a716-446655440000",
+  "created_at": "2026-11-17T03:00:00Z",
+  "completed_at": null
+}

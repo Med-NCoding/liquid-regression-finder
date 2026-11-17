@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
+usage() {
+  cat <<'USAGE' >&2
+Usage: bin/check <target>
+
+Targets:
+  stage-1   Verify pinned toolchain, lockfile install, contracts, Stage 1 interpreter tests, and liquid-spec plain-text pilot
+  stage-2..stage-10   Future stage gates (not yet implemented)
+  all       Run all stage gates (fails until all stages are implemented)
+USAGE
+}
+
+resolve_ruby() {
+  if command -v ruby >/dev/null 2>&1; then
+    echo "ruby"
+  elif [ -x "/opt/homebrew/opt/ruby@3.3/bin/ruby" ]; then
+    echo "/opt/homebrew/opt/ruby@3.3/bin/ruby"
+  else
+    echo "ERROR: ruby executable not found" >&2
+    exit 1
+  fi
+}
+
+resolve_bundle() {
+  if command -v bundle >/dev/null 2>&1; then
+    echo "bundle"
+  elif [ -x "/opt/homebrew/opt/ruby@3.3/bin/bundle" ]; then
+    echo "/opt/homebrew/opt/ruby@3.3/bin/bundle"
+  else
+    echo "ERROR: bundler executable not found" >&2
+    exit 1
+  fi
+}
+
+resolve_python() {
+  if command -v python3.11 >/dev/null 2>&1; then
+    echo "python3.11"
+  elif [ -x "/opt/homebrew/opt/python@3.11/bin/python3.11" ]; then
+    echo "/opt/homebrew/opt/python@3.11/bin/python3.11"
+  elif command -v python3 >/dev/null 2>&1; then
+    echo "python3"
+  else
+    echo "ERROR: python3.11 executable not found" >&2
+    exit 1
+  fi
+}
+
+resolve_node() {
+  if command -v node >/dev/null 2>&1; then
+    echo "node"
+  elif [ -x "/usr/local/bin/node" ]; then
+    echo "/usr/local/bin/node"
+  else
+    echo "ERROR: node executable not found" >&2
+    exit 1
+  fi
+}
+
+verify_pinned_toolchain() {
+  local expected_ruby expected_python expected_node
+  expected_ruby="$(tr -d '[:space:]' < "$ROOT_DIR/.ruby-version")"
+  expected_python="$(tr -d '[:space:]' < "$ROOT_DIR/.python-version")"
+  expected_node="$(tr -d '[:space:]' < "$ROOT_DIR/.node-version")"
+
+  local ruby_bin bundle_bin python_bin node_bin
+  ruby_bin="$(resolve_ruby)"
+  bundle_bin="$(resolve_bundle)"
+  python_bin="$(resolve_python)"
+  node_bin="$(resolve_node)"
+
+  local actual_ruby actual_bundle actual_python actual_node
+  actual_ruby="$("$ruby_bin" -e 'print RUBY_VERSION')"
+  actual_bundle="$("$bundle_bin" -v | awk '{print $NF}')"
+  actual_python="$("$python_bin" -c 'import sys; print(".".join(map(str, sys.version_info[:3])))')"
+  actual_node="$("$node_bin" -v | sed 's/^v//')"
+
+  echo "[toolchain] ruby=$actual_ruby (expected $expected_ruby) [$ruby_bin]"
+  echo "[toolchain] bundler=$actual_bundle [$bundle_bin]"
+  echo "[toolchain] python=$actual_python (expected $expected_python) [$python_bin]"
+  echo "[toolchain] node=$actual_node (expected $expected_node) [$node_bin]"
+
+  if [ "$actual_ruby" != "$expected_ruby" ]; then
+    echo "ERROR: Ruby version mismatch: got $actual_ruby, expected $expected_ruby" >&2
+    exit 1
+  fi
+  if [ "$actual_python" != "$expected_python" ]; then
+    echo "ERROR: Python version mismatch: got $actual_python, expected $expected_python" >&2
+    exit 1
+  fi
+  if [ "$actual_node" != "$expected_node" ]; then
+    echo "ERROR: Node version mismatch: got $actual_node, expected $expected_node" >&2
+    exit 1
+  fi
+}
+
+ensure_bundle() {
+  local bundle_bin
+  bundle_bin="$(resolve_bundle)"
+  "$bundle_bin" config set --local path vendor/bundle >/dev/null
+  if ! "$bundle_bin" check >/dev/null 2>&1; then
+    echo "[bundle] Installing locked gems into vendor/bundle..."
+    BUNDLE_FROZEN=true "$bundle_bin" install
+  fi
+  "$bundle_bin" check
+}
+
+run_stage_1() {
+  local bundle_bin
+  bundle_bin="$(resolve_bundle)"
+
+  echo "==> Stage 1 Gate: Toolchain & Lockfiles"
+  verify_pinned_toolchain
+  ensure_bundle
+
+  echo "==> Stage 1 Gate: Contract Schemas & Examples"
+  "$bundle_bin" exec ruby "$ROOT_DIR/contracts/test_contracts.rb"
+
+  echo "==> Stage 1 Gate: Interpreter Bootstrap Unit Tests"
+  "$bundle_bin" exec ruby "$ROOT_DIR/interpreter/test/test_stage1_bootstrap.rb"
+
+  echo "==> Stage 1 Gate: liquid-spec Plain-Text Pilot (basics & liquid_ruby)"
+  "$bundle_bin" exec liquid-spec run "$ROOT_DIR/interpreter/liquid_spec_adapter.rb" \
+    -s basics \
+    -n "/^(empty_template|literal_passthrough|whitespace_preserved|newlines_preserved|raw_text_)/" \
+    -v --list-passed
+
+  "$bundle_bin" exec liquid-spec run "$ROOT_DIR/interpreter/liquid_spec_adapter.rb" \
+    -s liquid_ruby \
+    -n "StandardTagTest#test_no_transform" \
+    -v --list-passed
+
+  echo "==> Stage 1 Gate: Conformance Manifest & Report"
+  "$bundle_bin" exec ruby "$ROOT_DIR/interpreter/bin/conformance_report" \
+    --require-plain-text \
+    --max-failures 20
+
+  echo "PASS: bin/check stage-1 succeeded."
+}
+
+if [ $# -ne 1 ]; then
+  usage
+  exit 2
+fi
+
+case "$1" in
+  stage-1)
+    run_stage_1
+    ;;
+  stage-2|stage-3|stage-4|stage-5|stage-6|stage-7|stage-8|stage-9|stage-10)
+    echo "ERROR: $1 gate is not implemented yet (highest implemented stage: stage-1)." >&2
+    exit 2
+    ;;
+  all)
+    run_stage_1
+    echo "ERROR: bin/check all cannot pass yet: stage-2 through stage-10 are not implemented." >&2
+    exit 2
+    ;;
+  -h|--help)
+    usage
+    exit 0
+    ;;
+  *)
+    echo "ERROR: Unknown check target '$1'" >&2
+    usage
+    exit 2
+    ;;
+esac

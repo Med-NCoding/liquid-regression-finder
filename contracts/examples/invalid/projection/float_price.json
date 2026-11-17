@@ -1,0 +1,11 @@
+{
+  "price": 19.99,
+  "price_min": 19,
+  "price_max": 25,
+  "price_varies": true,
+  "compare_at_price": null,
+  "compare_at_price_min": null,
+  "compare_at_price_max": null,
+  "compare_at_price_varies": false,
+  "available": true
+}

@@ -1,0 +1,17 @@
+{
+  "seq": 4,
+  "node_id": "n5:text",
+  "scope": [],
+  "span": {
+    "start_byte": 136,
+    "end_byte": 176,
+    "line": 1,
+    "column": 137
+  },
+  "data": {
+    "kind": "emit",
+    "output_start_byte": 0,
+    "output_end_byte": 40,
+    "active_branch_seqs": [2]
+  }
+}

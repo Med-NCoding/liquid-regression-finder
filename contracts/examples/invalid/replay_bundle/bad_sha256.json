@@ -1,0 +1,34 @@
+{
+  "request": {
+    "schema_version": 1,
+    "before": {
+      "source": "a"
+    },
+    "after": {
+      "source": "b"
+    },
+    "observer": "sale_badge",
+    "seed": 0,
+    "budget": {
+      "search_pairs": 256,
+      "shrink_pairs": 128
+    }
+  },
+  "fixture": {
+    "schema_version": 1,
+    "currency": "USD",
+    "variants": [
+      {
+        "id": "v1",
+        "price": 100,
+        "compare_at_price": null,
+        "available": true
+      }
+    ]
+  },
+  "before_sha256": "not-a-sha256",
+  "after_sha256": "0b5896b86c36cc5f4a7880f21ce455c9474b3d843f2a08d3342fd2dc894dc5a9",
+  "interpreter_version": "0.1.0",
+  "liquid_version": "5.14.0",
+  "projection_version": "1.0.0"
+}

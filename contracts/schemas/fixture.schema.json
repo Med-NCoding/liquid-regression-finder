@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liquid-regression-finder.local/contracts/schemas/fixture.schema.json",
+  "title": "Fixture",
+  "description": "Synthetic product fixture with 1 to 8 variants in integer USD cents.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "currency", "variants"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "currency": {
+      "type": "string",
+      "const": "USD"
+    },
+    "variants": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/variant"
+      }
+    }
+  },
+  "$defs": {
+    "variant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "price", "compare_at_price", "available"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "price": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000
+        },
+        "compare_at_price": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "maximum": 10000000
+        },
+        "available": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

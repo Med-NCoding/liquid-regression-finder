@@ -1,0 +1,137 @@
+{
+  "product": {
+    "price": 1000,
+    "price_min": 1000,
+    "price_max": 1500,
+    "price_varies": true,
+    "compare_at_price": 900,
+    "compare_at_price_min": 900,
+    "compare_at_price_max": 2000,
+    "compare_at_price_varies": true,
+    "available": true
+  },
+  "replay": {
+    "request": {
+      "schema_version": 1,
+      "before": {
+        "source": "{% assign on_sale = false %}{% for v in product.variants %}{% if v.compare_at_price != nil and v.compare_at_price > v.price %}{% assign on_sale = true %}{% endif %}{% endfor %}{% if on_sale %}<span data-regression-badge=\"sale\">Sale</span>{% endif %}"
+      },
+      "after": {
+        "source": "{% if product.compare_at_price != nil and product.compare_at_price > product.price %}<span data-regression-badge=\"sale\">Sale</span>{% endif %}"
+      },
+      "observer": "sale_badge",
+      "seed": 0,
+      "budget": {
+        "search_pairs": 256,
+        "shrink_pairs": 128
+      }
+    },
+    "fixture": {
+      "schema_version": 1,
+      "currency": "USD",
+      "variants": [
+        {
+          "id": "v1",
+          "price": 1000,
+          "compare_at_price": 900,
+          "available": true
+        },
+        {
+          "id": "v2",
+          "price": 1500,
+          "compare_at_price": 2000,
+          "available": true
+        }
+      ]
+    },
+    "before_sha256": "59151f272e8c63397cb9304e433c1093d1bfe0ed4ab7944f36a6eb7ff85745bb",
+    "after_sha256": "0b5896b86c36cc5f4a7880f21ce455c9474b3d843f2a08d3342fd2dc894dc5a9",
+    "interpreter_version": "0.1.0",
+    "liquid_version": "5.14.0",
+    "projection_version": "1.0.0"
+  },
+  "before": {
+    "status": "ok",
+    "html": "<span data-regression-badge=\"sale\">Sale</span>",
+    "observed": true,
+    "events": [
+      {
+        "seq": 0,
+        "node_id": "n3:branch",
+        "scope": [
+          {
+            "loop_id": "for_0",
+            "iteration": 1,
+            "variant_id": "v2"
+          }
+        ],
+        "span": {
+          "start_byte": 58,
+          "end_byte": 124,
+          "line": 1,
+          "column": 59
+        },
+        "data": {
+          "kind": "branch",
+          "expression": "v.compare_at_price != nil and v.compare_at_price > v.price",
+          "condition": true,
+          "taken": true
+        }
+      }
+    ],
+    "error": null
+  },
+  "after": {
+    "status": "ok",
+    "html": "",
+    "observed": false,
+    "events": [
+      {
+        "seq": 0,
+        "node_id": "n0:branch",
+        "scope": [],
+        "span": {
+          "start_byte": 0,
+          "end_byte": 81,
+          "line": 1,
+          "column": 1
+        },
+        "data": {
+          "kind": "branch",
+          "expression": "product.compare_at_price != nil and product.compare_at_price > product.price",
+          "condition": false,
+          "taken": false
+        }
+      }
+    ],
+    "error": null
+  },
+  "reference": {
+    "before": {
+      "status": "ok",
+      "html": "<span data-regression-badge=\"sale\">Sale</span>",
+      "observed": true,
+      "events": [],
+      "error": null
+    },
+    "after": {
+      "status": "ok",
+      "html": "",
+      "observed": false,
+      "events": [],
+      "error": null
+    }
+  },
+  "explanation": {
+    "kind": "structural_change",
+    "before": {
+      "line": 1,
+      "event_seq": 0
+    },
+    "after": {
+      "line": 1,
+      "event_seq": 0
+    },
+    "summary": "Before checks variant v2 (2000 > 1500 => true); after checks product aggregates (900 > 1000 => false)."
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liquid-regression-finder.local/contracts/schemas/render_result.schema.json",
+  "title": "RenderResult",
+  "description": "Outcome of rendering a single snippet against a projected product.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "html", "observed", "events", "error"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["ok", "error"]
+    },
+    "html": {
+      "type": ["string", "null"]
+    },
+    "observed": {
+      "type": ["boolean", "null"]
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "trace_event.schema.json"
+      }
+    },
+    "error": {
+      "oneOf": [
+        { "$ref": "#/$defs/diagnostic" },
+        { "type": "null" }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": { "const": "ok" }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "html": { "type": "string" },
+          "observed": { "type": "boolean" },
+          "error": { "type": "null" }
+        }
+      },
+      "else": {
+        "properties": {
+          "html": { "type": "null" },
+          "observed": { "type": "null" },
+          "error": { "$ref": "#/$defs/diagnostic" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "span"],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "span": {
+          "oneOf": [
+            { "$ref": "trace_event.schema.json#/$defs/span" },
+            { "type": "null" }
+          ]
+        }
+      }
+    }
+  }
+}

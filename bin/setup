@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
+resolve_ruby() {
+  if command -v ruby >/dev/null 2>&1; then
+    echo "ruby"
+  elif [ -x "/opt/homebrew/opt/ruby@3.3/bin/ruby" ]; then
+    echo "/opt/homebrew/opt/ruby@3.3/bin/ruby"
+  else
+    echo "ERROR: ruby not found" >&2
+    exit 1
+  fi
+}
+
+resolve_bundle() {
+  if command -v bundle >/dev/null 2>&1; then
+    echo "bundle"
+  elif [ -x "/opt/homebrew/opt/ruby@3.3/bin/bundle" ]; then
+    echo "/opt/homebrew/opt/ruby@3.3/bin/bundle"
+  else
+    echo "ERROR: bundle not found" >&2
+    exit 1
+  fi
+}
+
+RUBY_BIN="$(resolve_ruby)"
+BUNDLE_BIN="$(resolve_bundle)"
+
+echo "Using Ruby: $("$RUBY_BIN" -v)"
+echo "Using Bundler: $("$BUNDLE_BIN" -v)"
+
+"$BUNDLE_BIN" config set --local path vendor/bundle
+BUNDLE_FROZEN=true "$BUNDLE_BIN" install
+echo "Setup complete."

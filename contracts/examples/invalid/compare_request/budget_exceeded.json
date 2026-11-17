@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "before": {
+    "source": "a"
+  },
+  "after": {
+    "source": "b"
+  },
+  "observer": "sale_badge",
+  "seed": 0,
+  "budget": {
+    "search_pairs": 5001,
+    "shrink_pairs": 128
+  }
+}

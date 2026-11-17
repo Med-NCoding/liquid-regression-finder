@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liquid-regression-finder.local/contracts/schemas/replay_bundle.schema.json",
+  "title": "ReplayBundle",
+  "description": "Self-contained deterministic replay bundle for reproducing a finding.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request",
+    "fixture",
+    "before_sha256",
+    "after_sha256",
+    "interpreter_version",
+    "liquid_version",
+    "projection_version"
+  ],
+  "properties": {
+    "request": {
+      "$ref": "compare_request.schema.json"
+    },
+    "fixture": {
+      "$ref": "fixture.schema.json"
+    },
+    "before_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "after_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "interpreter_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "liquid_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "projection_version": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

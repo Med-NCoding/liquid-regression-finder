@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liquid-regression-finder.local/contracts/schemas/trace_event.schema.json",
+  "title": "TraceEvent",
+  "description": "Single evaluator trace side-channel event.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["seq", "node_id", "scope", "span", "data"],
+  "properties": {
+    "seq": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "node_id": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/frame"
+      }
+    },
+    "span": {
+      "$ref": "#/$defs/span"
+    },
+    "data": {
+      "oneOf": [
+        { "$ref": "#/$defs/lookup" },
+        { "$ref": "#/$defs/comparison" },
+        { "$ref": "#/$defs/branch" },
+        { "$ref": "#/$defs/assignment" },
+        { "$ref": "#/$defs/emit" }
+      ]
+    }
+  },
+  "$defs": {
+    "span": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start_byte", "end_byte", "line", "column"],
+      "properties": {
+        "start_byte": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_byte": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "column": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["loop_id", "iteration", "variant_id"],
+      "properties": {
+        "loop_id": {
+          "type": "string"
+        },
+        "iteration": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "variant_id": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "json_value": {
+      "type": ["null", "boolean", "number", "string", "array", "object"]
+    },
+    "lookup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path", "found", "value"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "lookup"
+        },
+        "path": {
+          "type": "string"
+        },
+        "found": {
+          "type": "boolean"
+        },
+        "value": {
+          "$ref": "#/$defs/json_value"
+        }
+      }
+    },
+    "comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "op", "left", "right", "result"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "comparison"
+        },
+        "op": {
+          "type": "string",
+          "enum": ["==", "!=", "<", "<=", ">", ">="]
+        },
+        "left": {
+          "$ref": "#/$defs/json_value"
+        },
+        "right": {
+          "$ref": "#/$defs/json_value"
+        },
+        "result": {
+          "type": "boolean"
+        }
+      }
+    },
+    "branch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "expression", "condition", "taken"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "branch"
+        },
+        "expression": {
+          "type": "string"
+        },
+        "condition": {
+          "type": "boolean"
+        },
+        "taken": {
+          "type": "boolean"
+        }
+      }
+    },
+    "assignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "name", "value"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "assignment"
+        },
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/json_value"
+        }
+      }
+    },
+    "emit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "output_start_byte", "output_end_byte", "active_branch_seqs"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "emit"
+        },
+        "output_start_byte": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output_end_byte": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "active_branch_seqs": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

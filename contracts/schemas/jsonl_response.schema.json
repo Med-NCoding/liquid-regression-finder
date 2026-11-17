@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liquid-regression-finder.local/contracts/schemas/jsonl_response.schema.json",
+  "title": "JsonlResponse",
+  "description": "UTF-8 JSON Lines response emitted by the Ruby render worker.",
+  "oneOf": [
+    { "$ref": "#/$defs/success_response" },
+    { "$ref": "#/$defs/error_response" }
+  ],
+  "$defs": {
+    "success_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "result"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "result": {
+          "oneOf": [
+            { "$ref": "#/$defs/compile_result" },
+            { "$ref": "#/$defs/render_pair_result" },
+            { "$ref": "#/$defs/quit_result" }
+          ]
+        }
+      }
+    },
+    "error_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "error"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "error": {
+          "$ref": "render_result.schema.json#/$defs/diagnostic"
+        }
+      }
+    },
+    "compile_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["before_sha256", "after_sha256"],
+      "properties": {
+        "before_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "after_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "render_pair_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["before", "after", "product"],
+      "properties": {
+        "before": {
+          "$ref": "render_result.schema.json"
+        },
+        "after": {
+          "$ref": "render_result.schema.json"
+        },
+        "product": {
+          "$ref": "projection.schema.json"
+        }
+      }
+    },
+    "quit_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ok"],
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    }
+  }
+}

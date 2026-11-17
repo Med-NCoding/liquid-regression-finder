@@ -1,0 +1,23 @@
+{
+  "seq": 0,
+  "node_id": "n1:lookup",
+  "scope": [
+    {
+      "loop_id": "for_0",
+      "iteration": 1,
+      "variant_id": "v2"
+    }
+  ],
+  "span": {
+    "start_byte": 54,
+    "end_byte": 72,
+    "line": 1,
+    "column": 55
+  },
+  "data": {
+    "kind": "lookup",
+    "path": "v.compare_at_price",
+    "found": true,
+    "value": 2999
+  }
+}

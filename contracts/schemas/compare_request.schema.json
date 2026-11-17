@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://liquid-regression-finder.local/contracts/schemas/compare_request.schema.json",
+  "title": "CompareRequest",
+  "description": "Comparison job request containing before/after Liquid snippets, observer, seed, and budget.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "before", "after", "observer", "seed", "budget"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "before": {
+      "$ref": "#/$defs/snippet"
+    },
+    "after": {
+      "$ref": "#/$defs/snippet"
+    },
+    "observer": {
+      "type": "string",
+      "const": "sale_badge"
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "budget": {
+      "$ref": "#/$defs/budget"
+    }
+  },
+  "$defs": {
+    "snippet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source"],
+      "properties": {
+        "source": {
+          "type": "string"
+        }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["search_pairs", "shrink_pairs"],
+      "properties": {
+        "search_pairs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5000
+        },
+        "shrink_pairs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      }
+    }
+  }
+}

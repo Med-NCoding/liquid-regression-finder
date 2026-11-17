@@ -1,0 +1,8 @@
+{
+  "id": "req-4",
+  "error": {
+    "code": "protocol_error",
+    "message": "Invalid JSONL request",
+    "span": null
+  }
+}

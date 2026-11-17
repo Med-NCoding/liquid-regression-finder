@@ -1,0 +1,219 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "json"
+require "optparse"
+
+repo_root = File.expand_path("../..", __dir__)
+$LOAD_PATH.unshift(File.join(repo_root, "interpreter/lib"))
+
+require "liquid"
+require "liquid/spec"
+require "liquid_interpreter"
+require "liquid_interpreter/conformance"
+
+options = {
+  manifest_path: File.join(repo_root, "contracts/conformance-manifest.json"),
+  adapter_path: File.join(repo_root, "interpreter/liquid_spec_adapter.rb"),
+  require_plain_text: false,
+  require_all_selected: false,
+  verify_manifest: true,
+  max_failures_listed: nil,
+}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: conformance_report [options]"
+  opts.on("--manifest PATH", "Path to conformance-manifest.json") { |v| options[:manifest_path] = v }
+  opts.on("--adapter PATH", "Path to liquid-spec adapter") { |v| options[:adapter_path] = v }
+  opts.on("--require-plain-text", "Fail if any plain_text selected spec fails") { options[:require_plain_text] = true }
+  opts.on("--require-all-selected", "Fail if any selected spec fails") { options[:require_all_selected] = true }
+  opts.on("--no-verify-manifest", "Skip regenerating/verifying manifest consistency") { options[:verify_manifest] = false }
+  opts.on("--max-failures N", Integer, "Limit printed failure IDs") { |v| options[:max_failures_listed] = v }
+end.parse!
+
+unless File.exist?(options[:manifest_path])
+  warn "ERROR: Missing manifest at #{options[:manifest_path]}"
+  exit 2
+end
+
+manifest = JSON.parse(File.read(options[:manifest_path], encoding: Encoding::UTF_8))
+
+if options[:verify_manifest]
+  expected_manifest = LiquidInterpreter::Conformance.build_manifest
+  if manifest != expected_manifest
+    warn "ERROR: #{options[:manifest_path]} does not match deterministic inventory for liquid-spec SHA #{LiquidInterpreter::Conformance::PINNED_LIQUID_SPEC_SHA}"
+    exit 1
+  end
+end
+
+adapter = Liquid::Spec.load_adapter(options[:adapter_path])
+
+manifest_cases_by_id = {}
+manifest.fetch("cases").each { |entry| manifest_cases_by_id[entry.fetch("id")] = entry }
+
+suite_runs = {}
+plain_text_failures = []
+all_failures = []
+
+LiquidInterpreter::Conformance::INVENTORIED_SUITES.each do |suite_id|
+  suite = Liquid::Spec::Suite.find(suite_id)
+  specs = Liquid::Spec::SpecLoader.load_suite(suite)
+
+  selected_pairs = []
+  skipped_count = 0
+
+  specs.each do |spec|
+    id = LiquidInterpreter::Conformance.case_id(suite_id, spec)
+    entry = manifest_cases_by_id.fetch(id)
+    if entry.fetch("status") == "selected"
+      selected_pairs << [entry, spec]
+    else
+      skipped_count += 1
+    end
+  end
+
+  selected_specs = selected_pairs.map(&:last)
+  run_result = adapter.run(selected_specs)
+
+  pass_count = 0
+  fail_count = 0
+  error_count = 0
+  adapter_skipped = 0
+  plain_pass = 0
+  plain_total = 0
+
+  selected_pairs.zip(run_result.results).each do |(entry, _spec), res|
+    is_plain = entry["category"] == "plain_text"
+    plain_total += 1 if is_plain
+
+    case res.status
+    when :pass
+      pass_count += 1
+      plain_pass += 1 if is_plain
+    when :fail
+      fail_count += 1
+      failure_info = {
+        id: entry["id"],
+        suite: suite_id.to_s,
+        category: entry["category"],
+        status: "fail",
+        detail: "expected=#{res.expected.inspect} got=#{res.output.inspect}",
+      }
+      all_failures << failure_info
+      plain_text_failures << failure_info if is_plain
+    when :error
+      error_count += 1
+      failure_info = {
+        id: entry["id"],
+        suite: suite_id.to_s,
+        category: entry["category"],
+        status: "error",
+        detail: res.output.to_s,
+      }
+      all_failures << failure_info
+      plain_text_failures << failure_info if is_plain
+    when :skipped
+      adapter_skipped += 1
+      failure_info = {
+        id: entry["id"],
+        suite: suite_id.to_s,
+        category: entry["category"],
+        status: "adapter_skipped",
+        detail: res.reason.to_s,
+      }
+      all_failures << failure_info
+      plain_text_failures << failure_info if is_plain
+    end
+  end
+
+  suite_runs[suite_id.to_s] = {
+    total: specs.size,
+    selected: selected_pairs.size,
+    skipped_manifest: skipped_count,
+    adapter_skipped: adapter_skipped,
+    pass: pass_count,
+    fail: fail_count,
+    error: error_count,
+    plain_pass: plain_pass,
+    plain_total: plain_total,
+  }
+end
+
+totals = manifest.fetch("totals")
+total_pass = suite_runs.values.sum { |s| s[:pass] }
+total_fail = suite_runs.values.sum { |s| s[:fail] }
+total_error = suite_runs.values.sum { |s| s[:error] }
+total_selected = totals.fetch("selected")
+total_inventoried = totals.fetch("inventoried")
+total_all_suites = totals.fetch("all_suites")
+total_plain_pass = suite_runs.values.sum { |s| s[:plain_pass] }
+total_plain_selected = suite_runs.values.sum { |s| s[:plain_total] }
+
+pct = ->(num, den) { den.positive? ? format("%.2f%%", (num.to_f / den) * 100.0) : "0.00%" }
+
+puts "=== Liquid-Spec Conformance Report ==="
+puts "Adapter: #{options[:adapter_path]}"
+puts "Manifest: #{options[:manifest_path]}"
+puts "Pinned liquid-spec SHA: #{manifest.fetch("liquid_spec_sha")}"
+puts "Liquid reference gem: #{Liquid::VERSION}"
+puts "Custom interpreter: #{LiquidInterpreter::VERSION}"
+puts "Stage scope in manifest: #{manifest.fetch("stage_scope")}"
+puts ""
+puts "Inventoried Suites (basics + liquid_ruby):"
+LiquidInterpreter::Conformance::INVENTORIED_SUITES.each do |suite_id|
+  s = suite_runs.fetch(suite_id.to_s)
+  puts format(
+    "  %-14s total=%-4d selected=%-3d pass=%-3d fail=%-3d error=%-3d skip=%-4d (plain_text=%d/%d)",
+    suite_id,
+    s[:total],
+    s[:selected],
+    s[:pass],
+    s[:fail],
+    s[:error],
+    s[:skipped_manifest] + s[:adapter_skipped],
+    s[:plain_pass],
+    s[:plain_total],
+  )
+end
+puts ""
+puts "Other Liquid-Spec Suites (skipped by suite scope):"
+manifest.fetch("suites").each do |suite_name, info|
+  next if info["status"] == "inventoried"
+
+  puts format("  %-30s total=%-4d skip=%-4d reason=%s", suite_name, info["total"], info["skipped"], info["skip_reason"])
+end
+puts ""
+puts "Skip Reasons across Inventoried Suites:"
+manifest.fetch("skip_reason_counts").each do |reason, count|
+  puts format("  %-40s %d", reason, count)
+end
+puts ""
+puts "Aggregate Counts & Denominators:"
+puts "  plain_text_pilot: #{total_plain_pass}/#{total_plain_selected} (#{pct.call(total_plain_pass, total_plain_selected)})"
+puts "  pass/selected:    #{total_pass}/#{total_selected} (#{pct.call(total_pass, total_selected)}) [fail=#{total_fail}, error=#{total_error}]"
+puts "  pass/inventoried: #{total_pass}/#{total_inventoried} (#{pct.call(total_pass, total_inventoried)}) [basics + liquid_ruby]"
+puts "  pass/all_suites:  #{total_pass}/#{total_all_suites} (#{pct.call(total_pass, total_all_suites)}) [all 8 suites]"
+puts ""
+
+if all_failures.any?
+  limit = options[:max_failures_listed]
+  shown = limit ? all_failures.first(limit) : all_failures
+  puts "Failure IDs (#{all_failures.size} total#{limit && all_failures.size > limit ? ", showing first #{limit}" : ""}):"
+  shown.each do |f|
+    detail = f[:detail].tr("\n", " ")
+    detail = detail[0, 140] + "..." if detail.length > 140
+    puts "  [#{f[:status]}][#{f[:category]}] #{f[:id]} -- #{detail}"
+  end
+else
+  puts "Failure IDs: none (0 failures)"
+end
+
+if options[:require_plain_text] && plain_text_failures.any?
+  warn "ERROR: #{plain_text_failures.size} plain_text pilot spec(s) failed!"
+  exit 1
+end
+
+if options[:require_all_selected] && all_failures.any?
+  warn "ERROR: #{all_failures.size} selected spec(s) failed!"
+  exit 1
+end
