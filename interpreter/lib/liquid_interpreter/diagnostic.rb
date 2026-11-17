@@ -64,4 +64,10 @@ module LiquidInterpreter
       super(message, code: code, span: span)
     end
   end
+
+  class LimitError < Error
+    def initialize(message, code: "resource_limit_exceeded", span: nil)
+      super(message, code: code, span: span)
+    end
+  end
 end

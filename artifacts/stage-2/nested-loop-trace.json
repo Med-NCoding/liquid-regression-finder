@@ -1,0 +1,1011 @@
+{
+  "status": "ok",
+  "html": "<article data-card=\"card_1\"><span data-regression-badge=\"sale\">Sale</span></article><article data-card=\"card_2\"><span>Regular</span></article>",
+  "observed": true,
+  "events": [
+    {
+      "seq": 0,
+      "node_id": "n0:for.coll:lookup",
+      "scope": [],
+      "span": {
+        "start_byte": 16,
+        "end_byte": 29,
+        "line": 1,
+        "column": 17
+      },
+      "data": {
+        "kind": "lookup",
+        "path": "catalog.cards",
+        "found": true,
+        "value": [
+          {
+            "id": "card_1",
+            "variants": [
+              {
+                "id": "var_1a",
+                "price": 2500,
+                "compare_at_price": null,
+                "available": true
+              },
+              {
+                "id": "var_1b",
+                "price": 1999,
+                "compare_at_price": 2999,
+                "available": true
+              }
+            ]
+          },
+          {
+            "id": "card_2",
+            "variants": [
+              {
+                "id": "var_2a",
+                "price": 3000,
+                "compare_at_price": 3000,
+                "available": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "seq": 1,
+      "node_id": "n0:for.b0:assign",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        }
+      ],
+      "span": {
+        "start_byte": 36,
+        "end_byte": 66,
+        "line": 2,
+        "column": 3
+      },
+      "data": {
+        "kind": "assignment",
+        "name": "on_sale",
+        "value": false
+      }
+    },
+    {
+      "seq": 2,
+      "node_id": "n0:for.b1:for.coll:lookup",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        }
+      ],
+      "span": {
+        "start_byte": 82,
+        "end_byte": 95,
+        "line": 3,
+        "column": 16
+      },
+      "data": {
+        "kind": "lookup",
+        "path": "card.variants",
+        "found": true,
+        "value": [
+          {
+            "id": "var_1a",
+            "price": 2500,
+            "compare_at_price": null,
+            "available": true
+          },
+          {
+            "id": "var_1b",
+            "price": 1999,
+            "compare_at_price": 2999,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "seq": 3,
+      "node_id": "n0:for.b1:for.b0:conditional.a0.cond.l.l:lookup",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        },
+        {
+          "loop_id": "n0:for.b1:for",
+          "iteration": 0,
+          "variant_id": "var_1a"
+        }
+      ],
+      "span": {
+        "start_byte": 111,
+        "end_byte": 129,
+        "line": 4,
+        "column": 12
+      },
+      "data": {
+        "kind": "lookup",
+        "path": "v.compare_at_price",
+        "found": true,
+        "value": null
+      }
+    },
+    {
+      "seq": 4,
+      "node_id": "n0:for.b1:for.b0:conditional.a0.cond.l:comparison",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        },
+        {
+          "loop_id": "n0:for.b1:for",
+          "iteration": 0,
+          "variant_id": "var_1a"
+        }
+      ],
+      "span": {
+        "start_byte": 111,
+        "end_byte": 136,
+        "line": 4,
+        "column": 12
+      },
+      "data": {
+        "kind": "comparison",
+        "op": "!=",
+        "left": null,
+        "right": null,
+        "result": false
+      }
+    },
+    {
+      "seq": 5,
+      "node_id": "n0:for.b1:for.b0:conditional.a0:branch",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        },
+        {
+          "loop_id": "n0:for.b1:for",
+          "iteration": 0,
+          "variant_id": "var_1a"
+        }
+      ],
+      "span": {
+        "start_byte": 104,
+        "end_byte": 173,
+        "line": 4,
+        "column": 5
+      },
+      "data": {
+        "kind": "branch",
+        "expression": "v.compare_at_price != nil and v.compare_at_price > v.price",
+        "condition": false,
+        "taken": false
+      }
+    },
+    {
+      "seq": 6,
+      "node_id": "n0:for.b1:for.b0:conditional.a0.cond.l.l:lookup",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        },
+        {
+          "loop_id": "n0:for.b1:for",
+          "iteration": 1,
+          "variant_id": "var_1b"
+        }
+      ],
+      "span": {
+        "start_byte": 111,
+        "end_byte": 129,
+        "line": 4,
+        "column": 12
+      },
+      "data": {
+        "kind": "lookup",
+        "path": "v.compare_at_price",
+        "found": true,
+        "value": 2999
+      }
+    },
+    {
+      "seq": 7,
+      "node_id": "n0:for.b1:for.b0:conditional.a0.cond.l:comparison",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        },
+        {
+          "loop_id": "n0:for.b1:for",
+          "iteration": 1,
+          "variant_id": "var_1b"
+        }
+      ],
+      "span": {
+        "start_byte": 111,
+        "end_byte": 136,
+        "line": 4,
+        "column": 12
+      },
+      "data": {
+        "kind": "comparison",
+        "op": "!=",
+        "left": 2999,
+        "right": null,
+        "result": true
+      }
+    },
+    {
+      "seq": 8,
+      "node_id": "n0:for.b1:for.b0:conditional.a0.cond.r.l:lookup",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        },
+        {
+          "loop_id": "n0:for.b1:for",
+          "iteration": 1,
+          "variant_id": "var_1b"
+        }
+      ],
+      "span": {
+        "start_byte": 141,
+        "end_byte": 159,
+        "line": 4,
+        "column": 42
+      },
+      "data": {
+        "kind": "lookup",
+        "path": "v.compare_at_price",
+        "found": true,
+        "value": 2999
+      }
+    },
+    {
+      "seq": 9,
+      "node_id": "n0:for.b1:for.b0:conditional.a0.cond.r.r:lookup",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        },
+        {
+          "loop_id": "n0:for.b1:for",
+          "iteration": 1,
+          "variant_id": "var_1b"
+        }
+      ],
+      "span": {
+        "start_byte": 162,
+        "end_byte": 169,
+        "line": 4,
+        "column": 63
+      },
+      "data": {
+        "kind": "lookup",
+        "path": "v.price",
+        "found": true,
+        "value": 1999
+      }
+    },
+    {
+      "seq": 10,
+      "node_id": "n0:for.b1:for.b0:conditional.a0.cond.r:comparison",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        },
+        {
+          "loop_id": "n0:for.b1:for",
+          "iteration": 1,
+          "variant_id": "var_1b"
+        }
+      ],
+      "span": {
+        "start_byte": 141,
+        "end_byte": 169,
+        "line": 4,
+        "column": 42
+      },
+      "data": {
+        "kind": "comparison",
+        "op": ">",
+        "left": 2999,
+        "right": 1999,
+        "result": true
+      }
+    },
+    {
+      "seq": 11,
+      "node_id": "n0:for.b1:for.b0:conditional.a0:branch",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        },
+        {
+          "loop_id": "n0:for.b1:for",
+          "iteration": 1,
+          "variant_id": "var_1b"
+        }
+      ],
+      "span": {
+        "start_byte": 104,
+        "end_byte": 173,
+        "line": 4,
+        "column": 5
+      },
+      "data": {
+        "kind": "branch",
+        "expression": "v.compare_at_price != nil and v.compare_at_price > v.price",
+        "condition": true,
+        "taken": true
+      }
+    },
+    {
+      "seq": 12,
+      "node_id": "n0:for.b1:for.b0:conditional.a0.b0:assign",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        },
+        {
+          "loop_id": "n0:for.b1:for",
+          "iteration": 1,
+          "variant_id": "var_1b"
+        }
+      ],
+      "span": {
+        "start_byte": 180,
+        "end_byte": 209,
+        "line": 5,
+        "column": 7
+      },
+      "data": {
+        "kind": "assignment",
+        "name": "on_sale",
+        "value": true
+      }
+    },
+    {
+      "seq": 13,
+      "node_id": "n0:for.b2:text",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        }
+      ],
+      "span": {
+        "start_byte": 244,
+        "end_byte": 267,
+        "line": 7,
+        "column": 17
+      },
+      "data": {
+        "kind": "emit",
+        "output_start_byte": 0,
+        "output_end_byte": 20,
+        "active_branch_seqs": []
+      }
+    },
+    {
+      "seq": 14,
+      "node_id": "n0:for.b3:output.expr:lookup",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        }
+      ],
+      "span": {
+        "start_byte": 270,
+        "end_byte": 277,
+        "line": 8,
+        "column": 26
+      },
+      "data": {
+        "kind": "lookup",
+        "path": "card.id",
+        "found": true,
+        "value": "card_1"
+      }
+    },
+    {
+      "seq": 15,
+      "node_id": "n0:for.b3:output",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        }
+      ],
+      "span": {
+        "start_byte": 267,
+        "end_byte": 280,
+        "line": 8,
+        "column": 23
+      },
+      "data": {
+        "kind": "emit",
+        "output_start_byte": 20,
+        "output_end_byte": 26,
+        "active_branch_seqs": []
+      }
+    },
+    {
+      "seq": 16,
+      "node_id": "n0:for.b4:text",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        }
+      ],
+      "span": {
+        "start_byte": 280,
+        "end_byte": 282,
+        "line": 8,
+        "column": 36
+      },
+      "data": {
+        "kind": "emit",
+        "output_start_byte": 26,
+        "output_end_byte": 28,
+        "active_branch_seqs": []
+      }
+    },
+    {
+      "seq": 17,
+      "node_id": "n0:for.b5:conditional.a0.cond:lookup",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        }
+      ],
+      "span": {
+        "start_byte": 289,
+        "end_byte": 296,
+        "line": 8,
+        "column": 45
+      },
+      "data": {
+        "kind": "lookup",
+        "path": "on_sale",
+        "found": true,
+        "value": true
+      }
+    },
+    {
+      "seq": 18,
+      "node_id": "n0:for.b5:conditional.a0:branch",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        }
+      ],
+      "span": {
+        "start_byte": 282,
+        "end_byte": 300,
+        "line": 8,
+        "column": 38
+      },
+      "data": {
+        "kind": "branch",
+        "expression": "on_sale",
+        "condition": true,
+        "taken": true
+      }
+    },
+    {
+      "seq": 19,
+      "node_id": "n0:for.b5:conditional.a0.b0:text",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        }
+      ],
+      "span": {
+        "start_byte": 300,
+        "end_byte": 346,
+        "line": 8,
+        "column": 56
+      },
+      "data": {
+        "kind": "emit",
+        "output_start_byte": 28,
+        "output_end_byte": 74,
+        "active_branch_seqs": [
+          18
+        ]
+      }
+    },
+    {
+      "seq": 20,
+      "node_id": "n0:for.b6:text",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 0,
+          "variant_id": "card_1"
+        }
+      ],
+      "span": {
+        "start_byte": 391,
+        "end_byte": 402,
+        "line": 8,
+        "column": 147
+      },
+      "data": {
+        "kind": "emit",
+        "output_start_byte": 74,
+        "output_end_byte": 84,
+        "active_branch_seqs": []
+      }
+    },
+    {
+      "seq": 21,
+      "node_id": "n0:for.b0:assign",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 1,
+          "variant_id": "card_2"
+        }
+      ],
+      "span": {
+        "start_byte": 36,
+        "end_byte": 66,
+        "line": 2,
+        "column": 3
+      },
+      "data": {
+        "kind": "assignment",
+        "name": "on_sale",
+        "value": false
+      }
+    },
+    {
+      "seq": 22,
+      "node_id": "n0:for.b1:for.coll:lookup",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 1,
+          "variant_id": "card_2"
+        }
+      ],
+      "span": {
+        "start_byte": 82,
+        "end_byte": 95,
+        "line": 3,
+        "column": 16
+      },
+      "data": {
+        "kind": "lookup",
+        "path": "card.variants",
+        "found": true,
+        "value": [
+          {
+            "id": "var_2a",
+            "price": 3000,
+            "compare_at_price": 3000,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "seq": 23,
+      "node_id": "n0:for.b1:for.b0:conditional.a0.cond.l.l:lookup",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 1,
+          "variant_id": "card_2"
+        },
+        {
+          "loop_id": "n0:for.b1:for",
+          "iteration": 0,
+          "variant_id": "var_2a"
+        }
+      ],
+      "span": {
+        "start_byte": 111,
+        "end_byte": 129,
+        "line": 4,
+        "column": 12
+      },
+      "data": {
+        "kind": "lookup",
+        "path": "v.compare_at_price",
+        "found": true,
+        "value": 3000
+      }
+    },
+    {
+      "seq": 24,
+      "node_id": "n0:for.b1:for.b0:conditional.a0.cond.l:comparison",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 1,
+          "variant_id": "card_2"
+        },
+        {
+          "loop_id": "n0:for.b1:for",
+          "iteration": 0,
+          "variant_id": "var_2a"
+        }
+      ],
+      "span": {
+        "start_byte": 111,
+        "end_byte": 136,
+        "line": 4,
+        "column": 12
+      },
+      "data": {
+        "kind": "comparison",
+        "op": "!=",
+        "left": 3000,
+        "right": null,
+        "result": true
+      }
+    },
+    {
+      "seq": 25,
+      "node_id": "n0:for.b1:for.b0:conditional.a0.cond.r.l:lookup",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 1,
+          "variant_id": "card_2"
+        },
+        {
+          "loop_id": "n0:for.b1:for",
+          "iteration": 0,
+          "variant_id": "var_2a"
+        }
+      ],
+      "span": {
+        "start_byte": 141,
+        "end_byte": 159,
+        "line": 4,
+        "column": 42
+      },
+      "data": {
+        "kind": "lookup",
+        "path": "v.compare_at_price",
+        "found": true,
+        "value": 3000
+      }
+    },
+    {
+      "seq": 26,
+      "node_id": "n0:for.b1:for.b0:conditional.a0.cond.r.r:lookup",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 1,
+          "variant_id": "card_2"
+        },
+        {
+          "loop_id": "n0:for.b1:for",
+          "iteration": 0,
+          "variant_id": "var_2a"
+        }
+      ],
+      "span": {
+        "start_byte": 162,
+        "end_byte": 169,
+        "line": 4,
+        "column": 63
+      },
+      "data": {
+        "kind": "lookup",
+        "path": "v.price",
+        "found": true,
+        "value": 3000
+      }
+    },
+    {
+      "seq": 27,
+      "node_id": "n0:for.b1:for.b0:conditional.a0.cond.r:comparison",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 1,
+          "variant_id": "card_2"
+        },
+        {
+          "loop_id": "n0:for.b1:for",
+          "iteration": 0,
+          "variant_id": "var_2a"
+        }
+      ],
+      "span": {
+        "start_byte": 141,
+        "end_byte": 169,
+        "line": 4,
+        "column": 42
+      },
+      "data": {
+        "kind": "comparison",
+        "op": ">",
+        "left": 3000,
+        "right": 3000,
+        "result": false
+      }
+    },
+    {
+      "seq": 28,
+      "node_id": "n0:for.b1:for.b0:conditional.a0:branch",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 1,
+          "variant_id": "card_2"
+        },
+        {
+          "loop_id": "n0:for.b1:for",
+          "iteration": 0,
+          "variant_id": "var_2a"
+        }
+      ],
+      "span": {
+        "start_byte": 104,
+        "end_byte": 173,
+        "line": 4,
+        "column": 5
+      },
+      "data": {
+        "kind": "branch",
+        "expression": "v.compare_at_price != nil and v.compare_at_price > v.price",
+        "condition": false,
+        "taken": false
+      }
+    },
+    {
+      "seq": 29,
+      "node_id": "n0:for.b2:text",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 1,
+          "variant_id": "card_2"
+        }
+      ],
+      "span": {
+        "start_byte": 244,
+        "end_byte": 267,
+        "line": 7,
+        "column": 17
+      },
+      "data": {
+        "kind": "emit",
+        "output_start_byte": 84,
+        "output_end_byte": 104,
+        "active_branch_seqs": []
+      }
+    },
+    {
+      "seq": 30,
+      "node_id": "n0:for.b3:output.expr:lookup",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 1,
+          "variant_id": "card_2"
+        }
+      ],
+      "span": {
+        "start_byte": 270,
+        "end_byte": 277,
+        "line": 8,
+        "column": 26
+      },
+      "data": {
+        "kind": "lookup",
+        "path": "card.id",
+        "found": true,
+        "value": "card_2"
+      }
+    },
+    {
+      "seq": 31,
+      "node_id": "n0:for.b3:output",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 1,
+          "variant_id": "card_2"
+        }
+      ],
+      "span": {
+        "start_byte": 267,
+        "end_byte": 280,
+        "line": 8,
+        "column": 23
+      },
+      "data": {
+        "kind": "emit",
+        "output_start_byte": 104,
+        "output_end_byte": 110,
+        "active_branch_seqs": []
+      }
+    },
+    {
+      "seq": 32,
+      "node_id": "n0:for.b4:text",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 1,
+          "variant_id": "card_2"
+        }
+      ],
+      "span": {
+        "start_byte": 280,
+        "end_byte": 282,
+        "line": 8,
+        "column": 36
+      },
+      "data": {
+        "kind": "emit",
+        "output_start_byte": 110,
+        "output_end_byte": 112,
+        "active_branch_seqs": []
+      }
+    },
+    {
+      "seq": 33,
+      "node_id": "n0:for.b5:conditional.a0.cond:lookup",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 1,
+          "variant_id": "card_2"
+        }
+      ],
+      "span": {
+        "start_byte": 289,
+        "end_byte": 296,
+        "line": 8,
+        "column": 45
+      },
+      "data": {
+        "kind": "lookup",
+        "path": "on_sale",
+        "found": true,
+        "value": false
+      }
+    },
+    {
+      "seq": 34,
+      "node_id": "n0:for.b5:conditional.a0:branch",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 1,
+          "variant_id": "card_2"
+        }
+      ],
+      "span": {
+        "start_byte": 282,
+        "end_byte": 300,
+        "line": 8,
+        "column": 38
+      },
+      "data": {
+        "kind": "branch",
+        "expression": "on_sale",
+        "condition": false,
+        "taken": false
+      }
+    },
+    {
+      "seq": 35,
+      "node_id": "n0:for.b5:conditional.else:branch",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 1,
+          "variant_id": "card_2"
+        }
+      ],
+      "span": {
+        "start_byte": 346,
+        "end_byte": 358,
+        "line": 8,
+        "column": 102
+      },
+      "data": {
+        "kind": "branch",
+        "expression": "else",
+        "condition": true,
+        "taken": true
+      }
+    },
+    {
+      "seq": 36,
+      "node_id": "n0:for.b5:conditional.else.b0:text",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 1,
+          "variant_id": "card_2"
+        }
+      ],
+      "span": {
+        "start_byte": 358,
+        "end_byte": 378,
+        "line": 8,
+        "column": 114
+      },
+      "data": {
+        "kind": "emit",
+        "output_start_byte": 112,
+        "output_end_byte": 132,
+        "active_branch_seqs": [
+          35
+        ]
+      }
+    },
+    {
+      "seq": 37,
+      "node_id": "n0:for.b6:text",
+      "scope": [
+        {
+          "loop_id": "n0:for",
+          "iteration": 1,
+          "variant_id": "card_2"
+        }
+      ],
+      "span": {
+        "start_byte": 391,
+        "end_byte": 402,
+        "line": 8,
+        "column": 147
+      },
+      "data": {
+        "kind": "emit",
+        "output_start_byte": 132,
+        "output_end_byte": 142,
+        "active_branch_seqs": []
+      }
+    }
+  ],
+  "error": null
+}

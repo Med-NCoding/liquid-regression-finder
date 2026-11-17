@@ -1,0 +1,91 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "fileutils"
+require "json"
+require "json_schemer"
+require "optparse"
+
+repo_root = File.expand_path("../..", __dir__)
+$LOAD_PATH.unshift(File.join(repo_root, "interpreter/lib"))
+
+require "liquid_interpreter"
+
+out_path = File.join(repo_root, "artifacts/stage-2/nested-loop-trace.json")
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: nested_loop_demo [options]"
+  opts.on("--out PATH", "Output path for trace JSON") { |v| out_path = v }
+end.parse!
+
+source = <<~'LIQUID'
+  {%- for card in catalog.cards -%}
+    {%- assign on_sale = false -%}
+    {%- for v in card.variants -%}
+      {%- if v.compare_at_price != nil and v.compare_at_price > v.price -%}
+        {%- assign on_sale = true -%}
+      {%- endif -%}
+    {%- endfor -%}
+    <article data-card="{{ card.id }}">{%- if on_sale -%}<span data-regression-badge="sale">Sale</span>{%- else -%}<span>Regular</span>{%- endif -%}</article>
+  {%- endfor -%}
+LIQUID
+
+assigns = {
+  "catalog" => {
+    "cards" => [
+      {
+        "id" => "card_1",
+        "variants" => [
+          { "id" => "var_1a", "price" => 2500, "compare_at_price" => nil, "available" => true },
+          { "id" => "var_1b", "price" => 1999, "compare_at_price" => 2999, "available" => true },
+        ],
+      },
+      {
+        "id" => "card_2",
+        "variants" => [
+          { "id" => "var_2a", "price" => 3000, "compare_at_price" => 3000, "available" => true },
+        ],
+      },
+    ],
+  },
+}
+
+template = LiquidInterpreter::Template.compile(source)
+plain_html = template.render(assigns)
+traced = template.render_with_trace(assigns)
+
+if plain_html != traced["html"]
+  warn "ERROR: Trace-enabled render diverged from plain render!"
+  exit 1
+end
+
+payload = {
+  "status" => traced["status"],
+  "html" => traced["html"],
+  "observed" => traced["html"].include?('data-regression-badge="sale"'),
+  "events" => traced["events"],
+  "error" => traced["error"],
+}
+
+schemas_dir = File.join(repo_root, "contracts/schemas")
+ref_resolver = lambda do |uri|
+  JSON.parse(File.read(File.join(schemas_dir, File.basename(uri.path)), encoding: Encoding::UTF_8))
+end
+
+render_result_schema = JSONSchemer.schema(
+  JSON.parse(File.read(File.join(schemas_dir, "render_result.schema.json"), encoding: Encoding::UTF_8)),
+  ref_resolver: ref_resolver,
+)
+
+errors = render_result_schema.validate(payload).to_a
+if errors.any?
+  warn "ERROR: Nested-loop trace RenderResult failed schema validation: #{errors.map { |e| e["error"] }}"
+  exit 1
+end
+
+FileUtils.mkdir_p(File.dirname(out_path))
+File.write(out_path, JSON.pretty_generate(payload) + "\n", encoding: Encoding::UTF_8)
+
+puts "Wrote #{out_path}"
+puts "  status=#{payload["status"]} html_bytes=#{payload["html"].bytesize} observed=#{payload["observed"]} events=#{payload["events"].size}"
+puts "  html=#{payload["html"]}"

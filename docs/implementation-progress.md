@@ -1,7 +1,7 @@
 # Implementation Progress — Shopify Liquid Regression Finder
 
-- **Current Stage**: Stage 1 (`passed`)
-- **Last Completed Stage**: Stage 1 — Bootstrap and conformance adapter
+- **Current Stage**: Stage 2 (`passed`)
+- **Last Completed Stage**: Stage 2 — Liquid engine
 - **Repository**: https://github.com/Med-NCoding/liquid-regression-finder
 
 ## Stage Tracker
@@ -9,7 +9,7 @@
 | Stage | Title | Status | Gate Command | Last Exit Status | Evidence Paths |
 |---|---|---|---|---|---|
 | 1 | Bootstrap and conformance adapter | passed | `bin/check stage-1` | 0 | `artifacts/stage-1/liquid-spec-pilot.txt`, `contracts/conformance-manifest.json`, `docs/toolchain-versions.md` |
-| 2 | Liquid engine | pending | `bin/check stage-2` | — | — |
+| 2 | Liquid engine | passed | `bin/check stage-2` | 0 | `artifacts/stage-2/conformance-report.txt`, `artifacts/stage-2/nested-loop-trace.json`, `interpreter/test/` |
 | 3 | Shopify projection and reference | pending | `bin/check stage-3` | — | — |
 | 4 | Counterexample search | pending | `bin/check stage-4` | — | — |
 | 5 | Shrink, explanation and replay | pending | `bin/check stage-5` | — | — |
@@ -50,5 +50,37 @@
     - `pass/all_suites`: `14/7395` (`0.19%` across all 8 suites)
   - Full output with all 345 failure IDs saved to `artifacts/stage-1/liquid-spec-pilot.txt`.
 - **Gate Command & Exit Status**: `./bin/check stage-1` -> exit `0`.
-- **Remaining Tasks**: Stage 2 through Stage 10.
-- **Next Command**: Start Stage 2 worker (`bin/check stage-2`) to implement full lexer, AST/parser, evaluator, scopes, tracing, resource limits, and pass all `359/359` frozen in-scope conformance cases.
+- **Stage 2 Note on Stage 1 Regression Test**: In Stage 2, `interpreter/test/test_stage1_bootstrap.rb` (`test_lexer_rejects_liquid_syntax_with_unicode_span`) was updated from testing `{{ name }}` / `{% if true %}` (now enabled in Stage 2) to `{% bogus %}` / `{% comment %}` so the test continues verifying `UnsupportedFeatureError` (`< SyntaxError`) with line and Unicode code-point column `Span`s.
+- **Remaining Tasks**: Stage 3 through Stage 10.
+- **Next Command**: Start Stage 3 worker (`bin/check stage-3`).
+
+### Stage 2 — Liquid Engine
+- **Status**: `passed`
+- **Completed Tasks**:
+  - **SpanMapper & Limits (`span.rb`, `diagnostic.rb`)**: Added `SpanMapper` for O(log L) UTF-8 byte-offset and Unicode code-point column mapping across multiline snippets, and `LimitError < Error` for resource limit diagnostics.
+  - **Lexer & Whitespace Trimming (`lexer.rb`)**: Implemented full `:text`, `:output` (`{{ ... }}` / `{{- ... -}}`), and `:tag` (`{% ... %}` / `{%- ... -%}`) lexing, preserving raw UTF-8 spans without normalizing non-Liquid markup or non-ASCII whitespace (e.g., `\u00a0`), enforcing `MAX_SNIPPET_BYTES = 16_384`, and applying Liquid boundary trim markers (`{{-`, `-}}`, `{%-`, `-%}`).
+  - **AST & Parser (`ast.rb`, `parser.rb`)**: Implemented `Document`, `Text`, `Output`, `Assign`, `Conditional` (`if`/`elsif`/`else`/`unless` with `ConditionalArm`), `For` (with optional `else`), and expressions (`Literal`, `Path`, `Compare`, right-grouped `Logical`), deterministic AST-path `node_id`s, `blank?` block whitespace removal matching `liquid 5.14.0`, `MAX_DEPTH = 32`, and structured `SyntaxError`/`UnsupportedFeatureError` diagnostics with source spans.
+  - **Evaluator & Scopes (`evaluator.rb`)**: Implemented per-render deep-copied JSON assigns, `root_scope` + `loop_scopes` stack (`assign` persistence across loops, `for` binder shadowing/restoration), permissive missing-vs-null lookups, `liquid 5.14.0` truthiness, right-grouped `and`/`or` short-circuiting, strict comparison error/false parity, and array/hash/string output rendering.
+  - **Tracer & Resource Limits (`tracer.rb`, `template.rb`, `interpreter/bin/nested_loop_demo`)**: Implemented trace side-channel emitting schema-valid `Lookup`, `Comparison`, `Branch`, `Assignment`, and `Emit` events (`seq`, AST `node_id`, nested loop `Frame`s with `variant_id`, value snapshots, `active_branch_seqs`), `Template.render_result` returning contract `RenderResult`, and runtime enforcement of `MAX_DEPTH = 32`, `MAX_STEPS = 50_000`, `MAX_OUTPUT_BYTES = 131_072`, and `MAX_TRACE_EVENTS = 10_000`.
+  - **Unit, Oracle, Tracer & Limit Suites (`interpreter/test/`)**:
+    - `contracts/test_contracts.rb`: `6 runs, 196 assertions, 0 failures, 0 errors, 0 skips`
+    - `interpreter/test/test_stage1_bootstrap.rb`: `7 runs, 9591 assertions, 0 failures, 0 errors, 0 skips`
+    - `interpreter/test/test_lexer_and_parser.rb`: `7 runs, 232 assertions, 0 failures, 0 errors, 0 skips`
+    - `interpreter/test/test_evaluator_and_oracle.rb`: `7 runs, 710 assertions, 0 failures, 0 errors, 0 skips`
+    - `interpreter/test/test_tracer_and_limits.rb`: `8 runs, 30978 assertions, 0 failures, 0 errors, 0 skips`
+- **Conformance & `liquid-spec` Verification**:
+  - `bundle exec ruby interpreter/bin/conformance_report --require-all-selected` -> exit `0` (saved to `artifacts/stage-2/conformance-report.txt`; manifest unchanged):
+    - `basics`: `141/141` (`fail=0, error=0, skip=814`)
+    - `liquid_ruby`: `218/218` (`fail=0, error=0, skip=1888`)
+    - `plain_text_pilot`: `14/14` (`100.00%`)
+    - `pass/selected`: `359/359` (`100.00%`)
+    - `pass/inventoried`: `359/3061` (`11.73%` across `basics` + `liquid_ruby`)
+    - `pass/all_suites`: `359/7395` (`4.85%` across all 8 suites)
+  - Full suite `liquid-spec` runs (out-of-scope features like filters/floats/ranges/empty account for remaining suite failures):
+    - `bundle exec liquid-spec run interpreter/liquid_spec_adapter.rb -s basics` -> `143 passes, 700 failures, 112 skipped`
+    - `bundle exec liquid-spec run interpreter/liquid_spec_adapter.rb -s liquid_ruby` -> `235 passes, 1318 failures, 553 skipped`
+  - Selected-subset `liquid-spec` CLI checks in `bin/check stage-2` (`-s basics` `34/34` passes, `-s liquid_ruby` `68/68` passes) -> exit `0`.
+  - Nested-loop trace demo (`interpreter/bin/nested_loop_demo --out artifacts/stage-2/nested-loop-trace.json`) -> exit `0` (`status=ok`, `html_bytes=142`, `observed=true`, `events=38`, validated against `render_result.schema.json` and `trace_event.schema.json`).
+- **Gate Command & Exit Status**: `./bin/check stage-2` -> exit `0` (`./bin/check stage-1` -> exit `0`).
+- **Remaining Tasks**: Stage 3 through Stage 10.
+- **Next Command**: Start Stage 3 worker (`bin/check stage-3`).

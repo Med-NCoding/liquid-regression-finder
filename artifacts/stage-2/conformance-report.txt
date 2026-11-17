@@ -1,0 +1,42 @@
+=== Liquid-Spec Conformance Report ===
+Adapter: /Users/medhanshnegi/.gemini/antigravity/scratch/liquid-regression-finder/interpreter/liquid_spec_adapter.rb
+Manifest: /Users/medhanshnegi/.gemini/antigravity/scratch/liquid-regression-finder/contracts/conformance-manifest.json
+Pinned liquid-spec SHA: 84bf25e0edbca5f7e530574788b0f875ab331f50
+Liquid reference gem: 5.14.0
+Custom interpreter: 0.1.0
+Stage scope in manifest: stage-2
+
+Inventoried Suites (basics + liquid_ruby):
+  basics         total=955  selected=141 pass=141 fail=0   error=0   skip=814  (plain_text=8/8)
+  liquid_ruby    total=2106 selected=218 pass=218 fail=0   error=0   skip=1888 (plain_text=6/6)
+
+Other Liquid-Spec Suites (skipped by suite scope):
+  benchmarks                     total=10   skip=10   reason=benchmark_suite_out_of_scope
+  liquid_ruby_lax                total=121  skip=121  reason=lax_parsing_mode_out_of_scope
+  parser_errors                  total=1905 skip=1905 reason=error_wording_or_mutation_suite
+  partials                       total=12   skip=12   reason=partials_and_core_suite
+  shopify_production_recordings  total=2260 skip=2260 reason=inline_error_mode_and_production_recordings
+  shopify_theme_dawn             total=26   skip=26   reason=shopify_extensions_and_theme_sections
+
+Skip Reasons across Inventoried Suites:
+  bracket_access_out_of_scope              51
+  drops_and_ruby_objects                   506
+  error_wording_or_inline_error_mode       186
+  floats_out_of_scope                      12
+  for_loop_extensions_out_of_scope         59
+  partials_and_filesystem                  305
+  range_expressions_out_of_scope           84
+  resource_limit_accounting_out_of_scope   10
+  shopify_extensions                       3
+  unsupported_filters                      1076
+  unsupported_operators_or_keywords        66
+  unsupported_tags                         326
+  virtual_collection_properties            18
+
+Aggregate Counts & Denominators:
+  plain_text_pilot: 14/14 (100.00%)
+  pass/selected:    359/359 (100.00%) [fail=0, error=0]
+  pass/inventoried: 359/3061 (11.73%) [basics + liquid_ruby]
+  pass/all_suites:  359/7395 (4.85%) [all 8 suites]
+
+Failure IDs: none (0 failures)

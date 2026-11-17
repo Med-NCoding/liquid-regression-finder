@@ -71,20 +71,21 @@ class Stage1BootstrapTest < Minitest::Test
   end
 
   def test_lexer_rejects_liquid_syntax_with_unicode_span
-    src = "hi äö\n  ä{{ name }}"
+    src = "hi äö\n  ä{% bogus %}"
     err = assert_raises(LiquidInterpreter::UnsupportedFeatureError) do
       LiquidInterpreter::Template.compile(src)
     end
     assert_kind_of LiquidInterpreter::SyntaxError, err
-    assert_equal "unsupported_syntax", err.code
+    assert_equal "unsupported_tag", err.code
     assert_equal 2, err.line
     assert_equal 4, err.column
     refute_nil err.span
-    assert_equal "{{", src.byteslice(err.span.start_byte...err.span.end_byte)
+    assert_equal "{% bogus %}", src.byteslice(err.span.start_byte...err.span.end_byte)
 
     tag_err = assert_raises(LiquidInterpreter::UnsupportedFeatureError) do
-      LiquidInterpreter::Template.compile("ok {% if true %}yes{% endif %}")
+      LiquidInterpreter::Template.compile("ok {% comment %}yes{% endcomment %}")
     end
+    assert_equal "unsupported_tag", tag_err.code
     assert_equal 1, tag_err.line
     assert_equal 4, tag_err.column
   end
