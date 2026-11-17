@@ -1,0 +1,31 @@
+# Transient stage logs and local caches
+artifacts/tmp/
+artifacts/*.log
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Ruby / Bundler / Rails
+vendor/bundle/
+.bundle/
+api/tmp/
+api/log/
+api/storage/*.sqlite3*
+api/storage/*.db*
+
+# Node / React
+node_modules/
+web/node_modules/
+web/dist/
+web/.vite/
+
+# Environment / OS
+.env
+.env.*
+!.env.example
+.DS_Store
+.vercel/
