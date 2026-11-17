@@ -10,11 +10,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Sequence
 
+from .explain import build_explanation
 from .generator import (
     GENERATOR_VERSION,
     MAX_DUPLICATE_ATTEMPTS,
     CandidateGenerator,
+    canonical_json,
 )
+from .shrinker import shrink_confirmed_case
 from .worker_client import (
     DEFAULT_JOB_DEADLINE_S,
     DEFAULT_REQUEST_TIMEOUT_S,
@@ -226,13 +229,14 @@ def _failed_report(
         "message": error["message"],
         "request": request,
         "finding": None,
+        "shrink": None,
         "stats": stats,
         "error": error,
     }
 
 
 class SearchEngine:
-    """Executes Stage 4 counterexample search with reference parity verification."""
+    """Executes counterexample search, shrinking, trace explanation, and reference parity verification."""
 
     def __init__(
         self,
@@ -288,6 +292,7 @@ class SearchEngine:
         observer: str = validated["observer"]
         seed: int = validated["seed"]
         search_budget: int = validated["budget"]["search_pairs"]
+        shrink_budget: int = validated["budget"]["shrink_pairs"]
 
         before_sha256 = hashlib.sha256(before_src.encode("utf-8")).hexdigest()
         after_sha256 = hashlib.sha256(after_src.encode("utf-8")).hexdigest()
@@ -295,7 +300,10 @@ class SearchEngine:
 
         deadline_monotonic = start_monotonic + self._job_deadline_s
         search_pairs = 0
+        shrink_pairs = 0
         parity_rejections = 0
+        first_difference_ms: int | None = None
+        tested_cache: dict[str, bool] = {}
 
         if worker is not None:
             active_worker = worker
@@ -368,7 +376,9 @@ class SearchEngine:
                         reference_status="not_run",
                     )
 
+                fixture_key = canonical_json(fixture)
                 if custom_before["observed"] == custom_after["observed"]:
+                    tested_cache[fixture_key] = False
                     continue
 
                 self._check_deadline(deadline_monotonic)
@@ -377,6 +387,7 @@ class SearchEngine:
                 ref_after = ref_pair["after"]
 
                 if ref_before["status"] != "ok" or ref_after["status"] != "ok":
+                    tested_cache[fixture_key] = False
                     parity_rejections += 1
                     continue
 
@@ -384,34 +395,83 @@ class SearchEngine:
                     ref_before["observed"] != custom_before["observed"]
                     or ref_after["observed"] != custom_after["observed"]
                 ):
+                    tested_cache[fixture_key] = False
                     parity_rejections += 1
                     continue
 
+                tested_cache[fixture_key] = True
                 first_difference_ms = _elapsed_ms(start_monotonic)
-                direction = "before_only" if custom_before["observed"] else "after_only"
+                target_before_obs = bool(custom_before["observed"])
+                target_after_obs = bool(custom_after["observed"])
+                direction = "before_only" if target_before_obs else "after_only"
+
+                shrink_result = shrink_confirmed_case(
+                    worker=active_worker,
+                    fixture=fixture,
+                    before_observed=target_before_obs,
+                    after_observed=target_after_obs,
+                    shrink_budget=shrink_budget,
+                    tested_cache=tested_cache,
+                    deadline_check=lambda: self._check_deadline(deadline_monotonic),
+                    initial_custom_before=custom_before,
+                    initial_custom_after=custom_after,
+                    initial_reference_before=ref_before,
+                    initial_reference_after=ref_after,
+                )
+                shrink_pairs = shrink_result.shrink_pairs
+                final_fixture = shrink_result.fixture
+                final_untraced_before = shrink_result.final_custom_before
+                final_untraced_after = shrink_result.final_custom_after
 
                 self._check_deadline(deadline_monotonic)
-                traced_custom = active_worker.render_pair(fixture, engine="custom", trace=True)
+                traced_custom = active_worker.render_pair(final_fixture, engine="custom", trace=True)
                 traced_before = traced_custom["before"]
                 traced_after = traced_custom["after"]
 
                 if traced_before["status"] != "ok" or traced_after["status"] != "ok":
                     raise WorkerProtocolError("Tracing render failed after untraced render succeeded")
-                if traced_before["html"] != custom_before["html"] or traced_after["html"] != custom_after["html"]:
-                    raise WorkerProtocolError("Tracing altered rendered HTML output")
+                if final_untraced_before is not None and final_untraced_after is not None:
+                    if (
+                        traced_before["html"] != final_untraced_before["html"]
+                        or traced_after["html"] != final_untraced_after["html"]
+                    ):
+                        raise WorkerProtocolError("Tracing altered rendered HTML output")
+                    if (
+                        traced_before["observed"] != final_untraced_before["observed"]
+                        or traced_after["observed"] != final_untraced_after["observed"]
+                    ):
+                        raise WorkerProtocolError("Tracing altered observer result")
+
+                self._check_deadline(deadline_monotonic)
+                ref_final = active_worker.render_pair(final_fixture, engine="reference", trace=False)
+                ref_final_before = ref_final["before"]
+                ref_final_after = ref_final["after"]
+
+                if ref_final_before["status"] != "ok" or ref_final_after["status"] != "ok":
+                    raise WorkerProtocolError("Reference render failed on minimized fixture")
                 if (
-                    traced_before["observed"] != custom_before["observed"]
-                    or traced_after["observed"] != custom_after["observed"]
+                    ref_final_before["observed"] != traced_before["observed"]
+                    or ref_final_after["observed"] != traced_after["observed"]
                 ):
-                    raise WorkerProtocolError("Tracing altered observer result")
-                if traced_custom["product"] != ref_pair["product"]:
+                    raise WorkerProtocolError("Reference parity mismatch on minimized fixture")
+                if traced_before["observed"] == traced_after["observed"]:
+                    raise WorkerProtocolError("Minimized fixture lost observer difference")
+                if traced_custom["product"] != ref_final["product"]:
                     raise WorkerProtocolError("Product projection mismatch between custom and reference renders")
-                if ref_before["events"] or ref_after["events"]:
+                if ref_final_before["events"] or ref_final_after["events"]:
                     raise WorkerProtocolError("Reference render unexpectedly emitted trace events")
+
+                explanation = build_explanation(
+                    before_src,
+                    after_src,
+                    traced_before,
+                    traced_after,
+                    observer=observer,
+                )
 
                 replay_bundle = {
                     "request": validated,
-                    "fixture": fixture,
+                    "fixture": final_fixture,
                     "before_sha256": before_sha256,
                     "after_sha256": after_sha256,
                     "interpreter_version": versions.interpreter_version,
@@ -424,26 +484,32 @@ class SearchEngine:
                     "before": traced_before,
                     "after": traced_after,
                     "reference": {
-                        "before": ref_before,
-                        "after": ref_after,
+                        "before": ref_final_before,
+                        "after": ref_final_after,
                     },
-                    "explanation": {
-                        "kind": "undetermined",
-                        "before": None,
-                        "after": None,
-                        "summary": "Trace explanation pending Stage 5 shrink/alignment.",
-                    },
+                    "explanation": explanation,
                 }
 
                 elapsed_ms = max(first_difference_ms, _elapsed_ms(start_monotonic))
                 stats = _make_stats(
                     search_pairs=search_pairs,
-                    shrink_pairs=0,
+                    shrink_pairs=shrink_pairs,
                     parity_rejections=parity_rejections,
                     exhausted_by=None,
                     first_difference_ms=first_difference_ms,
                     elapsed_ms=elapsed_ms,
                 )
+                shrink_meta = {
+                    "budget": shrink_budget,
+                    "shrink_pairs": shrink_pairs,
+                    "accepted_steps": shrink_result.accepted_steps,
+                    "parity_rejections": shrink_result.parity_rejections,
+                    "local_fixed_point": shrink_result.local_fixed_point,
+                    "pre_shrink_measure": list(shrink_result.pre_measure),
+                    "post_shrink_measure": list(shrink_result.post_measure),
+                    "pre_shrink_variants": len(fixture["variants"]),
+                    "post_shrink_variants": len(final_fixture["variants"]),
+                }
 
                 return {
                     "schema_version": 1,
@@ -455,10 +521,13 @@ class SearchEngine:
                     "reference_status": "confirmed",
                     "message": (
                         f"Confirmed {observer} difference ({direction}) at candidate index "
-                        f"{candidate_index} after {search_pairs} search pair(s)."
+                        f"{candidate_index} after {search_pairs} search pair(s); "
+                        f"minimized fixture to {len(final_fixture['variants'])} variant(s) "
+                        f"in {shrink_pairs} shrink pair(s)."
                     ),
                     "request": validated,
                     "finding": finding,
+                    "shrink": shrink_meta,
                     "stats": stats,
                     "error": None,
                 }
@@ -499,6 +568,7 @@ class SearchEngine:
                 "message": "no difference found within this search",
                 "request": validated,
                 "finding": None,
+                "shrink": None,
                 "stats": _make_stats(
                     search_pairs=search_pairs,
                     shrink_pairs=0,
@@ -517,10 +587,10 @@ class SearchEngine:
                 error=exc.diagnostic,
                 stats=_make_stats(
                     search_pairs=search_pairs,
-                    shrink_pairs=0,
+                    shrink_pairs=shrink_pairs,
                     parity_rejections=parity_rejections,
                     exhausted_by=None,
-                    first_difference_ms=None,
+                    first_difference_ms=first_difference_ms,
                     elapsed_ms=_elapsed_ms(start_monotonic),
                 ),
                 reference_status="mismatch" if parity_rejections > 0 else "not_run",

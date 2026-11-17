@@ -23,13 +23,14 @@
     }
   },
   "finding": null,
+  "shrink": null,
   "stats": {
     "search_pairs": 16,
     "shrink_pairs": 0,
     "parity_rejections": 0,
     "exhausted_by": "pair_limit",
     "first_difference_ms": null,
-    "elapsed_ms": 260
+    "elapsed_ms": 266
   },
   "error": null
 }

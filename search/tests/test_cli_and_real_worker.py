@@ -97,7 +97,8 @@ class CliAndRealWorkerTests(unittest.TestCase):
                 self.assertIn(report["direction"], ("before_only", "after_only"))
                 self.assertGreaterEqual(report["candidate_index"], 0)
                 self.assertEqual(report["stats"]["search_pairs"], report["candidate_index"] + 1)
-                self.assertEqual(report["stats"]["shrink_pairs"], 0)
+                self.assertGreater(report["stats"]["shrink_pairs"], 0)
+                self.assertLessEqual(report["stats"]["shrink_pairs"], 128)
                 self.assertIsNone(report["stats"]["exhausted_by"])
 
                 finding = report["finding"]
@@ -108,15 +109,10 @@ class CliAndRealWorkerTests(unittest.TestCase):
                 self.assertGreater(len(finding["after"]["events"]), 0)
                 self.assertEqual(finding["reference"]["before"]["events"], [])
                 self.assertEqual(finding["reference"]["after"]["events"], [])
-                self.assertEqual(
-                    finding["explanation"],
-                    {
-                        "kind": "undetermined",
-                        "before": None,
-                        "after": None,
-                        "summary": "Trace explanation pending Stage 5 shrink/alignment.",
-                    },
-                )
+                self.assertEqual(finding["explanation"]["kind"], "structural_change")
+                self.assertEqual(finding["explanation"]["before"]["line"], 3)
+                self.assertEqual(finding["explanation"]["after"]["line"], 1)
+                self.assertTrue(finding["explanation"]["summary"].startswith("Structural change:"))
 
                 replay = finding["replay"]
                 self.assertEqual(replay["before_sha256"], expected_before_sha)

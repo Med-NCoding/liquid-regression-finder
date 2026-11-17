@@ -13,7 +13,8 @@ Targets:
   stage-2   Run Stage 1 regression checks, Stage 2 grammar/oracle/tracer/limit tests, 359/359 conformance report, and nested-loop trace demo
   stage-3   Run Stage 1-2 regression checks, Stage 3 projection/observer/reference/worker tests, and ordinary-product parity verification
   stage-4   Run Stage 1-3 regression checks, Stage 4 Python stdlib search tests, schema validation, and live demo/negative CLI checks
-  stage-5..stage-10   Future stage gates (not yet implemented)
+  stage-5   Run Stage 1-4 regression checks, Stage 5 shrink/explanation/replay acceptance checks, and contract schema validation
+  stage-6..stage-10   Future stage gates (not yet implemented)
   all       Run all stage gates (fails until all stages are implemented)
 USAGE
 }
@@ -267,6 +268,126 @@ run_stage_4() {
   echo "PASS: bin/check stage-4 succeeded."
 }
 
+run_stage_5() {
+  local bundle_bin python_bin
+  bundle_bin="$(resolve_bundle)"
+  python_bin="$(resolve_python)"
+
+  echo "==> Stage 5 Gate: Stage 1-4 Regression Checks"
+  run_stage_4
+
+  echo "==> Stage 5 Gate: Live Demo Compare + Shrink + Explanation (Expect Exit 1)"
+  mkdir -p "$ROOT_DIR/artifacts/stage-5"
+  local demo_rc=0
+  "$python_bin" -m search compare \
+    --before "$ROOT_DIR/fixtures/demo/before.liquid" \
+    --after "$ROOT_DIR/fixtures/demo/after.liquid" \
+    --observer sale_badge \
+    --seed 0 \
+    --search-pairs 256 \
+    --shrink-pairs 128 \
+    --replay-out "$ROOT_DIR/artifacts/stage-5/demo-replay.json" \
+    > "$ROOT_DIR/artifacts/stage-5/demo-compare.json" || demo_rc=$?
+  if [ "$demo_rc" -ne 1 ]; then
+    echo "ERROR: Expected exit code 1 from Stage 5 demo compare, got $demo_rc" >&2
+    exit 1
+  fi
+  echo "[stage-5 demo] python -m search compare exited with $demo_rc (difference_found)"
+
+  echo "==> Stage 5 Gate: Fresh-Process Deterministic Replay Verification (Expect Exit 0)"
+  local replay_rc=0
+  "$python_bin" -m search replay \
+    --bundle "$ROOT_DIR/artifacts/stage-5/demo-replay.json" \
+    > "$ROOT_DIR/artifacts/stage-5/demo-replay-result.json" || replay_rc=$?
+  if [ "$replay_rc" -ne 0 ]; then
+    echo "ERROR: Expected exit code 0 from Stage 5 replay, got $replay_rc" >&2
+    exit 1
+  fi
+
+  local replay_tmp
+  replay_tmp="$(mktemp)"
+  trap 'rm -f "${replay_tmp:-}"' RETURN
+  local replay2_rc=0
+  "$python_bin" -m search replay \
+    --bundle "$ROOT_DIR/artifacts/stage-5/demo-replay.json" \
+    > "$replay_tmp" || replay2_rc=$?
+  if [ "$replay2_rc" -ne 0 ]; then
+    echo "ERROR: Expected exit code 0 from second fresh-process replay, got $replay2_rc" >&2
+    exit 1
+  fi
+
+  echo "==> Stage 5 Gate: Live Identical-Template Negative CLI Verification (Expect Exit 0)"
+  local ident_rc=0
+  "$python_bin" -m search compare \
+    --before "$ROOT_DIR/fixtures/demo/before.liquid" \
+    --after "$ROOT_DIR/fixtures/demo/before.liquid" \
+    --observer sale_badge \
+    --seed 0 \
+    --search-pairs 16 \
+    --shrink-pairs 128 \
+    > "$ROOT_DIR/artifacts/stage-5/identical-compare.json" || ident_rc=$?
+  if [ "$ident_rc" -ne 0 ]; then
+    echo "ERROR: Expected exit code 0 from Stage 5 identical compare, got $ident_rc" >&2
+    exit 1
+  fi
+
+  echo "==> Stage 5 Gate: End-to-End Acceptance Assertions"
+  "$python_bin" - "$ROOT_DIR/artifacts/stage-5/demo-compare.json" "$ROOT_DIR/artifacts/stage-5/demo-replay-result.json" "$replay_tmp" "$ROOT_DIR/artifacts/stage-5/identical-compare.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+cmp_report = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+rep1 = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
+rep2 = json.loads(Path(sys.argv[3]).read_text(encoding="utf-8"))
+ident = json.loads(Path(sys.argv[4]).read_text(encoding="utf-8"))
+
+assert cmp_report["status"] == "difference_found"
+assert cmp_report["reference_status"] == "confirmed"
+assert cmp_report["stats"]["shrink_pairs"] > 0
+assert cmp_report["shrink"]["local_fixed_point"] is True
+assert tuple(cmp_report["shrink"]["post_shrink_measure"]) < tuple(cmp_report["shrink"]["pre_shrink_measure"])
+assert "minimized fixture" in cmp_report["message"]
+
+exp = cmp_report["finding"]["explanation"]
+assert exp["kind"] == "structural_change"
+assert exp["before"]["line"] == 3
+assert exp["after"]["line"] == 1
+assert exp["summary"].startswith("Structural change:")
+
+det_keys = (
+    "schema_version", "status", "direction", "reference_status",
+    "finding", "product", "before", "after", "reference",
+    "explanation", "replay", "provenance", "error",
+)
+for k in det_keys:
+    assert rep1[k] == rep2[k], f"Fresh replay mismatch on {k}"
+assert rep1["finding"] == cmp_report["finding"]
+assert rep1["reference"]["before"]["observed"] == rep1["before"]["observed"]
+assert rep1["reference"]["after"]["observed"] == rep1["after"]["observed"]
+assert rep1["replay"]["liquid_version"] == "5.14.0"
+
+assert ident["status"] == "no_difference_found"
+assert ident["message"] == "no difference found within this search"
+assert ident["stats"]["search_pairs"] == 16
+assert ident["stats"]["shrink_pairs"] == 0
+print("[stage-5] All 4 core acceptance invariants verified (shrink_pairs=%d, pre=%s -> post=%s)" % (
+    cmp_report["stats"]["shrink_pairs"],
+    cmp_report["shrink"]["pre_shrink_measure"],
+    cmp_report["shrink"]["post_shrink_measure"],
+))
+PY
+
+  echo "==> Stage 5 Gate: Validate Stage 5 Reports, ReplayBundle, & ReplayResult via JSONSchemer"
+  "$bundle_bin" exec ruby "$ROOT_DIR/search/tests/validate_stage5_schemas.rb" \
+    --compare-report "$ROOT_DIR/artifacts/stage-5/demo-compare.json" \
+    --compare-report "$ROOT_DIR/artifacts/stage-5/identical-compare.json" \
+    --replay-bundle "$ROOT_DIR/artifacts/stage-5/demo-replay.json" \
+    --replay-result "$ROOT_DIR/artifacts/stage-5/demo-replay-result.json"
+
+  echo "PASS: bin/check stage-5 succeeded."
+}
+
 if [ $# -ne 1 ]; then
   usage
   exit 2
@@ -285,13 +406,16 @@ case "$1" in
   stage-4)
     run_stage_4
     ;;
-  stage-5|stage-6|stage-7|stage-8|stage-9|stage-10)
-    echo "ERROR: $1 gate is not implemented yet (highest implemented stage: stage-4)." >&2
+  stage-5)
+    run_stage_5
+    ;;
+  stage-6|stage-7|stage-8|stage-9|stage-10)
+    echo "ERROR: $1 gate is not implemented yet (highest implemented stage: stage-5)." >&2
     exit 2
     ;;
   all)
-    run_stage_4
-    echo "ERROR: bin/check all cannot pass yet: stage-5 through stage-10 are not implemented." >&2
+    run_stage_5
+    echo "ERROR: bin/check all cannot pass yet: stage-6 through stage-10 are not implemented." >&2
     exit 2
     ;;
   -h|--help)

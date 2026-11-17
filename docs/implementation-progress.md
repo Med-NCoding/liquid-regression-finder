@@ -1,7 +1,7 @@
 # Implementation Progress — Shopify Liquid Regression Finder
 
-- **Current Stage**: Stage 4 (`passed`)
-- **Last Completed Stage**: Stage 4 — Counterexample search
+- **Current Stage**: Stage 5 (`passed`)
+- **Last Completed Stage**: Stage 5 — Shrink, explanation and replay
 - **Repository**: https://github.com/Med-NCoding/liquid-regression-finder
 
 ## Stage Tracker
@@ -12,7 +12,7 @@
 | 2 | Liquid engine | passed | `bin/check stage-2` | 0 | `artifacts/stage-2/conformance-report.txt`, `artifacts/stage-2/nested-loop-trace.json`, `interpreter/test/` |
 | 3 | Shopify projection and reference | passed | `bin/check stage-3` | 0 | `artifacts/stage-3/ordinary-parity.json`, `fixtures/storefront_probe_matrix.json`, `docs/storefront-probe.md`, `reference/test/` |
 | 4 | Counterexample search | passed | `bin/check stage-4` | 0 | `artifacts/stage-4/demo-compare.json`, `artifacts/stage-4/demo-replay.json`, `artifacts/stage-4/identical-compare.json`, `search/tests/` |
-| 5 | Shrink, explanation and replay | pending | `bin/check stage-5` | — | — |
+| 5 | Shrink, explanation and replay | passed | `bin/check stage-5` | 0 | `artifacts/stage-5/demo-compare.json`, `artifacts/stage-5/demo-replay.json`, `artifacts/stage-5/demo-replay-result.json`, `artifacts/stage-5/identical-compare.json`, `search/tests/` |
 | 6 | Dawn corpus | pending | `bin/check stage-6` | — | — |
 | 7 | Benchmark and engine extensions | pending | `bin/check stage-7` | — | — |
 | 8 | Rails API and jobs | pending | `bin/check stage-8` | — | — |
@@ -113,5 +113,20 @@
     - `test_generator.py` (`7` tests), `test_engine_fake_worker.py` (`11` tests), `test_cli_and_real_worker.py` (`5` tests) — `23` tests total passing in `python3.11 -m unittest discover -s search/tests -v` (including stdlib-only AST import audit, real subprocess reaping/timeout/watchdog/16 MiB checks, fake-worker error/mismatch paths, real worker across seeds `0`, `1`, `2`, `42`, Phase 2 4-variant discovery, and identical-template negative).
     - Validated generated `artifacts/stage-4/demo-compare.json` (`status="difference_found"`, `candidate_index=55`, `search_pairs=56`, `direction="before_only"`, `reference_status="confirmed"`, CLI exit `1`), `artifacts/stage-4/demo-replay.json` (canonical compact UTF-8 `ReplayBundle`), and `artifacts/stage-4/identical-compare.json` (`status="no_difference_found"`, `search_pairs=16`, `exhausted_by="pair_limit"`, CLI exit `0`) against `contracts/schemas/` via `search/tests/validate_stage4_schemas.rb`.
 - **Gate Command & Exit Status**: `./bin/check stage-4` -> exit `0` (includes Stage 1–3 regression checks).
+- **Stage 5 Note on Stage 4 CLI Test**: In Stage 5, `search/tests/test_cli_and_real_worker.py` (`test_demo_compare_succeeds_across_pinned_seeds_and_validates_schemas`) was updated from Stage 4's placeholder assertions (`stats.shrink_pairs == 0` and `explanation.kind == "undetermined"` with `"Trace explanation pending Stage 5 shrink/alignment."`) to verify real Stage 5 shrink execution (`0 < stats.shrink_pairs <= 128`) and structural explanation (`explanation.kind == "structural_change"`, `before.line == 3`, `after.line == 1`, `"Structural change:"` summary).
 - **Remaining Tasks**: Stage 5 through Stage 10.
 - **Next Command**: Start Stage 5 worker (`bin/check stage-5`).
+
+### Stage 5 — Shrink, Explanation and Replay
+- **Status**: `passed`
+- **Completed Tasks**:
+  - **Ordered Shrinker (`search/shrinker.py`)**: Implemented strict descending lexicographic measure `fixture_measure = (len(variants), non_null_compare_at_count, total_cents, true_availability_count, canonical_utf8_bytes)`, preserving original variant `id` strings, deduplicating canonical fixtures across initial confirmation and shrink proposals, enforcing `budget.shrink_pairs` (including `0`-budget bypass with 0 worker evaluations) and `deadline_check`/`deadline_monotonic`, and checking in order: (1) chunk & single-variant deletions, (2) single-field simplifications (`compare_at_price`, `price`, `available`), and (3) paired `(price, compare_at_price)` per-variant and all-variant scaling/shifting, restarting after each accepted strict decrease and reporting `local_fixed_point: True` only on full neighborhood exhaustion.
+  - **Trace Attribution & Explanation (`search/explain.py`)**: Implemented UTF-8 byte-offset HTML opening-tag walker (`find_sale_badge_opening_tags`) ignoring HTML comments, `<script>`/`<style>`/`<textarea>`/`<title>` raw text, escaped HTML, and quoted attribute decoys while matching HTML5 case-insensitive tag/attribute names and first-wins duplicate attributes; joined overlapping `emit` events via longest common `active_branch_seqs` chain (falling back to `undetermined` for 0/`>=2` badge tags, zero emits, or disjoint chains); resolved assigned flag variables (`on_sale`) backwards to the last relevant `Assignment` and enclosing loop `Branch` retaining `variant_id` and operand values; and aligned cross-version branches into `aligned_change` (with symmetric source-context disambiguation), `structural_change`, or `undetermined` (`build_explanation`).
+  - **Fresh-Process Replay & CLI Integration (`search/replay.py`, `search/cli.py`, `search/engine.py`, `search/__init__.py`)**: Integrated shrinking, final traced re-render, independent reference parity verification, `"minimized fixture"` messaging, and `build_explanation` into `SearchEngine.compare` (keeping `stats` strictly compliant with `comparison_job.schema.json#/$defs/stats`); added `python -m search replay --bundle <path>` (`ReplayRunner`) validating bundle fields, SHA-256 digests, and runtime versions (`0.1.0`, `5.14.0`, `1.0.0`), bypassing search/shrink, reproducing `custom` (`trace=True`) + `reference` (`trace=False`) renders and explanation, emitting deterministic timestamp-free JSON with `timings` separate, and exiting `0` on verified replay or `2` on tampering/mismatch/errors.
+  - **Stage 5 Tests & Contract Validation (`search/tests/`)**:
+    - Added `test_shrinker.py` (`9` tests), `test_explain.py` (`7` tests), `test_replay_and_acceptance.py` (`3` tests) alongside Stage 4 suites (`42` Python tests total passing in `python3.11 -m unittest discover -s search/tests -v`, stdlib-only verified).
+    - Added `search/tests/validate_stage5_schemas.rb` validating `compare_report`, `replay_bundle`, and `replay_result` against Draft 2020-12 schemas via Ruby `JSONSchemer`.
+    - Generated Stage 5 evidence artifacts under `artifacts/stage-5/`: `demo-compare.json` (`search_pairs=56`, `shrink_pairs=28`, `pre_shrink_measure=[2, 2, 3500, 2, 179]` -> `post_shrink_measure=[2, 2, 1, 0, 172]`, `local_fixed_point=true`, `explanation.kind="structural_change"`, `before.line=3`, `after.line=1`), `demo-replay.json`, `demo-replay-result.json` (verified identical across independent fresh-process runs), and `identical-compare.json` (`status="no_difference_found"`, `search_pairs=16`, `shrink_pairs=0`).
+- **Gate Command & Exit Status**: `./bin/check stage-5` -> exit `0` (includes Stage 1–4 regression checks).
+- **Remaining Tasks**: Stage 6 through Stage 10.
+- **Next Command**: Start Stage 6 worker (`bin/check stage-6`).

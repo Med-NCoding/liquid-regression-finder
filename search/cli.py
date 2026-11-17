@@ -1,4 +1,4 @@
-"""Command-line interface for liquid-regression-finder counterexample search."""
+"""Command-line interface for liquid-regression-finder search and replay."""
 
 from __future__ import annotations
 
@@ -10,18 +10,20 @@ from typing import Any, Sequence
 
 from .engine import SearchEngine, build_compare_request
 from .generator import GENERATOR_VERSION, canonical_json
+from .replay import ReplayRunner
 from .worker_client import make_diagnostic
 
 EXIT_NO_DIFFERENCE = 0
+EXIT_REPLAY_OK = 0
 EXIT_DIFFERENCE_FOUND = 1
 EXIT_FAILED = 2
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Construct the Stage 4 CLI argument parser."""
+    """Construct the CLI argument parser for `compare` and `replay`."""
     parser = argparse.ArgumentParser(
         prog="python -m search",
-        description="Shopify Liquid regression counterexample search CLI.",
+        description="Shopify Liquid regression counterexample search and replay CLI.",
     )
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
@@ -43,13 +45,19 @@ def build_parser() -> argparse.ArgumentParser:
         "--shrink-pairs",
         type=int,
         default=128,
-        help="Shrink pair budget stored in CompareRequest (0..1000; shrinking runs in Stage 5).",
+        help="Maximum unique shrink candidate pairs evaluated after confirmation (0..1000).",
     )
     compare_parser.add_argument(
         "--replay-out",
         default=None,
         help="Optional path to write canonical sorted-key compact UTF-8 ReplayBundle JSON on finding.",
     )
+
+    replay_parser = subparsers.add_parser(
+        "replay",
+        help="Deterministically replay a saved ReplayBundle JSON file without search or shrink.",
+    )
+    replay_parser.add_argument("--bundle", required=True, help="Path to the saved ReplayBundle JSON file.")
     return parser
 
 
@@ -91,6 +99,7 @@ def _input_error_report(args: argparse.Namespace, code: str, message: str) -> di
         "message": message,
         "request": None,
         "finding": None,
+        "shrink": None,
         "stats": {
             "search_pairs": 0,
             "shrink_pairs": 0,
@@ -103,8 +112,13 @@ def _input_error_report(args: argparse.Namespace, code: str, message: str) -> di
     }
 
 
-def main(argv: Sequence[str] | None = None, *, engine: SearchEngine | None = None) -> int:
-    """CLI entrypoint returning exit code 0 (no difference), 1 (difference found), or 2 (failed/usage)."""
+def main(
+    argv: Sequence[str] | None = None,
+    *,
+    engine: SearchEngine | None = None,
+    replay_runner: ReplayRunner | None = None,
+) -> int:
+    """CLI entrypoint returning exit code 0 (negative/replay ok), 1 (difference found), or 2 (failed/usage)."""
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     if hasattr(sys.stderr, "reconfigure"):
@@ -112,6 +126,16 @@ def main(argv: Sequence[str] | None = None, *, engine: SearchEngine | None = Non
 
     parser = build_parser()
     args = parser.parse_args(list(argv) if argv is not None else None)
+
+    if args.subcommand == "replay":
+        active_runner = replay_runner if replay_runner is not None else ReplayRunner()
+        report = active_runner.replay_file(args.bundle)
+        _emit_report(report)
+        if report.get("status") == "replayed":
+            return EXIT_REPLAY_OK
+        err = report.get("error") or {}
+        print(f"error [{err.get('code', 'failed')}]: {err.get('message', 'Replay failed')}", file=sys.stderr)
+        return EXIT_FAILED
 
     if args.subcommand != "compare":
         print(f"error [cli_usage]: Unsupported subcommand {args.subcommand!r}", file=sys.stderr)

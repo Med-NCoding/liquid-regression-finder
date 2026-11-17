@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "status": "no_difference_found",
+  "generator_version": "1.0.0",
+  "seed": 0,
+  "candidate_index": null,
+  "direction": null,
+  "reference_status": "not_triggered",
+  "message": "no difference found within this search",
+  "request": {
+    "schema_version": 1,
+    "before": {
+      "source": "{%- assign on_sale = false -%}\n{%- for variant in product.variants -%}\n  {%- if variant.compare_at_price != nil and variant.compare_at_price > variant.price -%}\n    {%- assign on_sale = true -%}\n  {%- endif -%}\n{%- endfor -%}\n{%- if on_sale -%}\n<span class=\"badge\" data-regression-badge=\"sale\">Sale</span>\n{%- endif -%}\n"
+    },
+    "after": {
+      "source": "{%- assign on_sale = false -%}\n{%- for variant in product.variants -%}\n  {%- if variant.compare_at_price != nil and variant.compare_at_price > variant.price -%}\n    {%- assign on_sale = true -%}\n  {%- endif -%}\n{%- endfor -%}\n{%- if on_sale -%}\n<span class=\"badge\" data-regression-badge=\"sale\">Sale</span>\n{%- endif -%}\n"
+    },
+    "observer": "sale_badge",
+    "seed": 0,
+    "budget": {
+      "search_pairs": 16,
+      "shrink_pairs": 128
+    }
+  },
+  "finding": null,
+  "shrink": null,
+  "stats": {
+    "search_pairs": 16,
+    "shrink_pairs": 0,
+    "parity_rejections": 0,
+    "exhausted_by": "pair_limit",
+    "first_difference_ms": null,
+    "elapsed_ms": 263
+  },
+  "error": null
+}
