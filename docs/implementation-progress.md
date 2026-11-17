@@ -1,7 +1,7 @@
 # Implementation Progress — Shopify Liquid Regression Finder
 
-- **Current Stage**: Stage 3 (`passed`)
-- **Last Completed Stage**: Stage 3 — Shopify projection and reference
+- **Current Stage**: Stage 4 (`passed`)
+- **Last Completed Stage**: Stage 4 — Counterexample search
 - **Repository**: https://github.com/Med-NCoding/liquid-regression-finder
 
 ## Stage Tracker
@@ -11,7 +11,7 @@
 | 1 | Bootstrap and conformance adapter | passed | `bin/check stage-1` | 0 | `artifacts/stage-1/liquid-spec-pilot.txt`, `contracts/conformance-manifest.json`, `docs/toolchain-versions.md` |
 | 2 | Liquid engine | passed | `bin/check stage-2` | 0 | `artifacts/stage-2/conformance-report.txt`, `artifacts/stage-2/nested-loop-trace.json`, `interpreter/test/` |
 | 3 | Shopify projection and reference | passed | `bin/check stage-3` | 0 | `artifacts/stage-3/ordinary-parity.json`, `fixtures/storefront_probe_matrix.json`, `docs/storefront-probe.md`, `reference/test/` |
-| 4 | Counterexample search | pending | `bin/check stage-4` | — | — |
+| 4 | Counterexample search | passed | `bin/check stage-4` | 0 | `artifacts/stage-4/demo-compare.json`, `artifacts/stage-4/demo-replay.json`, `artifacts/stage-4/identical-compare.json`, `search/tests/` |
 | 5 | Shrink, explanation and replay | pending | `bin/check stage-5` | — | — |
 | 6 | Dawn corpus | pending | `bin/check stage-6` | — | — |
 | 7 | Benchmark and engine extensions | pending | `bin/check stage-7` | — | — |
@@ -101,3 +101,17 @@
 - **Gate Command & Exit Status**: `./bin/check stage-3` -> exit `0` (includes `./bin/check stage-1` -> exit `0` and `./bin/check stage-2` -> exit `0`).
 - **Remaining Tasks**: Stage 4 through Stage 10 (plus optional live Shopify storefront probe recorded as `storefront_unverified`).
 - **Next Command**: Start Stage 4 worker (`bin/check stage-4`).
+
+### Stage 4 — Counterexample Search
+- **Status**: `passed`
+- **Completed Tasks**:
+  - **JSONL Worker Client (`search/worker_client.py`)**: Implemented Python 3.11 stdlib-only persistent subprocess client (`bundle exec ruby reference/bin/worker`, resolving `bundle` from PATH or `/opt/homebrew/opt/ruby@3.3/bin/bundle` with `cwd` at repo root and `start_new_session=True`), non-blocking `selectors` I/O, `5.0s` per-request timeout, `16 MiB` max stdout frame enforcement, `90.0s` hard job deadline watchdog, process-group reaping (`os.killpg`) on timeout/protocol errors/oversized frames/`quit` hangs, response schema validation, and structured exceptions (`WorkerProtocolError`, `WorkerTimeoutError`, `JobDeadlineError`, `WorkerCompileError`).
+  - **Deterministic Candidate Generator (`search/generator.py`)**: Implemented `GENERATOR_VERSION = "1.0.0"`, `canonical_json` (`sort_keys=True`, compact separators, `allow_nan=False`), Phase 1 ordered 1-, 2-, and 3-variant boundary coverage (`189` unique fixtures across `missing`/`zero`/`below`/`equal`/`above`, zero and monetary prices, availability masks, equal vs varied prices, and position reversals), and Phase 2 `random.Random(seed)` sampling of `1..8` variants biased toward shared prices and mixed sale states, with cross-phase canonical deduplication and `MAX_DUPLICATE_ATTEMPTS = 10000`.
+  - **Counterexample Search Engine (`search/engine.py`)**: Implemented `CompareRequest` validation, one-time worker `compile` with SHA-256 verification, budgeted search loop over `custom` (`trace=False`), reference parity verification (`reference`, `trace=False`) with `parity_rejections` tracking (`reference_mismatch` if exhausted with rejections and no confirmed finding), `trace=True` re-render verification, repo version resolution (`LiquidInterpreter::VERSION = "0.1.0"`, `liquid = "5.14.0"`, `PROJECTION_VERSION = "1.0.0"`), and Stage 4 `Finding`/`ReplayBundle`/`Stats` construction (`explanation.kind = "undetermined"` pending Stage 5).
+  - **Demo Fixtures & CLI (`fixtures/demo/before.liquid`, `fixtures/demo/after.liquid`, `search/__init__.py`, `search/cli.py`, `search/__main__.py`)**: Added standalone `before.liquid` (variant-loop `on_sale` flag) and `after.liquid` (product-aggregate check) with NO failing fixture file in `fixtures/demo/`, and implemented `python -m search compare` (JSON on stdout only, diagnostics on stderr only, compact sorted-key UTF-8 `--replay-out`, exit codes `0` no difference, `1` confirmed difference, `2` failed/usage).
+  - **Tests & Schema Verification (`search/tests/`)**:
+    - `test_generator.py` (`7` tests), `test_engine_fake_worker.py` (`11` tests), `test_cli_and_real_worker.py` (`5` tests) — `23` tests total passing in `python3.11 -m unittest discover -s search/tests -v` (including stdlib-only AST import audit, real subprocess reaping/timeout/watchdog/16 MiB checks, fake-worker error/mismatch paths, real worker across seeds `0`, `1`, `2`, `42`, Phase 2 4-variant discovery, and identical-template negative).
+    - Validated generated `artifacts/stage-4/demo-compare.json` (`status="difference_found"`, `candidate_index=55`, `search_pairs=56`, `direction="before_only"`, `reference_status="confirmed"`, CLI exit `1`), `artifacts/stage-4/demo-replay.json` (canonical compact UTF-8 `ReplayBundle`), and `artifacts/stage-4/identical-compare.json` (`status="no_difference_found"`, `search_pairs=16`, `exhausted_by="pair_limit"`, CLI exit `0`) against `contracts/schemas/` via `search/tests/validate_stage4_schemas.rb`.
+- **Gate Command & Exit Status**: `./bin/check stage-4` -> exit `0` (includes Stage 1–3 regression checks).
+- **Remaining Tasks**: Stage 5 through Stage 10.
+- **Next Command**: Start Stage 5 worker (`bin/check stage-5`).

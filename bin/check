@@ -12,7 +12,8 @@ Targets:
   stage-1   Verify pinned toolchain, lockfile install, contracts, Stage 1 interpreter tests, and liquid-spec plain-text pilot
   stage-2   Run Stage 1 regression checks, Stage 2 grammar/oracle/tracer/limit tests, 359/359 conformance report, and nested-loop trace demo
   stage-3   Run Stage 1-2 regression checks, Stage 3 projection/observer/reference/worker tests, and ordinary-product parity verification
-  stage-4..stage-10   Future stage gates (not yet implemented)
+  stage-4   Run Stage 1-3 regression checks, Stage 4 Python stdlib search tests, schema validation, and live demo/negative CLI checks
+  stage-5..stage-10   Future stage gates (not yet implemented)
   all       Run all stage gates (fails until all stages are implemented)
 USAGE
 }
@@ -204,6 +205,68 @@ run_stage_3() {
   echo "PASS: bin/check stage-3 succeeded."
 }
 
+run_stage_4() {
+  local bundle_bin python_bin
+  bundle_bin="$(resolve_bundle)"
+  python_bin="$(resolve_python)"
+
+  echo "==> Stage 4 Gate: Stage 1-3 Regression Checks"
+  run_stage_3
+
+  echo "==> Stage 4 Gate: Verify fixtures/demo/ Contains Only Liquid Snippets"
+  local demo_entries
+  demo_entries="$(cd "$ROOT_DIR/fixtures/demo" && ls -1 | LC_ALL=C sort | tr '\n' ',')"
+  if [ "$demo_entries" != "after.liquid,before.liquid," ]; then
+    echo "ERROR: fixtures/demo/ must contain only before.liquid and after.liquid; found: $demo_entries" >&2
+    exit 1
+  fi
+
+  echo "==> Stage 4 Gate: Python Search Unit & Real-Worker Integration Tests"
+  "$python_bin" -m unittest discover -s "$ROOT_DIR/search/tests" -v
+
+  echo "==> Stage 4 Gate: Live Demo Compare CLI Verification (Expect Exit 1)"
+  mkdir -p "$ROOT_DIR/artifacts/stage-4"
+  local demo_rc=0
+  "$python_bin" -m search compare \
+    --before "$ROOT_DIR/fixtures/demo/before.liquid" \
+    --after "$ROOT_DIR/fixtures/demo/after.liquid" \
+    --observer sale_badge \
+    --seed 0 \
+    --search-pairs 256 \
+    --shrink-pairs 128 \
+    --replay-out "$ROOT_DIR/artifacts/stage-4/demo-replay.json" \
+    > "$ROOT_DIR/artifacts/stage-4/demo-compare.json" || demo_rc=$?
+  if [ "$demo_rc" -ne 1 ]; then
+    echo "ERROR: Expected exit code 1 from demo compare, got $demo_rc" >&2
+    exit 1
+  fi
+  echo "[demo] python -m search compare exited with $demo_rc (difference_found)"
+
+  echo "==> Stage 4 Gate: Live Identical-Template Negative CLI Verification (Expect Exit 0)"
+  local ident_rc=0
+  "$python_bin" -m search compare \
+    --before "$ROOT_DIR/fixtures/demo/before.liquid" \
+    --after "$ROOT_DIR/fixtures/demo/before.liquid" \
+    --observer sale_badge \
+    --seed 0 \
+    --search-pairs 16 \
+    --shrink-pairs 128 \
+    > "$ROOT_DIR/artifacts/stage-4/identical-compare.json" || ident_rc=$?
+  if [ "$ident_rc" -ne 0 ]; then
+    echo "ERROR: Expected exit code 0 from identical compare, got $ident_rc" >&2
+    exit 1
+  fi
+  echo "[identical] python -m search compare exited with $ident_rc (no_difference_found)"
+
+  echo "==> Stage 4 Gate: Validate Generated Reports & ReplayBundle Against Contracts"
+  "$bundle_bin" exec ruby "$ROOT_DIR/search/tests/validate_stage4_schemas.rb" \
+    --compare-report "$ROOT_DIR/artifacts/stage-4/demo-compare.json" \
+    --compare-report "$ROOT_DIR/artifacts/stage-4/identical-compare.json" \
+    --replay-bundle "$ROOT_DIR/artifacts/stage-4/demo-replay.json"
+
+  echo "PASS: bin/check stage-4 succeeded."
+}
+
 if [ $# -ne 1 ]; then
   usage
   exit 2
@@ -219,13 +282,16 @@ case "$1" in
   stage-3)
     run_stage_3
     ;;
-  stage-4|stage-5|stage-6|stage-7|stage-8|stage-9|stage-10)
-    echo "ERROR: $1 gate is not implemented yet (highest implemented stage: stage-3)." >&2
+  stage-4)
+    run_stage_4
+    ;;
+  stage-5|stage-6|stage-7|stage-8|stage-9|stage-10)
+    echo "ERROR: $1 gate is not implemented yet (highest implemented stage: stage-4)." >&2
     exit 2
     ;;
   all)
-    run_stage_3
-    echo "ERROR: bin/check all cannot pass yet: stage-4 through stage-10 are not implemented." >&2
+    run_stage_4
+    echo "ERROR: bin/check all cannot pass yet: stage-5 through stage-10 are not implemented." >&2
     exit 2
     ;;
   -h|--help)

@@ -1,0 +1,630 @@
+{
+  "schema_version": 1,
+  "status": "difference_found",
+  "generator_version": "1.0.0",
+  "seed": 0,
+  "candidate_index": 55,
+  "direction": "before_only",
+  "reference_status": "confirmed",
+  "message": "Confirmed sale_badge difference (before_only) at candidate index 55 after 56 search pair(s).",
+  "request": {
+    "schema_version": 1,
+    "before": {
+      "source": "{%- assign on_sale = false -%}\n{%- for variant in product.variants -%}\n  {%- if variant.compare_at_price != nil and variant.compare_at_price > variant.price -%}\n    {%- assign on_sale = true -%}\n  {%- endif -%}\n{%- endfor -%}\n{%- if on_sale -%}\n<span class=\"badge\" data-regression-badge=\"sale\">Sale</span>\n{%- endif -%}\n"
+    },
+    "after": {
+      "source": "{%- if product.compare_at_price != nil and product.compare_at_price > product.price -%}\n<span class=\"badge\" data-regression-badge=\"sale\">Sale</span>\n{%- endif -%}\n"
+    },
+    "observer": "sale_badge",
+    "seed": 0,
+    "budget": {
+      "search_pairs": 256,
+      "shrink_pairs": 128
+    }
+  },
+  "finding": {
+    "product": {
+      "price": 1000,
+      "price_min": 1000,
+      "price_max": 1000,
+      "price_varies": false,
+      "compare_at_price": 0,
+      "compare_at_price_min": 0,
+      "compare_at_price_max": 1500,
+      "compare_at_price_varies": true,
+      "available": true
+    },
+    "replay": {
+      "request": {
+        "schema_version": 1,
+        "before": {
+          "source": "{%- assign on_sale = false -%}\n{%- for variant in product.variants -%}\n  {%- if variant.compare_at_price != nil and variant.compare_at_price > variant.price -%}\n    {%- assign on_sale = true -%}\n  {%- endif -%}\n{%- endfor -%}\n{%- if on_sale -%}\n<span class=\"badge\" data-regression-badge=\"sale\">Sale</span>\n{%- endif -%}\n"
+        },
+        "after": {
+          "source": "{%- if product.compare_at_price != nil and product.compare_at_price > product.price -%}\n<span class=\"badge\" data-regression-badge=\"sale\">Sale</span>\n{%- endif -%}\n"
+        },
+        "observer": "sale_badge",
+        "seed": 0,
+        "budget": {
+          "search_pairs": 256,
+          "shrink_pairs": 128
+        }
+      },
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 1000,
+            "compare_at_price": 0,
+            "available": true
+          },
+          {
+            "id": "v2",
+            "price": 1000,
+            "compare_at_price": 1500,
+            "available": true
+          }
+        ]
+      },
+      "before_sha256": "5bc25597cb21e90168f2b3c671b442acd2d689904e6818a0c60750c1a407af61",
+      "after_sha256": "3287973b7a61caf05bb9866b36ddff7d991447cbccbf0439263bbe0c1343bf99",
+      "interpreter_version": "0.1.0",
+      "liquid_version": "5.14.0",
+      "projection_version": "1.0.0"
+    },
+    "before": {
+      "status": "ok",
+      "html": "<span class=\"badge\" data-regression-badge=\"sale\">Sale</span>",
+      "observed": true,
+      "events": [
+        {
+          "seq": 0,
+          "node_id": "n0:assign",
+          "scope": [],
+          "span": {
+            "start_byte": 0,
+            "end_byte": 30,
+            "line": 1,
+            "column": 1
+          },
+          "data": {
+            "kind": "assignment",
+            "name": "on_sale",
+            "value": false
+          }
+        },
+        {
+          "seq": 1,
+          "node_id": "n1:for.coll:lookup",
+          "scope": [],
+          "span": {
+            "start_byte": 50,
+            "end_byte": 66,
+            "line": 2,
+            "column": 20
+          },
+          "data": {
+            "kind": "lookup",
+            "path": "product.variants",
+            "found": true,
+            "value": [
+              {
+                "id": "v1",
+                "price": 1000,
+                "compare_at_price": 0,
+                "available": true
+              },
+              {
+                "id": "v2",
+                "price": 1000,
+                "compare_at_price": 1500,
+                "available": true
+              }
+            ]
+          }
+        },
+        {
+          "seq": 2,
+          "node_id": "n1:for.b0:conditional.a0.cond.l.l:lookup",
+          "scope": [
+            {
+              "loop_id": "n1:for",
+              "iteration": 0,
+              "variant_id": "v1"
+            }
+          ],
+          "span": {
+            "start_byte": 80,
+            "end_byte": 104,
+            "line": 3,
+            "column": 10
+          },
+          "data": {
+            "kind": "lookup",
+            "path": "variant.compare_at_price",
+            "found": true,
+            "value": 0
+          }
+        },
+        {
+          "seq": 3,
+          "node_id": "n1:for.b0:conditional.a0.cond.l:comparison",
+          "scope": [
+            {
+              "loop_id": "n1:for",
+              "iteration": 0,
+              "variant_id": "v1"
+            }
+          ],
+          "span": {
+            "start_byte": 80,
+            "end_byte": 111,
+            "line": 3,
+            "column": 10
+          },
+          "data": {
+            "kind": "comparison",
+            "op": "!=",
+            "left": 0,
+            "right": null,
+            "result": true
+          }
+        },
+        {
+          "seq": 4,
+          "node_id": "n1:for.b0:conditional.a0.cond.r.l:lookup",
+          "scope": [
+            {
+              "loop_id": "n1:for",
+              "iteration": 0,
+              "variant_id": "v1"
+            }
+          ],
+          "span": {
+            "start_byte": 116,
+            "end_byte": 140,
+            "line": 3,
+            "column": 46
+          },
+          "data": {
+            "kind": "lookup",
+            "path": "variant.compare_at_price",
+            "found": true,
+            "value": 0
+          }
+        },
+        {
+          "seq": 5,
+          "node_id": "n1:for.b0:conditional.a0.cond.r.r:lookup",
+          "scope": [
+            {
+              "loop_id": "n1:for",
+              "iteration": 0,
+              "variant_id": "v1"
+            }
+          ],
+          "span": {
+            "start_byte": 143,
+            "end_byte": 156,
+            "line": 3,
+            "column": 73
+          },
+          "data": {
+            "kind": "lookup",
+            "path": "variant.price",
+            "found": true,
+            "value": 1000
+          }
+        },
+        {
+          "seq": 6,
+          "node_id": "n1:for.b0:conditional.a0.cond.r:comparison",
+          "scope": [
+            {
+              "loop_id": "n1:for",
+              "iteration": 0,
+              "variant_id": "v1"
+            }
+          ],
+          "span": {
+            "start_byte": 116,
+            "end_byte": 156,
+            "line": 3,
+            "column": 46
+          },
+          "data": {
+            "kind": "comparison",
+            "op": ">",
+            "left": 0,
+            "right": 1000,
+            "result": false
+          }
+        },
+        {
+          "seq": 7,
+          "node_id": "n1:for.b0:conditional.a0:branch",
+          "scope": [
+            {
+              "loop_id": "n1:for",
+              "iteration": 0,
+              "variant_id": "v1"
+            }
+          ],
+          "span": {
+            "start_byte": 73,
+            "end_byte": 160,
+            "line": 3,
+            "column": 3
+          },
+          "data": {
+            "kind": "branch",
+            "expression": "variant.compare_at_price != nil and variant.compare_at_price > variant.price",
+            "condition": false,
+            "taken": false
+          }
+        },
+        {
+          "seq": 8,
+          "node_id": "n1:for.b0:conditional.a0.cond.l.l:lookup",
+          "scope": [
+            {
+              "loop_id": "n1:for",
+              "iteration": 1,
+              "variant_id": "v2"
+            }
+          ],
+          "span": {
+            "start_byte": 80,
+            "end_byte": 104,
+            "line": 3,
+            "column": 10
+          },
+          "data": {
+            "kind": "lookup",
+            "path": "variant.compare_at_price",
+            "found": true,
+            "value": 1500
+          }
+        },
+        {
+          "seq": 9,
+          "node_id": "n1:for.b0:conditional.a0.cond.l:comparison",
+          "scope": [
+            {
+              "loop_id": "n1:for",
+              "iteration": 1,
+              "variant_id": "v2"
+            }
+          ],
+          "span": {
+            "start_byte": 80,
+            "end_byte": 111,
+            "line": 3,
+            "column": 10
+          },
+          "data": {
+            "kind": "comparison",
+            "op": "!=",
+            "left": 1500,
+            "right": null,
+            "result": true
+          }
+        },
+        {
+          "seq": 10,
+          "node_id": "n1:for.b0:conditional.a0.cond.r.l:lookup",
+          "scope": [
+            {
+              "loop_id": "n1:for",
+              "iteration": 1,
+              "variant_id": "v2"
+            }
+          ],
+          "span": {
+            "start_byte": 116,
+            "end_byte": 140,
+            "line": 3,
+            "column": 46
+          },
+          "data": {
+            "kind": "lookup",
+            "path": "variant.compare_at_price",
+            "found": true,
+            "value": 1500
+          }
+        },
+        {
+          "seq": 11,
+          "node_id": "n1:for.b0:conditional.a0.cond.r.r:lookup",
+          "scope": [
+            {
+              "loop_id": "n1:for",
+              "iteration": 1,
+              "variant_id": "v2"
+            }
+          ],
+          "span": {
+            "start_byte": 143,
+            "end_byte": 156,
+            "line": 3,
+            "column": 73
+          },
+          "data": {
+            "kind": "lookup",
+            "path": "variant.price",
+            "found": true,
+            "value": 1000
+          }
+        },
+        {
+          "seq": 12,
+          "node_id": "n1:for.b0:conditional.a0.cond.r:comparison",
+          "scope": [
+            {
+              "loop_id": "n1:for",
+              "iteration": 1,
+              "variant_id": "v2"
+            }
+          ],
+          "span": {
+            "start_byte": 116,
+            "end_byte": 156,
+            "line": 3,
+            "column": 46
+          },
+          "data": {
+            "kind": "comparison",
+            "op": ">",
+            "left": 1500,
+            "right": 1000,
+            "result": true
+          }
+        },
+        {
+          "seq": 13,
+          "node_id": "n1:for.b0:conditional.a0:branch",
+          "scope": [
+            {
+              "loop_id": "n1:for",
+              "iteration": 1,
+              "variant_id": "v2"
+            }
+          ],
+          "span": {
+            "start_byte": 73,
+            "end_byte": 160,
+            "line": 3,
+            "column": 3
+          },
+          "data": {
+            "kind": "branch",
+            "expression": "variant.compare_at_price != nil and variant.compare_at_price > variant.price",
+            "condition": true,
+            "taken": true
+          }
+        },
+        {
+          "seq": 14,
+          "node_id": "n1:for.b0:conditional.a0.b0:assign",
+          "scope": [
+            {
+              "loop_id": "n1:for",
+              "iteration": 1,
+              "variant_id": "v2"
+            }
+          ],
+          "span": {
+            "start_byte": 165,
+            "end_byte": 194,
+            "line": 4,
+            "column": 5
+          },
+          "data": {
+            "kind": "assignment",
+            "name": "on_sale",
+            "value": true
+          }
+        },
+        {
+          "seq": 15,
+          "node_id": "n2:conditional.a0.cond:lookup",
+          "scope": [],
+          "span": {
+            "start_byte": 233,
+            "end_byte": 240,
+            "line": 7,
+            "column": 8
+          },
+          "data": {
+            "kind": "lookup",
+            "path": "on_sale",
+            "found": true,
+            "value": true
+          }
+        },
+        {
+          "seq": 16,
+          "node_id": "n2:conditional.a0:branch",
+          "scope": [],
+          "span": {
+            "start_byte": 226,
+            "end_byte": 244,
+            "line": 7,
+            "column": 1
+          },
+          "data": {
+            "kind": "branch",
+            "expression": "on_sale",
+            "condition": true,
+            "taken": true
+          }
+        },
+        {
+          "seq": 17,
+          "node_id": "n2:conditional.a0.b0:text",
+          "scope": [],
+          "span": {
+            "start_byte": 244,
+            "end_byte": 306,
+            "line": 7,
+            "column": 19
+          },
+          "data": {
+            "kind": "emit",
+            "output_start_byte": 0,
+            "output_end_byte": 60,
+            "active_branch_seqs": [
+              16
+            ]
+          }
+        }
+      ],
+      "error": null
+    },
+    "after": {
+      "status": "ok",
+      "html": "",
+      "observed": false,
+      "events": [
+        {
+          "seq": 0,
+          "node_id": "n0:conditional.a0.cond.l.l:lookup",
+          "scope": [],
+          "span": {
+            "start_byte": 7,
+            "end_byte": 31,
+            "line": 1,
+            "column": 8
+          },
+          "data": {
+            "kind": "lookup",
+            "path": "product.compare_at_price",
+            "found": true,
+            "value": 0
+          }
+        },
+        {
+          "seq": 1,
+          "node_id": "n0:conditional.a0.cond.l:comparison",
+          "scope": [],
+          "span": {
+            "start_byte": 7,
+            "end_byte": 38,
+            "line": 1,
+            "column": 8
+          },
+          "data": {
+            "kind": "comparison",
+            "op": "!=",
+            "left": 0,
+            "right": null,
+            "result": true
+          }
+        },
+        {
+          "seq": 2,
+          "node_id": "n0:conditional.a0.cond.r.l:lookup",
+          "scope": [],
+          "span": {
+            "start_byte": 43,
+            "end_byte": 67,
+            "line": 1,
+            "column": 44
+          },
+          "data": {
+            "kind": "lookup",
+            "path": "product.compare_at_price",
+            "found": true,
+            "value": 0
+          }
+        },
+        {
+          "seq": 3,
+          "node_id": "n0:conditional.a0.cond.r.r:lookup",
+          "scope": [],
+          "span": {
+            "start_byte": 70,
+            "end_byte": 83,
+            "line": 1,
+            "column": 71
+          },
+          "data": {
+            "kind": "lookup",
+            "path": "product.price",
+            "found": true,
+            "value": 1000
+          }
+        },
+        {
+          "seq": 4,
+          "node_id": "n0:conditional.a0.cond.r:comparison",
+          "scope": [],
+          "span": {
+            "start_byte": 43,
+            "end_byte": 83,
+            "line": 1,
+            "column": 44
+          },
+          "data": {
+            "kind": "comparison",
+            "op": ">",
+            "left": 0,
+            "right": 1000,
+            "result": false
+          }
+        },
+        {
+          "seq": 5,
+          "node_id": "n0:conditional.a0:branch",
+          "scope": [],
+          "span": {
+            "start_byte": 0,
+            "end_byte": 87,
+            "line": 1,
+            "column": 1
+          },
+          "data": {
+            "kind": "branch",
+            "expression": "product.compare_at_price != nil and product.compare_at_price > product.price",
+            "condition": false,
+            "taken": false
+          }
+        }
+      ],
+      "error": null
+    },
+    "reference": {
+      "before": {
+        "status": "ok",
+        "html": "<span class=\"badge\" data-regression-badge=\"sale\">Sale</span>",
+        "observed": true,
+        "events": [],
+        "error": null
+      },
+      "after": {
+        "status": "ok",
+        "html": "",
+        "observed": false,
+        "events": [],
+        "error": null
+      }
+    },
+    "explanation": {
+      "kind": "undetermined",
+      "before": null,
+      "after": null,
+      "summary": "Trace explanation pending Stage 5 shrink/alignment."
+    }
+  },
+  "stats": {
+    "search_pairs": 56,
+    "shrink_pairs": 0,
+    "parity_rejections": 0,
+    "exhausted_by": null,
+    "first_difference_ms": 272,
+    "elapsed_ms": 272
+  },
+  "error": null
+}
