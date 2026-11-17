@@ -1,16 +1,16 @@
 {
   "status": "passed",
   "rails_env": "production",
-  "comparison_id": "119d1895-5251-4ec6-83ed-a0c96be04273",
-  "result_url": "/comparisons/119d1895-5251-4ec6-83ed-a0c96be04273",
+  "comparison_id": "7a480472-8286-4b7c-a34c-2d13926271aa",
+  "result_url": "/comparisons/7a480472-8286-4b7c-a34c-2d13926271aa",
   "final_status": "difference_found",
   "stats": {
     "search_pairs": 56,
     "shrink_pairs": 28,
     "parity_rejections": 0,
     "exhausted_by": null,
-    "first_difference_ms": 281,
-    "elapsed_ms": 289
+    "first_difference_ms": 275,
+    "elapsed_ms": 283
   },
   "explanation_kind": "structural_change",
   "variants_after_shrink": 2,

@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+OUT_PATH=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --out)
+      if [ $# -lt 2 ]; then
+        echo "ERROR: --out requires a file path" >&2
+        exit 2
+      fi
+      OUT_PATH="$2"
+      shift 2
+      ;;
+    -h|--help)
+      echo "Usage: bin/verify_clean_checkout [--out <path>]" >&2
+      exit 0
+      ;;
+    *)
+      echo "ERROR: Unknown argument '$1'" >&2
+      exit 2
+      ;;
+  esac
+done
+
+resolve_python() {
+  if command -v python3.11 >/dev/null 2>&1; then
+    echo "python3.11"
+  elif [ -x "/opt/homebrew/opt/python@3.11/bin/python3.11" ]; then
+    echo "/opt/homebrew/opt/python@3.11/bin/python3.11"
+  else
+    echo "ERROR: python3.11 executable not found" >&2
+    exit 1
+  fi
+}
+
+PYTHON_BIN="$(resolve_python)"
+TMP_CHECKOUT="$(mktemp -d /tmp/lrf-clean-checkout.XXXXXX)"
+
+cleanup() {
+  if [ -d "$TMP_CHECKOUT" ]; then
+    rm -rf "$TMP_CHECKOUT"
+    echo "[clean-checkout] Cleaned up temporary directory: $TMP_CHECKOUT"
+  fi
+}
+trap cleanup EXIT
+
+run_verification() {
+  echo "=== Liquid Regression Finder Clean-Checkout Verification ==="
+  echo "Source root: $ROOT_DIR"
+  echo "Temp export: $TMP_CHECKOUT"
+  echo ""
+
+  echo "==> Exporting clean source tree (excluding bundles, node_modules, web/dist, SQLite DBs, tmp/logs)..."
+  rsync -a \
+    --exclude='.git/' \
+    --exclude='vendor/bundle/' \
+    --exclude='api/vendor/bundle/' \
+    --exclude='.bundle/' \
+    --exclude='api/.bundle/' \
+    --exclude='node_modules/' \
+    --exclude='web/node_modules/' \
+    --exclude='web/dist/' \
+    --exclude='web/.vite/' \
+    --exclude='api/storage/*.sqlite3*' \
+    --exclude='api/storage/*.db*' \
+    --exclude='api/tmp/' \
+    --exclude='api/log/' \
+    --exclude='artifacts/tmp/' \
+    --exclude='*.log' \
+    --exclude='__pycache__/' \
+    --exclude='*.pyc' \
+    --exclude='.DS_Store' \
+    "$ROOT_DIR/" "$TMP_CHECKOUT/"
+
+  # Confirm excluded directories/artifacts are genuinely absent before running ./bin/setup
+  for absent in \
+    "$TMP_CHECKOUT/vendor/bundle" \
+    "$TMP_CHECKOUT/api/vendor/bundle" \
+    "$TMP_CHECKOUT/web/node_modules" \
+    "$TMP_CHECKOUT/web/dist"
+  do
+    if [ -e "$absent" ]; then
+      echo "ERROR: Clean export unexpectedly contained $absent" >&2
+      exit 1
+    fi
+  done
+
+  cd "$TMP_CHECKOUT"
+
+  echo "==> Step 1: ./bin/setup"
+  ./bin/setup
+
+  echo "==> Step 2: ./bin/check all"
+  ./bin/check all
+
+  echo "==> Step 3: Standalone CLI demo compare, deterministic replay, benchmark, and PR dry run"
+  mkdir -p "$TMP_CHECKOUT/artifacts/tmp"
+
+  local demo_rc=0
+  "$PYTHON_BIN" -m search compare \
+    --before "$TMP_CHECKOUT/fixtures/demo/before.liquid" \
+    --after "$TMP_CHECKOUT/fixtures/demo/after.liquid" \
+    --observer sale_badge \
+    --seed 0 \
+    --search-pairs 256 \
+    --shrink-pairs 128 \
+    --replay-out "$TMP_CHECKOUT/artifacts/tmp/clean-demo-replay.json" \
+    > "$TMP_CHECKOUT/artifacts/tmp/clean-demo-compare.json" || demo_rc=$?
+  if [ "$demo_rc" -ne 1 ]; then
+    echo "ERROR: Expected CLI demo compare exit 1, got $demo_rc" >&2
+    exit 1
+  fi
+  echo "[clean-checkout] CLI compare PASS (exit=$demo_rc)"
+
+  local replay_rc=0
+  "$PYTHON_BIN" -m search replay \
+    --bundle "$TMP_CHECKOUT/artifacts/tmp/clean-demo-replay.json" \
+    > "$TMP_CHECKOUT/artifacts/tmp/clean-demo-replay-result.json" || replay_rc=$?
+  if [ "$replay_rc" -ne 0 ]; then
+    echo "ERROR: Expected CLI replay exit 0, got $replay_rc" >&2
+    exit 1
+  fi
+  echo "[clean-checkout] CLI replay PASS (exit=$replay_rc)"
+
+  "$PYTHON_BIN" "$TMP_CHECKOUT/bench/run.py" \
+    --csv-out "$TMP_CHECKOUT/artifacts/tmp/clean-benchmark.csv" \
+    --json-out "$TMP_CHECKOUT/artifacts/tmp/clean-benchmark-details.json" \
+    --md-out "$TMP_CHECKOUT/artifacts/tmp/clean-benchmark.md"
+  echo "[clean-checkout] Benchmark PASS (exit=0)"
+
+  ./bin/pr_dry_run \
+    --report-out "$TMP_CHECKOUT/artifacts/tmp/clean-pr-dry-run.json" \
+    --summary-out "$TMP_CHECKOUT/artifacts/tmp/clean-pr-dry-run-summary.md"
+  echo "[clean-checkout] PR dry run PASS (exit=0)"
+
+  echo ""
+  echo "PASS: Clean-checkout verification succeeded (./bin/setup, ./bin/check all, CLI demo + replay, benchmark, PR dry run)."
+}
+
+if [ -n "$OUT_PATH" ]; then
+  mkdir -p "$(dirname "$OUT_PATH")"
+  run_verification | tee "$OUT_PATH"
+else
+  run_verification
+fi

@@ -18,8 +18,8 @@ Targets:
   stage-7   Run Stage 1-6 regression checks, Stage 7 interpreter extensions, benchmark runner/reports, reproducibility & accounting tests
   stage-8   Run Stage 1-7 regression checks, Stage 8 Rails API & Solid Queue tests, migrations, and end-to-end HTTP + worker smoke check
   stage-9   Run Stage 1-8 regression checks, Stage 9 React typecheck, Vitest UI tests, Vite build, and headless Chrome API-to-browser E2E
-  stage-10  Future stage gate (not yet implemented)
-  all       Run all stage gates (fails until all stages are implemented)
+  stage-10  Run Stage 1-9 regression checks, PR check unit tests, workflow YAML validation, and Rails+Solid Queue PR dry run
+  all       Run all stage gates (stage-1 through stage-10)
 USAGE
 }
 
@@ -474,6 +474,7 @@ run_stage_8() {
   (
     cd "$ROOT_DIR/api"
     RAILS_ENV=test "$bundle_bin" exec bin/rails db:migrate
+    RAILS_ENV=production "$bundle_bin" exec bin/rails db:migrate
     RAILS_ENV=production "$bundle_bin" exec bin/rails solid_queue:check
     RAILS_ENV=test "$bundle_bin" exec bin/rails runner "ComparisonReconciler.reconcile!"
   )
@@ -543,6 +544,30 @@ run_stage_9() {
   echo "PASS: bin/check stage-9 succeeded."
 }
 
+run_stage_10() {
+  run_stage_9
+
+  local bundle_bin python_bin
+  bundle_bin="$(resolve_bundle)"
+  python_bin="$(resolve_python)"
+
+  echo "==> Stage 10 Gate: PR Check CLI Unit & Stdlib-Only Tests"
+  "$python_bin" -m unittest discover -s "$ROOT_DIR/bin/tests" -v
+
+  echo "==> Stage 10 Gate: Validate GitHub Actions Workflow YAML & Watched Snippet"
+  "$bundle_bin" exec ruby -ryaml -e 'YAML.safe_load_file(ARGV[0], aliases: true)' "$ROOT_DIR/.github/workflows/liquid-regression.yml"
+  test -f "$ROOT_DIR/comparison-manifest.json"
+  test -f "$ROOT_DIR/snippets/card-product.liquid"
+
+  echo "==> Stage 10 Gate: Real Rails + Solid Queue PR Dry Run"
+  mkdir -p "$ROOT_DIR/artifacts/stage-10"
+  "$python_bin" "$ROOT_DIR/bin/pr_dry_run" \
+    --report-out "$ROOT_DIR/artifacts/stage-10/pr-dry-run-report.json" \
+    --summary-out "$ROOT_DIR/artifacts/stage-10/pr-dry-run-summary.md"
+
+  echo "PASS: bin/check stage-10 succeeded."
+}
+
 if [ $# -ne 1 ]; then
   usage
   exit 2
@@ -577,13 +602,11 @@ case "$1" in
     run_stage_9
     ;;
   stage-10)
-    echo "ERROR: $1 gate is not implemented yet (highest implemented stage: stage-9)." >&2
-    exit 2
+    run_stage_10
     ;;
   all)
-    run_stage_9
-    echo "ERROR: bin/check all cannot pass yet: stage-10 is not implemented." >&2
-    exit 2
+    run_stage_10
+    echo "PASS: bin/check all succeeded."
     ;;
   -h|--help)
     usage

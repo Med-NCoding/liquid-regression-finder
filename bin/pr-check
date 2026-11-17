@@ -1,0 +1,975 @@
+#!/usr/bin/env python3.11
+"""PR workflow check CLI for liquid-regression-finder.
+
+Reads exact before/after Liquid snippet blobs from git using argv subprocesses
+(never interpolating Liquid source into shell strings), submits a comparison job
+to the Rails API with a deterministic Idempotency-Key, polls to completion,
+writes a Markdown report to $GITHUB_STEP_SUMMARY when configured, and exits:
+  0: no_difference_found (or clean untrusted-fork skip when API is token-gated)
+  1: difference_found or terminal comparison job failure
+  2: missing/renamed blob, invalid manifest, poll timeout, or HTTP/infra error
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import math
+import os
+import posixpath
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from pathlib import Path
+from typing import Any, Mapping, Sequence
+
+EXIT_OK = 0
+EXIT_REGRESSION_OR_FAILED = 1
+EXIT_INFRA_OR_DIAGNOSTIC = 2
+
+TERMINAL_STATUSES = frozenset({"difference_found", "no_difference_found", "failed"})
+ACTIVE_STATUSES = frozenset({"queued", "running"})
+REQUIRED_MANIFEST_KEYS = frozenset(
+    {
+        "schema_version",
+        "snippet_path",
+        "observer",
+        "marker",
+        "seed",
+        "budget",
+        "poll_timeout_seconds",
+    }
+)
+
+
+class PrCheckDiagnosticError(Exception):
+    """Structured diagnostic error resulting in exit code 2."""
+
+    def __init__(self, code: str, message: str, details: dict[str, Any] | None = None) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.details = details or {}
+
+
+def canonical_json(obj: Any) -> str:
+    """Serialize data as sorted-key compact UTF-8 JSON without NaN."""
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+
+
+def detect_is_fork(cli_is_fork: bool, environ: Mapping[str, str] | None = None) -> bool:
+    """Determine whether the current run comes from an untrusted fork PR."""
+    if cli_is_fork:
+        return True
+    env = environ if environ is not None else os.environ
+    raw = str(env.get("GITHUB_EVENT_HEAD_FORK", "")).strip().lower()
+    return raw in {"1", "true", "yes"}
+
+
+def compute_idempotency_key(
+    repo: str,
+    base_sha: str,
+    head_sha: str,
+    manifest_sha256: str,
+) -> str:
+    """Compute deterministic SHA-256 Idempotency-Key from (repo, base_sha, head_sha, manifest_sha256)."""
+    payload = {
+        "base_sha": base_sha,
+        "head_sha": head_sha,
+        "manifest_sha256": manifest_sha256,
+        "repo": repo,
+    }
+    return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+
+
+def _is_strict_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _validate_relative_posix_path(raw_path: Any) -> str:
+    if not isinstance(raw_path, str) or not raw_path.strip():
+        raise PrCheckDiagnosticError("invalid_manifest", "Manifest snippet_path must be a non-empty string.")
+    if "\x00" in raw_path or "\\" in raw_path or raw_path.startswith("/"):
+        raise PrCheckDiagnosticError(
+            "invalid_manifest",
+            f"Manifest snippet_path must be a relative POSIX path, got {raw_path!r}.",
+        )
+    parts = raw_path.split("/")
+    if any(part in ("", ".", "..") for part in parts):
+        raise PrCheckDiagnosticError(
+            "invalid_manifest",
+            f"Manifest snippet_path contains invalid path segments: {raw_path!r}.",
+        )
+    normalized = posixpath.normpath(raw_path)
+    if normalized != raw_path:
+        raise PrCheckDiagnosticError(
+            "invalid_manifest",
+            f"Manifest snippet_path must be normalized (got {raw_path!r}, expected {normalized!r}).",
+        )
+    return normalized
+
+
+def load_and_validate_manifest(manifest_path: str | Path) -> tuple[dict[str, Any], str]:
+    """Load comparison manifest JSON and return (validated_dict, sha256_hex)."""
+    path = Path(manifest_path)
+    try:
+        raw_bytes = path.read_bytes()
+    except OSError as exc:
+        raise PrCheckDiagnosticError(
+            "invalid_manifest",
+            f"Unable to read comparison manifest '{manifest_path}': {exc}",
+        ) from exc
+
+    manifest_sha256 = hashlib.sha256(raw_bytes).hexdigest()
+    try:
+        raw_text = raw_bytes.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise PrCheckDiagnosticError(
+            "invalid_manifest",
+            f"Comparison manifest '{manifest_path}' is not valid UTF-8: {exc.reason}",
+        ) from exc
+
+    try:
+        data = json.loads(raw_text)
+    except json.JSONDecodeError as exc:
+        raise PrCheckDiagnosticError(
+            "invalid_manifest",
+            f"Comparison manifest '{manifest_path}' contains malformed JSON: {exc.msg}",
+        ) from exc
+
+    if not isinstance(data, dict):
+        raise PrCheckDiagnosticError("invalid_manifest", "Comparison manifest must be a JSON object.")
+
+    missing = sorted(REQUIRED_MANIFEST_KEYS - set(data.keys()))
+    extra = sorted(set(data.keys()) - REQUIRED_MANIFEST_KEYS)
+    if missing or extra:
+        raise PrCheckDiagnosticError(
+            "invalid_manifest",
+            f"Comparison manifest key mismatch (missing={missing}, extra={extra}).",
+        )
+
+    if not _is_strict_int(data["schema_version"]) or data["schema_version"] != 1:
+        raise PrCheckDiagnosticError("invalid_manifest", "Manifest schema_version must be integer 1.")
+
+    snippet_path = _validate_relative_posix_path(data["snippet_path"])
+
+    if data["observer"] != "sale_badge":
+        raise PrCheckDiagnosticError(
+            "invalid_manifest",
+            f"Manifest observer must be 'sale_badge', got {data['observer']!r}.",
+        )
+
+    if data["marker"] != '[data-regression-badge="sale"]':
+        raise PrCheckDiagnosticError(
+            "invalid_manifest",
+            f"Manifest marker must be '[data-regression-badge=\"sale\"]', got {data['marker']!r}.",
+        )
+
+    seed = data["seed"]
+    if not _is_strict_int(seed) or seed < 0 or seed > 4_294_967_295:
+        raise PrCheckDiagnosticError("invalid_manifest", "Manifest seed must be an integer in 0..4294967295.")
+
+    budget = data["budget"]
+    if not isinstance(budget, dict) or set(budget.keys()) != {"search_pairs", "shrink_pairs"}:
+        raise PrCheckDiagnosticError(
+            "invalid_manifest",
+            "Manifest budget must be an object with exact keys search_pairs and shrink_pairs.",
+        )
+
+    search_pairs = budget["search_pairs"]
+    shrink_pairs = budget["shrink_pairs"]
+    if not _is_strict_int(search_pairs) or search_pairs < 1 or search_pairs > 5000:
+        raise PrCheckDiagnosticError("invalid_manifest", "Manifest budget.search_pairs must be an integer in 1..5000.")
+    if not _is_strict_int(shrink_pairs) or shrink_pairs < 0 or shrink_pairs > 1000:
+        raise PrCheckDiagnosticError("invalid_manifest", "Manifest budget.shrink_pairs must be an integer in 0..1000.")
+
+    poll_timeout = data["poll_timeout_seconds"]
+    if (
+        isinstance(poll_timeout, bool)
+        or not isinstance(poll_timeout, (int, float))
+        or not math.isfinite(poll_timeout)
+        or poll_timeout <= 0
+    ):
+        raise PrCheckDiagnosticError(
+            "invalid_manifest",
+            "Manifest poll_timeout_seconds must be a positive finite number.",
+        )
+
+    validated = {
+        "schema_version": 1,
+        "snippet_path": snippet_path,
+        "observer": "sale_badge",
+        "marker": '[data-regression-badge="sale"]',
+        "seed": seed,
+        "budget": {
+            "search_pairs": search_pairs,
+            "shrink_pairs": shrink_pairs,
+        },
+        "poll_timeout_seconds": float(poll_timeout),
+    }
+    return validated, manifest_sha256
+
+
+def _validate_git_ref(ref: str, label: str) -> str:
+    if not isinstance(ref, str) or not ref.strip() or ref.startswith("-") or "\x00" in ref or any(ch.isspace() for ch in ref):
+        raise PrCheckDiagnosticError(
+            "invalid_git_ref",
+            f"Invalid --{label} git revision: {ref!r}",
+        )
+    return ref
+
+
+def _run_git(git_dir: str, args: Sequence[str]) -> subprocess.CompletedProcess[bytes]:
+    try:
+        return subprocess.run(
+            ["git", "-C", git_dir, *args],
+            capture_output=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise PrCheckDiagnosticError(
+            "git_error",
+            f"Failed executing git in '{git_dir}': {exc}",
+        ) from exc
+
+
+def _parse_diff_name_status_z(raw_stdout: bytes) -> list[tuple[str, str, str | None]]:
+    """Parse `git diff --name-status -M -z` output into (status, path, new_path_if_rename_or_copy)."""
+    tokens = raw_stdout.split(b"\x00")
+    entries: list[tuple[str, str, str | None]] = []
+    idx = 0
+    while idx < len(tokens):
+        raw_status = tokens[idx]
+        if not raw_status:
+            idx += 1
+            continue
+        status = raw_status.decode("utf-8", errors="replace")
+        idx += 1
+        if status.startswith(("R", "C")):
+            if idx + 1 >= len(tokens):
+                break
+            old_path = tokens[idx].decode("utf-8", errors="replace")
+            new_path = tokens[idx + 1].decode("utf-8", errors="replace")
+            idx += 2
+            entries.append((status, old_path, new_path))
+        else:
+            if idx >= len(tokens):
+                break
+            path = tokens[idx].decode("utf-8", errors="replace")
+            idx += 1
+            entries.append((status, path, None))
+    return entries
+
+
+def read_git_snippet_blobs(
+    *,
+    git_dir: str,
+    base_sha: str,
+    head_sha: str,
+    snippet_path: str,
+) -> tuple[str, str, str, str]:
+    """Read exact UTF-8 before/after snippet blobs via git argv commands.
+
+    Returns (before_source, after_source, before_sha256, after_sha256).
+    Raises PrCheckDiagnosticError on missing/renamed/non-blob/invalid-UTF-8 files.
+    """
+    base_ref = _validate_git_ref(base_sha, "base-sha")
+    head_ref = _validate_git_ref(head_sha, "head-sha")
+
+    for label, sha in (("base_sha", base_ref), ("head_sha", head_ref)):
+        commit_check = _run_git(git_dir, ["cat-file", "-e", f"{sha}^{{commit}}"])
+        if commit_check.returncode != 0:
+            stderr_msg = commit_check.stderr.decode("utf-8", errors="replace").strip()
+            raise PrCheckDiagnosticError(
+                "missing_commit",
+                f"Git commit {label}={sha!r} could not be resolved in '{git_dir}'"
+                + (f": {stderr_msg}" if stderr_msg else "."),
+                {"label": label, "sha": sha},
+            )
+
+    # Full tree rename detection (-M without pathspec) catches renames from or to snippet_path;
+    # path-scoped diff provides exact status for snippet_path when not renamed.
+    full_diff = _run_git(git_dir, ["diff", "--name-status", "-M", "-z", base_ref, head_ref])
+    if full_diff.returncode != 0:
+        stderr_msg = full_diff.stderr.decode("utf-8", errors="replace").strip()
+        raise PrCheckDiagnosticError(
+            "git_diff_error",
+            f"git diff --name-status -M failed for {base_ref}..{head_ref}: {stderr_msg}",
+        )
+
+    for status, path_a, path_b in _parse_diff_name_status_z(full_diff.stdout):
+        if status.startswith("R") and (path_a == snippet_path or path_b == snippet_path):
+            raise PrCheckDiagnosticError(
+                "renamed_blob",
+                f"Watched snippet '{snippet_path}' was renamed between {base_ref} and {head_ref} "
+                f"({path_a} -> {path_b}, status={status}); update comparison-manifest.json or restore path.",
+                {
+                    "snippet_path": snippet_path,
+                    "old_path": path_a,
+                    "new_path": path_b,
+                    "git_status": status,
+                    "base_sha": base_ref,
+                    "head_sha": head_ref,
+                },
+            )
+
+    path_diff = _run_git(git_dir, ["diff", "--name-status", "-M", "-z", base_ref, head_ref, "--", snippet_path])
+    path_statuses = [status for status, _p1, _p2 in _parse_diff_name_status_z(path_diff.stdout)]
+
+    missing_on: list[str] = []
+    blob_bytes_by_side: dict[str, bytes] = {}
+    for side, sha in (("base", base_ref), ("head", head_ref)):
+        spec = f"{sha}:{snippet_path}"
+        exists_proc = _run_git(git_dir, ["cat-file", "-e", spec])
+        if exists_proc.returncode != 0:
+            missing_on.append(f"{side} ({sha})")
+            continue
+
+        type_proc = _run_git(git_dir, ["cat-file", "-t", spec])
+        obj_type = type_proc.stdout.decode("utf-8", errors="replace").strip()
+        if type_proc.returncode != 0 or obj_type != "blob":
+            missing_on.append(f"{side} ({sha}, type={obj_type or 'unknown'})")
+            continue
+
+        blob_proc = _run_git(git_dir, ["cat-file", "blob", spec])
+        if blob_proc.returncode != 0:
+            stderr_msg = blob_proc.stderr.decode("utf-8", errors="replace").strip()
+            raise PrCheckDiagnosticError(
+                "missing_blob",
+                f"Failed reading git blob {spec}: {stderr_msg}",
+                {"snippet_path": snippet_path, "side": side, "sha": sha},
+            )
+        blob_bytes_by_side[side] = blob_proc.stdout
+
+    if missing_on:
+        status_note = f" (diff status: {', '.join(path_statuses)})" if path_statuses else ""
+        raise PrCheckDiagnosticError(
+            "missing_blob",
+            f"Watched snippet '{snippet_path}' is missing on {', '.join(missing_on)}{status_note}.",
+            {
+                "snippet_path": snippet_path,
+                "missing_on": missing_on,
+                "diff_statuses": path_statuses,
+                "base_sha": base_ref,
+                "head_sha": head_ref,
+            },
+        )
+
+    decoded: dict[str, str] = {}
+    hashes: dict[str, str] = {}
+    for side in ("base", "head"):
+        raw = blob_bytes_by_side[side]
+        hashes[side] = hashlib.sha256(raw).hexdigest()
+        try:
+            decoded[side] = raw.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise PrCheckDiagnosticError(
+                "invalid_utf8_blob",
+                f"Watched snippet '{snippet_path}' on {side} commit is not valid UTF-8: {exc.reason}",
+                {"snippet_path": snippet_path, "side": side},
+            ) from exc
+
+    return decoded["base"], decoded["head"], hashes["base"], hashes["head"]
+
+
+def validate_http_url(raw_url: str, label: str) -> str:
+    parsed = urllib.parse.urlsplit(raw_url)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise PrCheckDiagnosticError(
+            "invalid_url",
+            f"Invalid --{label} URL {raw_url!r}: expected http:// or https:// URL with host.",
+        )
+    return raw_url.rstrip("/")
+
+
+def build_full_result_url(web_base_url: str, result_path: str | None) -> str | None:
+    if not result_path:
+        return None
+    if result_path.startswith(("http://", "https://")):
+        return result_path
+    normalized_path = result_path if result_path.startswith("/") else f"/{result_path}"
+    return f"{web_base_url.rstrip('/')}{normalized_path}"
+
+
+def _http_json_request(
+    *,
+    method: str,
+    url: str,
+    body_bytes: bytes | None = None,
+    headers: dict[str, str] | None = None,
+    timeout_s: float = 15.0,
+) -> tuple[int, dict[str, Any]]:
+    req_headers = {"Accept": "application/json"}
+    if headers:
+        req_headers.update(headers)
+    req = urllib.request.Request(url, data=body_bytes, headers=req_headers, method=method)
+
+    try:
+        with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+            status = int(resp.status)
+            raw = resp.read()
+    except urllib.error.HTTPError as exc:
+        status = int(exc.code)
+        raw = exc.read()
+    except urllib.error.URLError as exc:
+        raise PrCheckDiagnosticError(
+            "http_error",
+            f"HTTP {method} {url} failed: {exc.reason}",
+            {"method": method, "url": url},
+        ) from exc
+    except (OSError, TimeoutError) as exc:
+        raise PrCheckDiagnosticError(
+            "http_error",
+            f"HTTP {method} {url} failed: {exc}",
+            {"method": method, "url": url},
+        ) from exc
+
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise PrCheckDiagnosticError(
+            "invalid_api_response",
+            f"API returned non-JSON or invalid UTF-8 response from {method} {url} (HTTP {status}): {exc}",
+            {"http_status": status, "method": method, "url": url},
+        ) from exc
+
+    if not isinstance(payload, dict):
+        raise PrCheckDiagnosticError(
+            "invalid_api_response",
+            f"API response from {method} {url} (HTTP {status}) must be a JSON object.",
+            {"http_status": status, "method": method, "url": url},
+        )
+
+    return status, payload
+
+
+def format_step_summary(report: dict[str, Any]) -> str:
+    """Format a rich Markdown GitHub Actions job summary from the PR check report."""
+    status = report["status"]
+    lines: list[str] = [
+        "## Liquid Regression Finder — PR Snippet Check",
+        "",
+        f"- **Repository**: `{report['repo']}`",
+        f"- **Snippet**: `{report.get('snippet_path') or 'unknown'}`",
+        f"- **Commits**: `{report['base_sha']}` → `{report['head_sha']}`",
+        f"- **Status**: `{status}`",
+    ]
+
+    if report.get("idempotency_key"):
+        lines.append(f"- **Idempotency Key**: `{report['idempotency_key']}`")
+
+    if report.get("result_url"):
+        lines.append(f"- **Result URL**: [{report['result_url']}]({report['result_url']})")
+
+    if status == "skipped_untrusted_fork":
+        lines.extend(
+            [
+                "",
+                "> External API token submission skipped for untrusted fork PR (`--is-fork` / `GITHUB_EVENT_HEAD_FORK=true` suppressed `LIQUID_REGRESSION_API_TOKEN`).",
+            ]
+        )
+        return "\n".join(lines) + "\n"
+
+    stats = report.get("stats")
+    seed = report.get("seed")
+    if seed is not None or isinstance(stats, dict):
+        lines.extend(["", "### Run Metrics", ""])
+        lines.append("| Metric | Value |")
+        lines.append("| --- | --- |")
+        if seed is not None:
+            lines.append(f"| `seed` | `{seed}` |")
+        if isinstance(stats, dict):
+            lines.append(f"| `search_pairs` | `{stats.get('search_pairs')}` |")
+            lines.append(f"| `shrink_pairs` | `{stats.get('shrink_pairs')}` |")
+            lines.append(f"| `parity_rejections` | `{stats.get('parity_rejections')}` |")
+            if stats.get("exhausted_by") is not None:
+                lines.append(f"| `exhausted_by` | `{stats.get('exhausted_by')}` |")
+            if stats.get("elapsed_ms") is not None:
+                lines.append(f"| `elapsed_ms` | `{stats.get('elapsed_ms')}` |")
+
+    if status == "no_difference_found":
+        lines.extend(
+            [
+                "",
+                f"Result: **no difference found within this search** "
+                f"(`search_pairs={stats.get('search_pairs') if isinstance(stats, dict) else 0}`, "
+                f"`shrink_pairs={stats.get('shrink_pairs') if isinstance(stats, dict) else 0}`, "
+                f"`parity_rejections={stats.get('parity_rejections') if isinstance(stats, dict) else 0}`).",
+            ]
+        )
+    elif status == "difference_found":
+        finding = report.get("finding") or {}
+        explanation = finding.get("explanation") or {}
+        replay = finding.get("replay") or {}
+        variants = (replay.get("fixture") or {}).get("variants") or []
+        before_obs = (finding.get("before") or {}).get("observed")
+        after_obs = (finding.get("after") or {}).get("observed")
+        ref_liquid = replay.get("liquid_version")
+        before_anchor = explanation.get("before")
+        after_anchor = explanation.get("after")
+
+        lines.extend(
+            [
+                "",
+                "### Regression Finding",
+                "",
+                f"- **Observer**: `sale_badge` (`before.observed={before_obs}`, `after.observed={after_obs}`)",
+                f"- **Official Liquid Reference**: `{ref_liquid}`",
+                f"- **Minimized Fixture**: `{len(variants)}` variant(s)",
+                f"- **Explanation Kind**: `{explanation.get('kind')}`",
+                f"- **Explanation Summary**: {explanation.get('summary')}",
+            ]
+        )
+        if before_anchor:
+            lines.append(
+                f"- **Before Anchor**: line `{before_anchor.get('line')}`, event `#{before_anchor.get('event_seq')}`"
+            )
+        if after_anchor:
+            lines.append(
+                f"- **After Anchor**: line `{after_anchor.get('line')}`, event `#{after_anchor.get('event_seq')}`"
+            )
+    else:
+        err = report.get("error") or {}
+        lines.extend(
+            [
+                "",
+                "### Diagnostic",
+                "",
+                f"- **Code**: `{err.get('code', 'error')}`",
+                f"- **Message**: {err.get('message', report.get('message', 'Comparison check failed.'))}",
+            ]
+        )
+        span = err.get("span")
+        if isinstance(span, dict):
+            lines.append(f"- **Span**: line `{span.get('line')}`, column `{span.get('column')}`")
+
+    return "\n".join(lines) + "\n"
+
+
+def write_step_summary(report: dict[str, Any], environ: Mapping[str, str] | None = None) -> None:
+    """Append Markdown step summary to $GITHUB_STEP_SUMMARY when configured."""
+    env = environ if environ is not None else os.environ
+    summary_path = env.get("GITHUB_STEP_SUMMARY", "").strip()
+    if not summary_path:
+        return
+    content = format_step_summary(report)
+    target = Path(summary_path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("a", encoding="utf-8") as fh:
+        fh.write(content)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="bin/pr-check",
+        description="Submit a git PR snippet comparison and report results to GitHub Actions.",
+    )
+    parser.add_argument(
+        "--manifest",
+        default="comparison-manifest.json",
+        help="Path to comparison-manifest.json (default: comparison-manifest.json).",
+    )
+    parser.add_argument("--base-sha", required=True, help="PR base commit SHA.")
+    parser.add_argument("--head-sha", required=True, help="PR head commit SHA.")
+    parser.add_argument("--repo", required=True, help="Repository name in owner/name form.")
+    parser.add_argument("--api-url", required=True, help="Base URL for the Rails comparison API.")
+    parser.add_argument(
+        "--web-url",
+        default=None,
+        help="Base URL for the web results UI (defaults to --api-url).",
+    )
+    parser.add_argument(
+        "--git-dir",
+        default=".",
+        help="Path to the git repository root (default: .).",
+    )
+    parser.add_argument(
+        "--poll-timeout",
+        type=float,
+        default=None,
+        help="Poll timeout in seconds (overrides manifest poll_timeout_seconds).",
+    )
+    parser.add_argument(
+        "--poll-interval",
+        type=float,
+        default=0.5,
+        help="Polling interval in seconds (default: 0.5).",
+    )
+    parser.add_argument(
+        "--is-fork",
+        action="store_true",
+        help="Mark PR as coming from an untrusted fork and suppress external auth tokens.",
+    )
+    parser.add_argument(
+        "--json-out",
+        default=None,
+        help="Optional file path to write structured JSON report.",
+    )
+    return parser
+
+
+def _emit_report(report: dict[str, Any], json_out: str | None) -> None:
+    text = json.dumps(report, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
+    if json_out:
+        out_path = Path(json_out)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(text, encoding="utf-8")
+    sys.stdout.write(text)
+    sys.stdout.flush()
+
+
+def _diagnostic_report(
+    *,
+    args: argparse.Namespace,
+    is_fork: bool,
+    code: str,
+    message: str,
+    snippet_path: str | None = None,
+    manifest_sha256: str | None = None,
+    idempotency_key: str | None = None,
+    seed: int | None = None,
+    job_id: str | None = None,
+    result_url: str | None = None,
+    stats: dict[str, Any] | None = None,
+    details: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "status": "error",
+        "repo": args.repo,
+        "base_sha": args.base_sha,
+        "head_sha": args.head_sha,
+        "snippet_path": snippet_path,
+        "manifest_sha256": manifest_sha256,
+        "idempotency_key": idempotency_key,
+        "is_fork": is_fork,
+        "job_id": job_id,
+        "result_url": result_url,
+        "seed": seed,
+        "stats": stats,
+        "finding": None,
+        "message": message,
+        "error": {
+            "code": code,
+            "message": message,
+            "span": None,
+            **({"details": details} if details else {}),
+        },
+    }
+
+
+def run_pr_check(args: argparse.Namespace, environ: Mapping[str, str] | None = None) -> tuple[int, dict[str, Any]]:
+    """Execute PR snippet check and return (exit_code, structured_report)."""
+    env = environ if environ is not None else os.environ
+    is_fork = detect_is_fork(bool(args.is_fork), env)
+
+    if args.poll_interval <= 0 or not math.isfinite(args.poll_interval):
+        raise PrCheckDiagnosticError("invalid_args", "--poll-interval must be a positive finite number.")
+    if args.poll_timeout is not None and (args.poll_timeout <= 0 or not math.isfinite(args.poll_timeout)):
+        raise PrCheckDiagnosticError("invalid_args", "--poll-timeout must be a positive finite number.")
+
+    api_base = validate_http_url(args.api_url, "api-url")
+    web_base = validate_http_url(args.web_url or args.api_url, "web-url")
+
+    manifest, manifest_sha256 = load_and_validate_manifest(args.manifest)
+    snippet_path = manifest["snippet_path"]
+    seed = manifest["seed"]
+    poll_timeout = float(args.poll_timeout) if args.poll_timeout is not None else float(manifest["poll_timeout_seconds"])
+    idempotency_key = compute_idempotency_key(args.repo, args.base_sha, args.head_sha, manifest_sha256)
+
+    try:
+        before_source, after_source, before_sha256, after_sha256 = read_git_snippet_blobs(
+            git_dir=args.git_dir,
+            base_sha=args.base_sha,
+            head_sha=args.head_sha,
+            snippet_path=snippet_path,
+        )
+    except PrCheckDiagnosticError as exc:
+        report = _diagnostic_report(
+            args=args,
+            is_fork=is_fork,
+            code=exc.code,
+            message=exc.message,
+            snippet_path=snippet_path,
+            manifest_sha256=manifest_sha256,
+            idempotency_key=idempotency_key,
+            seed=seed,
+            details=exc.details,
+        )
+        return EXIT_INFRA_OR_DIAGNOSTIC, report
+
+    # Never read or send external API credentials for untrusted fork PRs.
+    token = None if is_fork else (env.get("LIQUID_REGRESSION_API_TOKEN", "") or None)
+
+    compare_request = {
+        "schema_version": 1,
+        "before": {"source": before_source},
+        "after": {"source": after_source},
+        "observer": manifest["observer"],
+        "seed": seed,
+        "budget": manifest["budget"],
+    }
+    post_headers: dict[str, str] = {
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotency_key,
+    }
+    if token:
+        post_headers["Authorization"] = f"Bearer {token}"
+
+    comparisons_url = f"{api_base}/api/v1/comparisons"
+    body_bytes = canonical_json(compare_request).encode("utf-8")
+
+    deadline = time.monotonic() + poll_timeout
+    http_timeout = max(0.5, min(15.0, poll_timeout))
+
+    try:
+        post_status, post_payload = _http_json_request(
+            method="POST",
+            url=comparisons_url,
+            body_bytes=body_bytes,
+            headers=post_headers,
+            timeout_s=http_timeout,
+        )
+    except PrCheckDiagnosticError as exc:
+        report = _diagnostic_report(
+            args=args,
+            is_fork=is_fork,
+            code=exc.code,
+            message=exc.message,
+            snippet_path=snippet_path,
+            manifest_sha256=manifest_sha256,
+            idempotency_key=idempotency_key,
+            seed=seed,
+            details=exc.details,
+        )
+        return EXIT_INFRA_OR_DIAGNOSTIC, report
+
+    if post_status == 401 and is_fork:
+        report = {
+            "schema_version": 1,
+            "status": "skipped_untrusted_fork",
+            "repo": args.repo,
+            "base_sha": args.base_sha,
+            "head_sha": args.head_sha,
+            "snippet_path": snippet_path,
+            "manifest_sha256": manifest_sha256,
+            "idempotency_key": idempotency_key,
+            "is_fork": True,
+            "before_sha256": before_sha256,
+            "after_sha256": after_sha256,
+            "job_id": None,
+            "result_url": None,
+            "seed": seed,
+            "stats": None,
+            "finding": None,
+            "message": "Skipped external token-gated submission for untrusted fork PR.",
+            "error": None,
+        }
+        return EXIT_OK, report
+
+    if post_status not in (200, 202):
+        api_err = post_payload.get("error") if isinstance(post_payload.get("error"), dict) else {}
+        err_code = str(api_err.get("code") or f"http_{post_status}")
+        err_msg = str(api_err.get("message") or f"POST {comparisons_url} returned HTTP {post_status}")
+        report = _diagnostic_report(
+            args=args,
+            is_fork=is_fork,
+            code=err_code,
+            message=err_msg,
+            snippet_path=snippet_path,
+            manifest_sha256=manifest_sha256,
+            idempotency_key=idempotency_key,
+            seed=seed,
+            details={"http_status": post_status},
+        )
+        return EXIT_INFRA_OR_DIAGNOSTIC, report
+
+    job = post_payload
+    job_id = job.get("id")
+    if not isinstance(job_id, str) or not job_id:
+        report = _diagnostic_report(
+            args=args,
+            is_fork=is_fork,
+            code="invalid_api_response",
+            message="Comparison submission response missing string job id.",
+            snippet_path=snippet_path,
+            manifest_sha256=manifest_sha256,
+            idempotency_key=idempotency_key,
+            seed=seed,
+        )
+        return EXIT_INFRA_OR_DIAGNOSTIC, report
+
+    result_url = build_full_result_url(web_base, job.get("result_url"))
+    poll_url = f"{api_base}/api/v1/comparisons/{urllib.parse.quote(job_id, safe='')}"
+    poll_headers: dict[str, str] = {}
+    if token:
+        poll_headers["Authorization"] = f"Bearer {token}"
+
+    while job.get("status") not in TERMINAL_STATUSES:
+        job_status_val = job.get("status")
+        if job_status_val not in ACTIVE_STATUSES:
+            report = _diagnostic_report(
+                args=args,
+                is_fork=is_fork,
+                code="invalid_api_response",
+                message=f"Unexpected comparison job status {job_status_val!r}.",
+                snippet_path=snippet_path,
+                manifest_sha256=manifest_sha256,
+                idempotency_key=idempotency_key,
+                seed=seed,
+                job_id=job_id,
+                result_url=result_url,
+            )
+            return EXIT_INFRA_OR_DIAGNOSTIC, report
+
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            report = _diagnostic_report(
+                args=args,
+                is_fork=is_fork,
+                code="poll_timeout",
+                message=(
+                    f"Timed out after {poll_timeout:g}s waiting for comparison job {job_id} "
+                    f"(last status: {job_status_val})."
+                ),
+                snippet_path=snippet_path,
+                manifest_sha256=manifest_sha256,
+                idempotency_key=idempotency_key,
+                seed=seed,
+                job_id=job_id,
+                result_url=result_url,
+            )
+            return EXIT_INFRA_OR_DIAGNOSTIC, report
+
+        time.sleep(min(float(args.poll_interval), remaining))
+        remaining_after_sleep = max(0.5, deadline - time.monotonic())
+        try:
+            get_status, get_payload = _http_json_request(
+                method="GET",
+                url=poll_url,
+                headers=poll_headers,
+                timeout_s=min(15.0, remaining_after_sleep),
+            )
+        except PrCheckDiagnosticError as exc:
+            report = _diagnostic_report(
+                args=args,
+                is_fork=is_fork,
+                code=exc.code,
+                message=exc.message,
+                snippet_path=snippet_path,
+                manifest_sha256=manifest_sha256,
+                idempotency_key=idempotency_key,
+                seed=seed,
+                job_id=job_id,
+                result_url=result_url,
+                details=exc.details,
+            )
+            return EXIT_INFRA_OR_DIAGNOSTIC, report
+
+        if get_status != 200:
+            api_err = get_payload.get("error") if isinstance(get_payload.get("error"), dict) else {}
+            err_code = str(api_err.get("code") or f"http_{get_status}")
+            err_msg = str(api_err.get("message") or f"GET {poll_url} returned HTTP {get_status}")
+            report = _diagnostic_report(
+                args=args,
+                is_fork=is_fork,
+                code=err_code,
+                message=err_msg,
+                snippet_path=snippet_path,
+                manifest_sha256=manifest_sha256,
+                idempotency_key=idempotency_key,
+                seed=seed,
+                job_id=job_id,
+                result_url=result_url,
+                details={"http_status": get_status},
+            )
+            return EXIT_INFRA_OR_DIAGNOSTIC, report
+
+        job = get_payload
+        result_url = build_full_result_url(web_base, job.get("result_url")) or result_url
+
+    final_status = str(job["status"])
+    stats = job.get("stats")
+    finding = job.get("finding")
+    error_diag = job.get("error")
+
+    if final_status == "no_difference_found":
+        message = "no difference found within this search"
+        exit_code = EXIT_OK
+    elif final_status == "difference_found":
+        expl_summary = ((finding or {}).get("explanation") or {}).get("summary") or "Sale badge difference confirmed."
+        message = f"Sale badge difference confirmed: {expl_summary}"
+        exit_code = EXIT_REGRESSION_OR_FAILED
+    else:
+        message = str((error_diag or {}).get("message") or "Comparison job failed.")
+        exit_code = EXIT_REGRESSION_OR_FAILED
+
+    report = {
+        "schema_version": 1,
+        "status": final_status,
+        "repo": args.repo,
+        "base_sha": args.base_sha,
+        "head_sha": args.head_sha,
+        "snippet_path": snippet_path,
+        "manifest_sha256": manifest_sha256,
+        "idempotency_key": idempotency_key,
+        "is_fork": is_fork,
+        "before_sha256": before_sha256,
+        "after_sha256": after_sha256,
+        "job_id": job_id,
+        "result_url": result_url,
+        "seed": seed,
+        "stats": stats,
+        "finding": finding,
+        "message": message,
+        "error": error_diag,
+    }
+    return exit_code, report
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
+
+    parser = build_parser()
+    args = parser.parse_args(list(argv) if argv is not None else None)
+    is_fork = detect_is_fork(bool(args.is_fork), os.environ)
+
+    try:
+        exit_code, report = run_pr_check(args, os.environ)
+    except PrCheckDiagnosticError as exc:
+        report = _diagnostic_report(
+            args=args,
+            is_fork=is_fork,
+            code=exc.code,
+            message=exc.message,
+            details=exc.details,
+        )
+        exit_code = EXIT_INFRA_OR_DIAGNOSTIC
+
+    try:
+        write_step_summary(report, os.environ)
+    except OSError as exc:
+        print(f"error [summary_write_error]: Failed writing GITHUB_STEP_SUMMARY: {exc}", file=sys.stderr)
+        if exit_code == EXIT_OK:
+            exit_code = EXIT_INFRA_OR_DIAGNOSTIC
+
+    _emit_report(report, args.json_out)
+
+    if exit_code == EXIT_INFRA_OR_DIAGNOSTIC:
+        err = report.get("error") or {}
+        print(f"error [{err.get('code', 'diagnostic')}]: {err.get('message', report.get('message'))}", file=sys.stderr)
+    elif exit_code == EXIT_REGRESSION_OR_FAILED:
+        print(f"fail [{report['status']}]: {report['message']}", file=sys.stderr)
+
+    return exit_code
+
+
+if __name__ == "__main__":
+    sys.exit(main())

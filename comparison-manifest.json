@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "snippet_path": "snippets/card-product.liquid",
+  "observer": "sale_badge",
+  "marker": "[data-regression-badge=\"sale\"]",
+  "seed": 0,
+  "budget": {
+    "search_pairs": 256,
+    "shrink_pairs": 128
+  },
+  "poll_timeout_seconds": 90
+}

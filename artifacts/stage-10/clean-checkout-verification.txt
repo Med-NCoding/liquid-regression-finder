@@ -1,0 +1,720 @@
+=== Liquid Regression Finder Clean-Checkout Verification ===
+Source root: /Users/medhanshnegi/.gemini/antigravity/scratch/liquid-regression-finder
+Temp export: /tmp/lrf-clean-checkout.u8nJWX
+
+==> Exporting clean source tree (excluding bundles, node_modules, web/dist, SQLite DBs, tmp/logs)...
+==> Step 1: ./bin/setup
+Using Ruby: ruby 3.3.13 (2026-10-23 revision af48f08f21) [arm64-darwin25]
+Using Bundler: 4.0.23
+Using Node: v24.15.0
+Using npm: 11.12.1
+Installing root gems from Gemfile.lock into vendor/bundle...
+Fetching https://github.com/Shopify/liquid-spec.git
+Fetching gem metadata from https://rubygems.org/........
+Fetching base64 0.3.0
+Fetching bigdecimal 4.1.3
+Fetching concurrent-ruby 1.3.8
+Fetching connection_pool 3.0.3
+Fetching drb 2.2.3
+Fetching i18n 1.15.2
+Fetching json 3.1.0
+Fetching logger 1.7.0
+Fetching minitest 5.27.0
+Fetching securerandom 0.4.1
+Fetching tzinfo 2.0.6
+Fetching uri 1.1.2
+Fetching activesupport 8.1.4.1
+Fetching attr_extras 7.1.0
+Fetching diff-lcs 1.6.2
+Fetching hana 1.3.7
+Fetching regexp_parser 2.12.0
+Fetching simpleidn 0.3.0
+Installing json 3.1.0 with native extensions
+Installing bigdecimal 4.1.3 with native extensions
+Fetching json_schemer 2.5.0
+Fetching strscan 3.1.8
+Fetching liquid 5.14.0
+Fetching optimist 3.2.1
+Fetching patience_diff 1.2.0
+Fetching super_diff 0.19.0
+Fetching racc 1.8.1
+Fetching nokogiri 1.19.7 (arm64-darwin)
+Installing strscan 3.1.8 with native extensions
+Installing securerandom 0.4.1
+Installing base64 0.3.0
+Installing connection_pool 3.0.3
+Installing logger 1.7.0
+Installing drb 2.2.3
+Installing racc 1.8.1 with native extensions
+Installing i18n 1.15.2
+Installing minitest 5.27.0
+Installing hana 1.3.7
+Installing attr_extras 7.1.0
+Installing uri 1.1.2
+Installing simpleidn 0.3.0
+Installing regexp_parser 2.12.0
+Installing tzinfo 2.0.6
+Installing diff-lcs 1.6.2
+Installing concurrent-ruby 1.3.8
+Installing json_schemer 2.5.0
+Installing patience_diff 1.2.0
+Installing optimist 3.2.1
+Installing super_diff 0.19.0
+Installing liquid 5.14.0
+Installing activesupport 8.1.4.1
+Installing nokogiri 1.19.7 (arm64-darwin)
+Bundle complete! 6 Gemfile dependencies, 27 gems now installed.
+Bundled gems are installed into `./vendor/bundle`
+Post-install message from minitest:
+NOTE: minitest 5 will be the last in the minitest family to support
+      ruby 1.8 to 2.7. If you need to keep using these versions,
+      you need to pin your dependency to minitest with something
+      like "~> 5.0". See History.rdoc to locate compatible
+      versions.
+
+      Further, minitest 6 will be dropping the following:
+
+      + MiniTest (it's been Minitest for >10 years)
+      + MiniTest::Unit
+      + MiniTest::Unit::TestCase
+      + assert_send (unless you argue for it well)
+      + assert_equal nil, obj
+      + mocks and stubs: moving minitest/mock.rb to its own gem
+Installing api/ gems from api/Gemfile.lock into api/vendor/bundle...
+Fetching gem metadata from https://rubygems.org/........
+Fetching rake 13.4.2
+Installing rake 13.4.2
+Fetching base64 0.3.0
+Fetching bigdecimal 4.1.3
+Fetching concurrent-ruby 1.3.8
+Fetching connection_pool 3.0.3
+Fetching drb 2.2.3
+Fetching i18n 1.15.2
+Fetching json 3.1.0
+Fetching logger 1.7.0
+Fetching minitest 5.27.0
+Fetching securerandom 0.4.1
+Fetching tzinfo 2.0.6
+Fetching uri 1.1.2
+Fetching activesupport 8.1.4.1
+Fetching builder 3.3.0
+Fetching erubi 1.13.1
+Fetching racc 1.8.1
+Fetching nokogiri 1.19.7 (arm64-darwin)
+Fetching rails-dom-testing 2.3.0
+Fetching crass 1.0.8
+Fetching loofah 2.25.3
+Fetching rails-html-sanitizer 1.7.2
+Installing bigdecimal 4.1.3 with native extensions
+Installing json 3.1.0 with native extensions
+Installing racc 1.8.1 with native extensions
+Fetching actionview 8.1.4.1
+Fetching rack 3.2.8
+Fetching rack-session 2.1.2
+Fetching rack-test 2.3.0
+Fetching useragent 0.16.11
+Fetching actionpack 8.1.4.1
+Fetching prettyprint 0.2.1
+Fetching pp 0.6.4
+Fetching prism 2.1.0 (arm64-darwin)
+Fetching erb 6.0.7
+Fetching tsort 0.2.0
+Fetching rbs 4.2.0
+Fetching rdoc 8.1.0
+Fetching io-console 0.9.5
+Fetching reline 0.7.0
+Installing erb 6.0.7 with native extensions
+Fetching irb 1.19.0
+Installing io-console 0.9.5 with native extensions
+Fetching rackup 2.3.1
+Fetching thor 1.5.0
+Fetching zeitwerk 2.8.3
+Fetching railties 8.1.4.1
+Fetching action_text-trix 2.1.19
+Fetching nio4r 2.7.5
+Fetching websocket-extensions 0.2.0
+Installing nio4r 2.7.5 with native extensions
+Fetching websocket-driver 0.9.0
+Fetching actioncable 8.1.4.1
+Fetching globalid 1.4.0
+Fetching activejob 8.1.4.1
+Fetching activemodel 8.1.4.1
+Fetching timeout 0.6.1
+Fetching activerecord 8.1.4.1
+Fetching marcel 1.2.1
+Fetching activestorage 8.1.4.1
+Fetching mini_mime 1.1.5
+Fetching date 3.6.0
+Fetching net-protocol 0.4.0
+Fetching net-imap 0.6.8
+Fetching net-pop 0.1.2
+Fetching net-smtp 0.5.2
+Fetching mail 2.9.1
+Fetching actionmailbox 8.1.4.1
+Installing date 3.6.0 with native extensions
+Fetching actionmailer 8.1.4.1
+Fetching actiontext 8.1.4.1
+Fetching msgpack 1.8.7
+Fetching bootsnap 1.26.1
+Fetching debug 1.11.1
+Fetching et-orbi 1.4.2
+Installing msgpack 1.8.7 with native extensions
+Fetching raabro 1.5.0
+Fetching fugit 1.14.0
+Fetching hana 1.3.7
+Fetching regexp_parser 2.12.0
+Fetching simpleidn 0.3.0
+Fetching json_schemer 2.5.0
+Fetching puma 8.1.2
+Fetching rails 8.1.4.1
+Fetching solid_queue 1.7.2
+Fetching sqlite3 2.10.2 (arm64-darwin)
+Installing base64 0.3.0
+Installing securerandom 0.4.1
+Installing connection_pool 3.0.3
+Installing drb 2.2.3
+Installing uri 1.1.2
+Installing tzinfo 2.0.6
+Installing i18n 1.15.2
+Installing erubi 1.13.1
+Installing logger 1.7.0
+Installing builder 3.3.0
+Installing rails-html-sanitizer 1.7.2
+Installing crass 1.0.8
+Installing rails-dom-testing 2.3.0
+Installing loofah 2.25.3
+Installing minitest 5.27.0
+Installing rack-session 2.1.2
+Installing activesupport 8.1.4.1
+Installing concurrent-ruby 1.3.8
+Installing rack 3.2.8
+Installing rack-test 2.3.0
+Installing useragent 0.16.11
+Installing prettyprint 0.2.1
+Installing actionview 8.1.4.1
+Installing pp 0.6.4
+Installing tsort 0.2.0
+Installing actionpack 8.1.4.1
+Installing reline 0.7.0
+Installing irb 1.19.0
+Installing rackup 2.3.1
+Installing prism 2.1.0 (arm64-darwin)
+Installing thor 1.5.0
+Installing zeitwerk 2.8.3
+Installing railties 8.1.4.1
+Installing action_text-trix 2.1.19
+Installing websocket-extensions 0.2.0
+Installing globalid 1.4.0
+Installing websocket-driver 0.9.0 with native extensions
+Installing actioncable 8.1.4.1
+Installing rdoc 8.1.0
+Installing activejob 8.1.4.1
+Installing activemodel 8.1.4.1
+Installing timeout 0.6.1
+Installing marcel 1.2.1
+Installing mini_mime 1.1.5
+Installing activestorage 8.1.4.1
+Installing net-protocol 0.4.0
+Installing net-pop 0.1.2
+Installing net-imap 0.6.8
+Installing activerecord 8.1.4.1
+Installing net-smtp 0.5.2
+Installing actionmailbox 8.1.4.1
+Installing actionmailer 8.1.4.1
+Installing actiontext 8.1.4.1
+Installing et-orbi 1.4.2
+Installing mail 2.9.1
+Installing raabro 1.5.0
+Installing hana 1.3.7
+Installing fugit 1.14.0
+Installing regexp_parser 2.12.0
+Installing simpleidn 0.3.0
+Installing json_schemer 2.5.0
+Installing nokogiri 1.19.7 (arm64-darwin)
+Installing rails 8.1.4.1
+Installing solid_queue 1.7.2
+Installing sqlite3 2.10.2 (arm64-darwin)
+Installing puma 8.1.2 with native extensions
+Installing rbs 4.2.0 with native extensions
+Installing bootsnap 1.26.1 with native extensions
+Installing debug 1.11.1 with native extensions
+Bundle complete! 10 Gemfile dependencies, 78 gems now installed.
+Bundled gems are installed into `./vendor/bundle`
+Post-install message from minitest:
+NOTE: minitest 5 will be the last in the minitest family to support
+      ruby 1.8 to 2.7. If you need to keep using these versions,
+      you need to pin your dependency to minitest with something
+      like "~> 5.0". See History.rdoc to locate compatible
+      versions.
+
+      Further, minitest 6 will be dropping the following:
+
+      + MiniTest (it's been Minitest for >10 years)
+      + MiniTest::Unit
+      + MiniTest::Unit::TestCase
+      + assert_send (unless you argue for it well)
+      + assert_equal nil, obj
+      + mocks and stubs: moving minitest/mock.rb to its own gem
+Post-install message from solid_queue:
+Upgrading from Solid Queue < 1.0? Check details on breaking changes and upgrade instructions
+--> https://github.com/rails/solid_queue/blob/main/UPGRADING.md
+Installing web/ npm packages...
+
+added 167 packages, and audited 168 packages in 1s
+
+28 packages are looking for funding
+  run `npm fund` for details
+
+3 vulnerabilities (1 moderate, 2 critical)
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+Setup complete.
+==> Step 2: ./bin/check all
+==> Stage 5 Gate: Stage 1-4 Regression Checks
+==> Stage 4 Gate: Stage 1-3 Regression Checks
+==> Stage 3 Gate: Stage 1 & Stage 2 Regression Checks
+==> Stage 2 Gate: Stage 1 Regression Checks
+==> Stage 1 Gate: Toolchain & Lockfiles
+[toolchain] ruby=3.3.13 (expected 3.3.13) [ruby]
+[toolchain] bundler=4.0.23 [bundle]
+[toolchain] python=3.11.18 (expected 3.11.18) [python3.11]
+[toolchain] node=24.15.0 (expected 24.15.0) [node]
+The Gemfile's dependencies are satisfied
+==> Stage 1 Gate: Contract Schemas & Examples
+Run options: --seed 52056
+
+# Running:
+
+......
+
+Finished in 0.060636s, 98.9511 runs/s, 3232.4032 assertions/s.
+
+6 runs, 196 assertions, 0 failures, 0 errors, 0 skips
+==> Stage 1 Gate: Interpreter Bootstrap Unit Tests
+Run options: --seed 34740
+
+# Running:
+
+.......
+
+Finished in 1.061655s, 6.5935 runs/s, 9071.6852 assertions/s.
+
+7 runs, 9631 assertions, 0 failures, 0 errors, 0 skips
+==> Stage 1 Gate: liquid-spec Plain-Text Pilot (basics & liquid_ruby)
+Missing features: drops, ruby_drops, drop_class_output, ruby_types, template_factory, binary_data, shopify_tags, shopify_objects, shopify_filters, shopify_error_handling, shopify_blank, shopify_string_access, shopify_error_format, shopify_includes, shopify_resource_limits, range_resource_limits, strict2_blank_body_errors, self_environment_shadowing, randomness, lax_parsing, inline_errors
+Parse error modes: strict2, strict
+Render error modes: raise
+Basics ................................. 8/8 passed
+Liquid Ruby (Lax Mode) ................. skipped (adapter opts out of: lax_parsing)
+Shopify Production Recordings .......... skipped (adapter opts out of: inline_errors)
+Shopify Theme Dawn ..................... skipped (adapter opts out of: shopify_tags, shopify_objects, shopify_filters)
+
+Passed specs:
+
+  [0] Basics :: empty_template (vendor/bundle/ruby/3.3.0/bundler/gems/liquid-spec-84bf25e0edbc/specs/basics/specs.yml)
+  [1] Basics :: literal_passthrough (vendor/bundle/ruby/3.3.0/bundler/gems/liquid-spec-84bf25e0edbc/specs/basics/specs.yml)
+  [1] Basics :: newlines_preserved (vendor/bundle/ruby/3.3.0/bundler/gems/liquid-spec-84bf25e0edbc/specs/basics/specs.yml)
+  [1] Basics :: whitespace_preserved (vendor/bundle/ruby/3.3.0/bundler/gems/liquid-spec-84bf25e0edbc/specs/basics/specs.yml)
+  [10] Basics :: raw_text_empty (vendor/bundle/ruby/3.3.0/bundler/gems/liquid-spec-84bf25e0edbc/specs/basics/specs.yml)
+  [10] Basics :: raw_text_hello_world (vendor/bundle/ruby/3.3.0/bundler/gems/liquid-spec-84bf25e0edbc/specs/basics/specs.yml)
+  [10] Basics :: raw_text_special_characters (vendor/bundle/ruby/3.3.0/bundler/gems/liquid-spec-84bf25e0edbc/specs/basics/specs.yml)
+  [10] Basics :: raw_text_with_newlines (vendor/bundle/ruby/3.3.0/bundler/gems/liquid-spec-84bf25e0edbc/specs/basics/specs.yml)
+Complexity level cleared: 10 of 1000, 8 passes, 0 failures.
+  Suite: basics
+Missing features: drops, ruby_drops, drop_class_output, ruby_types, template_factory, binary_data, shopify_tags, shopify_objects, shopify_filters, shopify_error_handling, shopify_blank, shopify_string_access, shopify_error_format, shopify_includes, shopify_resource_limits, range_resource_limits, strict2_blank_body_errors, self_environment_shadowing, randomness, lax_parsing, inline_errors
+Parse error modes: strict2, strict
+Render error modes: raise
+Liquid Ruby ............................ 6/6 passed
+Liquid Ruby (Lax Mode) ................. skipped (adapter opts out of: lax_parsing)
+Shopify Production Recordings .......... skipped (adapter opts out of: inline_errors)
+Shopify Theme Dawn ..................... skipped (adapter opts out of: shopify_tags, shopify_objects, shopify_filters)
+
+Passed specs:
+
+  [50] Liquid Ruby :: StandardTagTest#test_no_transform_1c92258b (vendor/bundle/ruby/3.3.0/bundler/gems/liquid-spec-84bf25e0edbc/specs/liquid_ruby/specs.yml)
+  [50] Liquid Ruby :: StandardTagTest#test_no_transform_51cfe048 (vendor/bundle/ruby/3.3.0/bundler/gems/liquid-spec-84bf25e0edbc/specs/liquid_ruby/specs.yml)
+  [50] Liquid Ruby :: StandardTagTest#test_no_transform_59943efc (vendor/bundle/ruby/3.3.0/bundler/gems/liquid-spec-84bf25e0edbc/specs/liquid_ruby/specs.yml)
+  [50] Liquid Ruby :: StandardTagTest#test_no_transform_5db2ea59 (vendor/bundle/ruby/3.3.0/bundler/gems/liquid-spec-84bf25e0edbc/specs/liquid_ruby/specs.yml)
+  [50] Liquid Ruby :: StandardTagTest#test_no_transform_b9a69d5a (vendor/bundle/ruby/3.3.0/bundler/gems/liquid-spec-84bf25e0edbc/specs/liquid_ruby/specs.yml)
+  [50] Liquid Ruby :: StandardTagTest#test_no_transform_c13e0bc8 (vendor/bundle/ruby/3.3.0/bundler/gems/liquid-spec-84bf25e0edbc/specs/liquid_ruby/specs.yml)
+Complexity level cleared: 50 of 1000, 6 passes, 0 failures.
+  Suite: liquid_ruby
+==> Stage 1 Gate: Conformance Manifest & Report
+=== Liquid-Spec Conformance Report ===
+Adapter: /private/tmp/lrf-clean-checkout.u8nJWX/interpreter/liquid_spec_adapter.rb
+Manifest: /private/tmp/lrf-clean-checkout.u8nJWX/contracts/conformance-manifest.json
+Pinned liquid-spec SHA: 84bf25e0edbca5f7e530574788b0f875ab331f50
+Liquid reference gem: 5.14.0
+Custom interpreter: 0.1.0
+Stage scope in manifest: stage-7
+
+Inventoried Suites (basics + liquid_ruby):
+  basics         total=955  selected=155 pass=155 fail=0   error=0   skip=800  (plain_text=8/8)
+  liquid_ruby    total=2106 selected=244 pass=244 fail=0   error=0   skip=1862 (plain_text=6/6)
+
+Other Liquid-Spec Suites (skipped by suite scope):
+  benchmarks                     total=10   skip=10   reason=benchmark_suite_out_of_scope
+  liquid_ruby_lax                total=121  skip=121  reason=lax_parsing_mode_out_of_scope
+  parser_errors                  total=1905 skip=1905 reason=error_wording_or_mutation_suite
+  partials                       total=12   skip=12   reason=partials_and_core_suite
+  shopify_production_recordings  total=2260 skip=2260 reason=inline_error_mode_and_production_recordings
+  shopify_theme_dawn             total=26   skip=26   reason=shopify_extensions_and_theme_sections
+
+Skip Reasons across Inventoried Suites:
+  bracket_access_out_of_scope              51
+  drops_and_ruby_objects                   506
+  error_wording_or_inline_error_mode       186
+  floats_out_of_scope                      15
+  for_loop_extensions_out_of_scope         60
+  partials_and_filesystem                  305
+  range_expressions_out_of_scope           85
+  resource_limit_accounting_out_of_scope   10
+  shopify_extensions                       3
+  unsupported_filters                      1045
+  unsupported_operators_or_keywords        67
+  unsupported_tags                         315
+  virtual_collection_properties            14
+
+Aggregate Counts & Denominators:
+  plain_text_pilot: 14/14 (100.00%)
+  pass/selected:    399/399 (100.00%) [fail=0, error=0]
+  pass/inventoried: 399/3061 (13.03%) [basics + liquid_ruby]
+  pass/all_suites:  399/7395 (5.40%) [all 8 suites]
+
+Failure IDs: none (0 failures)
+PASS: bin/check stage-1 succeeded.
+==> Stage 2 Gate: Lexer & Parser Unit Tests
+Run options: --seed 20105
+
+# Running:
+
+.......
+
+Finished in 0.003204s, 2184.7689 runs/s, 72409.4840 assertions/s.
+
+7 runs, 232 assertions, 0 failures, 0 errors, 0 skips
+==> Stage 2 Gate: Evaluator & Liquid 5.14.0 Oracle Tests
+Run options: --seed 58826
+
+# Running:
+
+.......
+
+Finished in 0.056421s, 124.0673 runs/s, 12583.9670 assertions/s.
+
+7 runs, 710 assertions, 0 failures, 0 errors, 0 skips
+==> Stage 2 Gate: Tracer & Resource Limit Tests
+Run options: --seed 9302
+
+# Running:
+
+........
+
+Finished in 2.704980s, 2.9575 runs/s, 11452.2104 assertions/s.
+
+8 runs, 30978 assertions, 0 failures, 0 errors, 0 skips
+==> Stage 2 Gate: Conformance Manifest & Full Selected Specs
+=== Liquid-Spec Conformance Report ===
+Adapter: /private/tmp/lrf-clean-checkout.u8nJWX/interpreter/liquid_spec_adapter.rb
+Manifest: /private/tmp/lrf-clean-checkout.u8nJWX/contracts/conformance-manifest.json
+Pinned liquid-spec SHA: 84bf25e0edbca5f7e530574788b0f875ab331f50
+Liquid reference gem: 5.14.0
+Custom interpreter: 0.1.0
+Stage scope in manifest: stage-7
+
+Inventoried Suites (basics + liquid_ruby):
+  basics         total=955  selected=155 pass=155 fail=0   error=0   skip=800  (plain_text=8/8)
+  liquid_ruby    total=2106 selected=244 pass=244 fail=0   error=0   skip=1862 (plain_text=6/6)
+
+Other Liquid-Spec Suites (skipped by suite scope):
+  benchmarks                     total=10   skip=10   reason=benchmark_suite_out_of_scope
+  liquid_ruby_lax                total=121  skip=121  reason=lax_parsing_mode_out_of_scope
+  parser_errors                  total=1905 skip=1905 reason=error_wording_or_mutation_suite
+  partials                       total=12   skip=12   reason=partials_and_core_suite
+  shopify_production_recordings  total=2260 skip=2260 reason=inline_error_mode_and_production_recordings
+  shopify_theme_dawn             total=26   skip=26   reason=shopify_extensions_and_theme_sections
+
+Skip Reasons across Inventoried Suites:
+  bracket_access_out_of_scope              51
+  drops_and_ruby_objects                   506
+  error_wording_or_inline_error_mode       186
+  floats_out_of_scope                      15
+  for_loop_extensions_out_of_scope         60
+  partials_and_filesystem                  305
+  range_expressions_out_of_scope           85
+  resource_limit_accounting_out_of_scope   10
+  shopify_extensions                       3
+  unsupported_filters                      1045
+  unsupported_operators_or_keywords        67
+  unsupported_tags                         315
+  virtual_collection_properties            14
+
+Aggregate Counts & Denominators:
+  plain_text_pilot: 14/14 (100.00%)
+  pass/selected:    399/399 (100.00%) [fail=0, error=0]
+  pass/inventoried: 399/3061 (13.03%) [basics + liquid_ruby]
+  pass/all_suites:  399/7395 (5.40%) [all 8 suites]
+
+Failure IDs: none (0 failures)
+==> Stage 2 Gate: liquid-spec CLI Verification (basics & liquid_ruby)
+Complexity level cleared: 200 of 1000, 34 passes, 0 failures.
+  Suite: basics
+Complexity level cleared: 300 of 1000, 68 passes, 0 failures.
+  Suite: liquid_ruby
+==> Stage 2 Gate: Nested-Loop Trace Demo & Contract Validation
+Wrote /tmp/lrf-clean-checkout.u8nJWX/artifacts/stage-2/nested-loop-trace.json
+  status=ok html_bytes=142 observed=true events=38
+  html=<article data-card="card_1"><span data-regression-badge="sale">Sale</span></article><article data-card="card_2"><span>Regular</span></article>
+PASS: bin/check stage-2 succeeded.
+==> Stage 3 Gate: Projection, Fixture Validator & Probe Matrix Tests
+Run options: --seed 16791
+
+# Running:
+
+.....
+
+Finished in 0.006064s, 824.5382 runs/s, 20778.3639 assertions/s.
+
+5 runs, 126 assertions, 0 failures, 0 errors, 0 skips
+==> Stage 3 Gate: Observer & Official Liquid 5.14.0 Reference Renderer Tests
+Run options: --seed 22678
+
+# Running:
+
+.....
+
+Finished in 0.136049s, 36.7515 runs/s, 1073.1428 assertions/s.
+
+5 runs, 146 assertions, 0 failures, 0 errors, 0 skips
+==> Stage 3 Gate: Persistent JSONL Worker Protocol Tests
+Run options: --seed 26532
+
+# Running:
+
+....
+
+Finished in 0.815667s, 4.9040 runs/s, 248.8761 assertions/s.
+
+4 runs, 203 assertions, 0 failures, 0 errors, 0 skips
+==> Stage 3 Gate: Ordinary Sale & Non-Sale Parity Verification via JSONL Worker
+Wrote /private/tmp/lrf-clean-checkout.u8nJWX/artifacts/stage-3/ordinary-parity.json
+  sale_product: custom=(true, true) reference=(true, true) events=(27, 15)
+  regular_product: custom=(false, false) reference=(false, false) events=(18, 11)
+PASS: bin/check stage-3 succeeded.
+==> Stage 4 Gate: Verify fixtures/demo/ Contains Only Liquid Snippets
+==> Stage 4 Gate: Python Search Unit & Real-Worker Integration Tests
+==> Stage 4 Gate: Live Demo Compare CLI Verification (Expect Exit 1)
+[demo] python -m search compare exited with 1 (difference_found)
+==> Stage 4 Gate: Live Identical-Template Negative CLI Verification (Expect Exit 0)
+[identical] python -m search compare exited with 0 (no_difference_found)
+==> Stage 4 Gate: Validate Generated Reports & ReplayBundle Against Contracts
+VALID compare_report (difference_found): /tmp/lrf-clean-checkout.u8nJWX/artifacts/stage-4/demo-compare.json (search_pairs=56, direction=before_only)
+VALID compare_report (no_difference_found): /tmp/lrf-clean-checkout.u8nJWX/artifacts/stage-4/identical-compare.json (search_pairs=16, exhausted_by=pair_limit)
+VALID replay_bundle: /tmp/lrf-clean-checkout.u8nJWX/artifacts/stage-4/demo-replay.json (variants=2)
+PASS: bin/check stage-4 succeeded.
+==> Stage 5 Gate: Live Demo Compare + Shrink + Explanation (Expect Exit 1)
+[stage-5 demo] python -m search compare exited with 1 (difference_found)
+==> Stage 5 Gate: Fresh-Process Deterministic Replay Verification (Expect Exit 0)
+==> Stage 5 Gate: Live Identical-Template Negative CLI Verification (Expect Exit 0)
+==> Stage 5 Gate: End-to-End Acceptance Assertions
+[stage-5] All 4 core acceptance invariants verified (shrink_pairs=28, pre=[2, 2, 3500, 2, 179] -> post=[2, 2, 1, 0, 172])
+==> Stage 5 Gate: Validate Stage 5 Reports, ReplayBundle, & ReplayResult via JSONSchemer
+VALID compare_report (difference_found): /tmp/lrf-clean-checkout.u8nJWX/artifacts/stage-5/demo-compare.json (search_pairs=56, shrink_pairs=28, explanation=structural_change)
+VALID compare_report (no_difference_found): /tmp/lrf-clean-checkout.u8nJWX/artifacts/stage-5/identical-compare.json (search_pairs=16, exhausted_by=pair_limit)
+VALID replay_bundle: /tmp/lrf-clean-checkout.u8nJWX/artifacts/stage-5/demo-replay.json (variants=2)
+VALID replay_result: /tmp/lrf-clean-checkout.u8nJWX/artifacts/stage-5/demo-replay-result.json (direction=before_only, explanation=structural_change)
+PASS: bin/check stage-5 succeeded.
+==> Stage 6 Gate: Verify Dawn Corpus Manifest, Witness Fixtures, & Liquid 5.14.0 Renders
+[stage-6] Verified 15 Dawn cases (sale_badge=4, sold_out_badge=5, price_range=6); stage2=3, benchmark_supported=10, unsupported=5, unverified=7.
+==> Stage 6 Gate: Run Dawn Corpus Minitest Suite
+Run options: --seed 43642
+
+# Running:
+
+.....
+
+Finished in 0.028083s, 178.0437 runs/s, 3454.0469 assertions/s.
+
+5 runs, 97 assertions, 0 failures, 0 errors, 0 skips
+PASS: bin/check stage-6 succeeded.
+==> Stage 7 Gate: Liquid Engine Extension & Oracle Tests
+Run options: --seed 38008
+
+# Running:
+
+......
+
+Finished in 0.095522s, 62.8128 runs/s, 17043.1942 assertions/s.
+
+6 runs, 1628 assertions, 0 failures, 0 errors, 0 skips
+==> Stage 7 Gate: Verify Expanded Conformance Manifest (100% Selected)
+=== Liquid-Spec Conformance Report ===
+Adapter: /private/tmp/lrf-clean-checkout.u8nJWX/interpreter/liquid_spec_adapter.rb
+Manifest: /private/tmp/lrf-clean-checkout.u8nJWX/contracts/conformance-manifest.json
+Pinned liquid-spec SHA: 84bf25e0edbca5f7e530574788b0f875ab331f50
+Liquid reference gem: 5.14.0
+Custom interpreter: 0.1.0
+Stage scope in manifest: stage-7
+
+Inventoried Suites (basics + liquid_ruby):
+  basics         total=955  selected=155 pass=155 fail=0   error=0   skip=800  (plain_text=8/8)
+  liquid_ruby    total=2106 selected=244 pass=244 fail=0   error=0   skip=1862 (plain_text=6/6)
+
+Other Liquid-Spec Suites (skipped by suite scope):
+  benchmarks                     total=10   skip=10   reason=benchmark_suite_out_of_scope
+  liquid_ruby_lax                total=121  skip=121  reason=lax_parsing_mode_out_of_scope
+  parser_errors                  total=1905 skip=1905 reason=error_wording_or_mutation_suite
+  partials                       total=12   skip=12   reason=partials_and_core_suite
+  shopify_production_recordings  total=2260 skip=2260 reason=inline_error_mode_and_production_recordings
+  shopify_theme_dawn             total=26   skip=26   reason=shopify_extensions_and_theme_sections
+
+Skip Reasons across Inventoried Suites:
+  bracket_access_out_of_scope              51
+  drops_and_ruby_objects                   506
+  error_wording_or_inline_error_mode       186
+  floats_out_of_scope                      15
+  for_loop_extensions_out_of_scope         60
+  partials_and_filesystem                  305
+  range_expressions_out_of_scope           85
+  resource_limit_accounting_out_of_scope   10
+  shopify_extensions                       3
+  unsupported_filters                      1045
+  unsupported_operators_or_keywords        67
+  unsupported_tags                         315
+  virtual_collection_properties            14
+
+Aggregate Counts & Denominators:
+  plain_text_pilot: 14/14 (100.00%)
+  pass/selected:    399/399 (100.00%) [fail=0, error=0]
+  pass/inventoried: 399/3061 (13.03%) [basics + liquid_ruby]
+  pass/all_suites:  399/7395 (5.40%) [all 8 suites]
+
+Failure IDs: none (0 failures)
+==> Stage 7 Gate: Regenerate Benchmark Reports & Measure IPC Overhead
+Benchmark complete: generated_search=10/15 cases (50/75 runs), sample_baseline=9/15 cases (9/15 runs)
+==> Stage 7 Gate: Run Benchmark Accounting, Parity, Sample Baseline & Reproducibility Tests
+PASS: bin/check stage-7 succeeded.
+==> Stage 8 Gate: Ensure api/ Locked Gems
+The Gemfile's dependencies are satisfied
+==> Stage 8 Gate: Verify api/ Migrations & Solid Queue Configuration
+Solid Queue configuration is valid.
+==> Stage 8 Gate: Run Rails API, Job, Reconciliation, Subprocess & Log Redaction Tests
+
+Run options: -v --seed 9657
+
+# Running:
+
+ComparisonRunnerTest#test_runs_real_python_search_compare_on_demo_snippets_from_inside_api_bundle_env = 0.37 s = .
+ComparisonRunnerTest#test_enforces_watchdog_timeout_and_reaps_stubborn_child_process_group = 0.53 s = .
+ComparisonRunnerTest#test_rejects_malformed_stdout_JSON_and_non-matching_schema_output_as_infrastructure_failed = 0.02 s = .
+ComparisonRunnerTest#test_runs_real_python_search_compare_on_identical_snippets_and_invalid_liquid = 0.65 s = .
+Api::V1::ComparisonsControllerTest#test_scoped_bearer_token_protects_POST_comparisons_when_LIQUID_REGRESSION_API_TOKEN_is_set = 0.06 s = .
+Api::V1::ComparisonsControllerTest#test_health_endpoint_returns_200_ok = 0.00 s = .
+Api::V1::ComparisonsControllerTest#test_POST_validates_strict_JSON,_filesystem_path_rejection,_size,_observer,_seed,_and_budget = 0.00 s = .
+Api::V1::ComparisonsControllerTest#test_redacts_snippet_source,_fixture,_and_html_from_Rails_server_and_SQL_logs = 0.00 s = .
+Api::V1::ComparisonsControllerTest#test_Idempotency-Key_rejects_empty_header,_reuses_same_digest_across_202/200,_and_returns_409_on_whitespace_diff = 0.01 s = .
+Api::V1::ComparisonsControllerTest#test_recovers_cleanly_from_SQLite_RecordNotUnique_race_on_concurrent_idempotent_submission = 0.00 s = .
+Api::V1::ComparisonsControllerTest#test_POST_creates_queued_comparison_and_GET_returns_schema-valid_ComparisonJob_or_404 = 0.00 s = .
+CompareRequestValidatorTest#test_rejects_malformed_json,_non-utf8,_and_non-object_roots = 0.00 s = .
+CompareRequestValidatorTest#test_accepts_valid_request_including_exact_16_KiB_boundary_and_preserves_whitespace = 0.00 s = .
+CompareRequestValidatorTest#test_rejects_arbitrary_filesystem_path_keys_and_extra_keys = 0.00 s = .
+CompareRequestValidatorTest#test_rejects_oversized_snippet,_unsupported_observer,_bad_types,_and_out-of-range_bounds = 0.00 s = .
+ComparisonReconcilerTest#test_re-enqueues_missed_stale_queued_rows_while_leaving_fresh_queued_rows_alone = 0.00 s = .
+ComparisonReconcilerTest#test_leaves_non-expired_running_leases_untouched = 0.00 s = .
+ComparisonReconcilerTest#test_marks_expired_running_claim_terminal_failed_with_lease_expired_when_attempts_>=_2 = 0.00 s = .
+ComparisonReconcilerTest#test_recovers_expired_running_claim_once_when_attempts_<_2 = 0.00 s = .
+ComparisonTest#test_partial_unique_index_allows_multiple_NULL_idempotency_keys_but_rejects_duplicate_non-NULL_keys = 0.00 s = .
+ComparisonTest#test_claim_queued_and_guarded_complete_with_token_reject_stale_attempt_tokens = 0.01 s = .
+ComparisonTest#test_create_queued_persists_UUID,_schema_version,_and_whitespace-sensitive_SHA-256_digest = 0.00 s = .
+ComparisonTest#test_persistence_survives_connection_pool_reset_and_reload = 0.00 s = .
+ComparisonRunJobTest#test_infrastructure_failure_retries_once_then_fails_terminally_on_second_failure = 0.00 s = .
+ComparisonRunJobTest#test_duplicate_job_delivery_skips_cleanly_without_executing_runner_twice = 0.00 s = .
+ComparisonRunJobTest#test_infrastructure_failure_recovers_when_retry_attempt_succeeds = 0.00 s = .
+ComparisonRunJobTest#test_terminal_engine,_compile,_and_reference_mismatch_errors_fail_immediately_without_retry = 0.00 s = .
+SolidQueuePersistenceTest#test_enqueues_ComparisonRunJob_into_SQLite_Solid_Queue_tables_and_avoids_duplicating_pending_jobs_during_reconciliation = 0.02 s = .
+
+Finished in 1.710461s, 16.3699 runs/s, 186.4994 assertions/s.
+28 runs, 319 assertions, 0 failures, 0 errors, 0 skips
+==> Stage 8 Gate: End-to-End Rails Server + Solid Queue Worker Smoke Check
+[e2e] Migrating isolated SQLite DB at /var/folders/p5/51yn58j565z10qgklmrgn0700000gn/T/lrf-api-e2e-20261117-1155-qkttn/e2e_production.sqlite3 (RAILS_ENV=production)...
+[e2e] Verifying ComparisonReconciler runner entrypoint...
+[e2e] Starting Solid Queue single worker and Puma server on 127.0.0.1:60296...
+[e2e] Submitting POST /api/v1/comparisons...
+[e2e] Polling GET /api/v1/comparisons/28526ab3-15f4-41bc-b074-653d17099b84 until terminal...
+[e2e] Restarting Rails server against same SQLite DB to verify persistence...
+[e2e] PASS: id=28526ab3-15f4-41bc-b074-653d17099b84 status=difference_found search_pairs=56 shrink_pairs=28 persisted_after_restart=true
+PASS: bin/check stage-8 succeeded.
+==> Stage 9 Gate: Ensure web/ Locked npm Packages
+==> Stage 9 Gate: TypeScript Typecheck, Vitest UI Suite, & Vite Production Build
+
+> liquid-regression-finder-web@0.1.0 typecheck
+> tsc --noEmit
+
+
+> liquid-regression-finder-web@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /private/tmp/lrf-clean-checkout.u8nJWX/web
+
+ ✓ src/__tests__/canonicalJson.test.ts (3 tests) 1ms
+ ✓ src/__tests__/vercelApi.test.ts (1 test) 51ms
+ ✓ src/__tests__/SubmissionPage.test.tsx (3 tests) 101ms
+ ✓ src/__tests__/ComparisonResultPage.test.tsx (8 tests) 188ms
+
+ Test Files  4 passed (4)
+      Tests  15 passed (15)
+   Start at  06:43:41
+   Duration  790ms (transform 153ms, setup 377ms, collect 214ms, tests 342ms, environment 1.02s, prepare 162ms)
+
+
+> liquid-regression-finder-web@0.1.0 build
+> vite build
+
+vite v7.3.8 building client environment for production...
+transforming...
+✓ 49 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.41 kB │ gzip:  0.28 kB
+dist/assets/index-sa3azIIl.css    8.61 kB │ gzip:  2.33 kB
+dist/assets/index-CDyXbrkA.js   297.39 kB │ gzip: 90.88 kB
+✓ built in 458ms
+==> Stage 9 Gate: Real Rails + Solid Queue + Vite + Headless Chrome E2E Verification
+[stage-9 e2e] Migrating isolated SQLite DB at /var/folders/p5/51yn58j565z10qgklmrgn0700000gn/T/lrf-stage9-e2e-gPzbJl/e2e_production.sqlite3...
+[stage-9 e2e] Starting Solid Queue worker and Rails Puma on 127.0.0.1:60320...
+[stage-9 e2e] Starting Vite dev server on 127.0.0.1:60321 proxying /api -> 127.0.0.1:60320...
+[stage-9 e2e] Launching headless Chrome via playwright-core...
+[stage-9 e2e] Navigated to http://127.0.0.1:60321/comparisons/dfdb84f9-e5da-449a-8157-43a3acd8f228; waiting for worker completion...
+[stage-9 e2e] Captured screenshot: /private/tmp/lrf-clean-checkout.u8nJWX/artifacts/stage-9/demo-result-page.png
+[stage-9 e2e] Verified fresh second page load reconstructs identical result view.
+[stage-9 e2e] Verified XSS payload rendered as escaped text and did not execute.
+[stage-9 e2e] Responsive 390x844 verified: home=390/390, result=390/390
+[stage-9 e2e] PASS: wrote /private/tmp/lrf-clean-checkout.u8nJWX/artifacts/stage-9/browser-e2e-report.json
+PASS: bin/check stage-9 succeeded.
+==> Stage 10 Gate: PR Check CLI Unit & Stdlib-Only Tests
+==> Stage 10 Gate: Validate GitHub Actions Workflow YAML & Watched Snippet
+==> Stage 10 Gate: Real Rails + Solid Queue PR Dry Run
+[pr_dry_run] Migrating isolated SQLite DB at /var/folders/p5/51yn58j565z10qgklmrgn0700000gn/T/lrf-pr-dry-run-raee1zbh/pr_dry_run_production.sqlite3...
+[pr_dry_run] Starting Solid Queue worker and Rails Puma on http://127.0.0.1:60386...
+[pr_dry_run] Benign case PASS: exit=0 status=no_difference_found search_pairs=256 result_url=http://127.0.0.1:60386/comparisons/02344fb2-5ec5-4522-9de7-85891ae1f811
+[pr_dry_run] Regression case PASS: exit=1 status=difference_found search_pairs=56 shrink_pairs=28 explanation=structural_change result_url=http://127.0.0.1:60386/comparisons/e83fd4ee-e2b5-43ee-b2d8-58412a8db384
+[pr_dry_run] PASS: wrote /tmp/lrf-clean-checkout.u8nJWX/artifacts/stage-10/pr-dry-run-report.json and /tmp/lrf-clean-checkout.u8nJWX/artifacts/stage-10/pr-dry-run-summary.md
+PASS: bin/check stage-10 succeeded.
+PASS: bin/check all succeeded.
+==> Step 3: Standalone CLI demo compare, deterministic replay, benchmark, and PR dry run
+[clean-checkout] CLI compare PASS (exit=1)
+[clean-checkout] CLI replay PASS (exit=0)
+Benchmark complete: generated_search=10/15 cases (50/75 runs), sample_baseline=9/15 cases (9/15 runs)
+[clean-checkout] Benchmark PASS (exit=0)
+[pr_dry_run] Migrating isolated SQLite DB at /var/folders/p5/51yn58j565z10qgklmrgn0700000gn/T/lrf-pr-dry-run-lxyd6sz4/pr_dry_run_production.sqlite3...
+[pr_dry_run] Starting Solid Queue worker and Rails Puma on http://127.0.0.1:60407...
+[pr_dry_run] Benign case PASS: exit=0 status=no_difference_found search_pairs=256 result_url=http://127.0.0.1:60407/comparisons/bdbfb498-5eea-4916-bab3-621f2a81a1ef
+[pr_dry_run] Regression case PASS: exit=1 status=difference_found search_pairs=56 shrink_pairs=28 explanation=structural_change result_url=http://127.0.0.1:60407/comparisons/866474be-103c-4f1f-8b81-5869c9697928
+[pr_dry_run] PASS: wrote /tmp/lrf-clean-checkout.u8nJWX/artifacts/tmp/clean-pr-dry-run.json and /tmp/lrf-clean-checkout.u8nJWX/artifacts/tmp/clean-pr-dry-run-summary.md
+[clean-checkout] PR dry run PASS (exit=0)
+
+PASS: Clean-checkout verification succeeded (./bin/setup, ./bin/check all, CLI demo + replay, benchmark, PR dry run).

@@ -1,0 +1,66 @@
+{
+  "status": "passed",
+  "manifest": "comparison-manifest.json",
+  "snippet_path": "snippets/card-product.liquid",
+  "auth_mode": "bearer_token_enabled",
+  "logs_redacted": true,
+  "cases": {
+    "benign_head": {
+      "exit_code": 0,
+      "status": "no_difference_found",
+      "job_id": "18b4921c-3c4e-4f85-9b94-381bcd899b40",
+      "result_url": "http://127.0.0.1:60521/comparisons/18b4921c-3c4e-4f85-9b94-381bcd899b40",
+      "idempotency_key": "6e74dbde379dad25200b429abd4635355918762767caacb5cb2a699c2c529249",
+      "stats": {
+        "search_pairs": 256,
+        "shrink_pairs": 0,
+        "parity_rejections": 0,
+        "exhausted_by": "pair_limit",
+        "first_difference_ms": null,
+        "elapsed_ms": 320
+      },
+      "message": "no difference found within this search"
+    },
+    "regression_head": {
+      "exit_code": 1,
+      "status": "difference_found",
+      "job_id": "257a5774-b2b3-444b-937e-e68643e67639",
+      "result_url": "http://127.0.0.1:60521/comparisons/257a5774-b2b3-444b-937e-e68643e67639",
+      "idempotency_key": "d769e3bd0015471ed6a81a4c79491bd3e7b5fc51184c2d52e10227fce2867316",
+      "idempotent_replay_job_id": "257a5774-b2b3-444b-937e-e68643e67639",
+      "stats": {
+        "search_pairs": 56,
+        "shrink_pairs": 28,
+        "parity_rejections": 0,
+        "exhausted_by": null,
+        "first_difference_ms": 266,
+        "elapsed_ms": 275
+      },
+      "explanation_kind": "structural_change",
+      "explanation_summary": "Structural change: before at line 3 in variant_id=\"v2\" via line 8 (if on_sale=true, assigned at line 4) [variant.compare_at_price != nil and variant.compare_at_price > variant.price] -> true (variant.compare_at_price=1, variant.price=0); after at line 2 in product/context [product.compare_at_price != nil and product.compare_at_price > product.price] -> false (product.compare_at_price=0, product.price=0).",
+      "before_anchor": {
+        "line": 3,
+        "event_seq": 13
+      },
+      "after_anchor": {
+        "line": 2,
+        "event_seq": 9
+      },
+      "variants_after_shrink": 2
+    },
+    "untrusted_fork": {
+      "exit_code": 0,
+      "status": "skipped_untrusted_fork"
+    },
+    "renamed_blob": {
+      "exit_code": 2,
+      "error_code": "renamed_blob",
+      "message": "Watched snippet 'snippets/card-product.liquid' was renamed between 0ffe0ebf3e9e2a95768582d79be76c5ca28121cd and 4e61aaa9d85e2001c1f3c39537624d85410e233f (snippets/card-product.liquid -> snippets/card-product-renamed.liquid, status=R100); update comparison-manifest.json or restore path."
+    },
+    "missing_blob": {
+      "exit_code": 2,
+      "error_code": "missing_blob",
+      "message": "Watched snippet 'snippets/card-product.liquid' is missing on head (fa87bc7b03b036a4f53cbe191f2e10786379b9a0) (diff status: D)."
+    }
+  }
+}

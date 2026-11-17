@@ -1,7 +1,7 @@
 # Implementation Progress — Shopify Liquid Regression Finder
 
-- **Current Stage**: Stage 9 (`passed`)
-- **Last Completed Stage**: Stage 9 — React results UI
+- **Current Stage**: Stage 10 (`passed` — all 10 stages complete)
+- **Last Completed Stage**: Stage 10 — PR workflow and release
 - **Repository**: https://github.com/Med-NCoding/liquid-regression-finder
 
 ## Stage Tracker
@@ -17,7 +17,7 @@
 | 7 | Benchmark and engine extensions | passed | `bin/check stage-7` | 0 | `bench/reports/benchmark.md`, `bench/reports/benchmark.csv`, `bench/reports/benchmark_details.json`, `bench/sample_baseline/PROVENANCE.md`, `artifacts/stage-7/conformance-report.txt` |
 | 8 | Rails API and jobs | passed | `bin/check stage-8` | 0 | `api/`, `api/bin/e2e_smoke_check`, `artifacts/stage-8/e2e-smoke-report.json`, `api/test/` |
 | 9 | React results UI | passed | `bin/check stage-9` | 0 | `web/`, `artifacts/stage-9/demo-result-page.png`, `artifacts/stage-9/browser-e2e-report.json` |
-| 10 | PR workflow and release | pending | `bin/check all` | — | — |
+| 10 | PR workflow and release | passed | `bin/check all` | 0 | `comparison-manifest.json`, `snippets/card-product.liquid`, `bin/pr-check`, `.github/workflows/liquid-regression.yml`, `artifacts/stage-10/` |
 
 ## Stage Details & Checkpoint Log
 
@@ -206,3 +206,22 @@
 - **Gate Command & Exit Status**: `./bin/check stage-9` -> exit `0` (includes Stage 1–8 regression checks).
 - **Remaining Tasks**: Stage 10 — PR workflow and release.
 - **Next Command**: Start Stage 10 worker (`bin/check all`).
+
+### Stage 10 — PR Workflow and Release
+- **Status**: `passed`
+- **Completed Tasks**:
+  - **Comparison Manifest & Watched Snippet (`comparison-manifest.json`, `snippets/card-product.liquid`)**: Added standalone product-card fragment `snippets/card-product.liquid` using `[data-regression-badge="sale"]` with Stage 3–5 variant-loop sale logic, and root `comparison-manifest.json` (`schema_version: 1`, `observer: "sale_badge"`, `marker: "[data-regression-badge=\"sale\"]"`, `seed: 0`, `budget: {"search_pairs": 256, "shrink_pairs": 128}`, `poll_timeout_seconds: 90`).
+  - **PR Check CLI & Unit Suite (`bin/pr-check`, `bin/tests/test_pr_check.py`)**: Implemented 100% Python 3.11 stdlib-only executable (`#!/usr/bin/env python3.11`) reading exact UTF-8 blobs via `git cat-file` / `git diff --name-status -M -z` with zero shell interpolation, structured `missing_blob`/`renamed_blob`/`invalid_utf8_blob`/`invalid_manifest`/`poll_timeout`/`http_error` diagnostics (exit `2`), deterministic SHA-256 `Idempotency-Key` over `{repo, base_sha, head_sha, manifest_sha256}`, untrusted-fork `LIQUID_REGRESSION_API_TOKEN` suppression (`--is-fork` or `GITHUB_EVENT_HEAD_FORK=true`), `$GITHUB_STEP_SUMMARY` Markdown generation, exit `0` on `no_difference_found` (or fork auth-gated skip), and exit `1` on `difference_found` or terminal `failed`. Verified `9` tests passing in `bin/tests/test_pr_check.py` (including AST stdlib-only audit, shell metacharacter safety, rename/delete diagnostics, fork token suppression, timeouts, and mock API polling).
+  - **GitHub Actions Workflow (`.github/workflows/liquid-regression.yml`)**: Added `verify` job (`push` / `pull_request`, Ruby `3.3`, Python `3.11`, Node `24`, `./bin/setup && ./bin/check all`) and `pr-snippet-check` job gated to same-repository PRs (`if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository`) so repository secrets are never exposed to untrusted fork PRs.
+  - **Local PR Dry Run & Clean-Checkout Gate (`bin/pr_dry_run`, `bin/verify_clean_checkout`, `bin/setup`, `bin/check`)**:
+    - Implemented `bin/pr_dry_run` booting real Rails Puma + Solid Queue `bin/jobs` against an isolated SQLite DB with bearer token auth across a temporary git repository covering benign (`exit 0`, `no_difference_found`, `search_pairs=256`), regression (`exit 1`, `difference_found`, `search_pairs=56`, `shrink_pairs=28`, `structural_change` at before line `3` / after line `2`, persisted `result_url`, and idempotent repeat check), untrusted fork (`exit 0`, `skipped_untrusted_fork`), renamed blob (`exit 2`, `renamed_blob`), and deleted blob (`exit 2`, `missing_blob`), saving `artifacts/stage-10/pr-dry-run-report.json` and `artifacts/stage-10/pr-dry-run-summary.md`.
+    - Fixed clean-checkout production DB initialization uncovered by `bin/verify_clean_checkout`: added `RAILS_ENV=production bundle exec bin/rails db:prepare` to `bin/setup` and `RAILS_ENV=production bundle exec bin/rails db:migrate` before `solid_queue:check` in `bin/check` (`run_stage_8`) so clean checkouts without pre-existing `api/storage/production.sqlite3` pass `solid_queue:check`.
+    - Implemented `run_stage_10` and completed `bin/check all` in `bin/check`.
+    - Executed `./bin/verify_clean_checkout --out artifacts/stage-10/clean-checkout-verification.txt` exporting source without `vendor/bundle/`, `api/vendor/bundle/`, `node_modules/`, `web/dist/`, `api/storage/*.sqlite3*`, or `artifacts/tmp/` into `/tmp/lrf-clean-checkout.*`, running `./bin/setup && ./bin/check all`, standalone CLI demo compare + replay, benchmark, and PR dry run, confirming exit `0` and full temp cleanup.
+  - **First-Run Documentation (`README.md`)**: Authored `README.md` from generated repo evidence (`399/399` selected conformance `100.00%`, `13.03%` inventoried, `5.40%` all 8 suites; `15` Dawn cases / `10` supported `100.0%` vs `9/10` sample baseline in median `3.5` vs `22` pairs; sub-second search and `< 0.1 ms/pair` JSONL IPC overhead in `bench/reports/benchmark.md`) with explicit external-host verification status:
+    - Storefront fixture probe: `storefront_unverified` (local projection model `1.0.0`)
+    - Live GitHub PR workflow run: not exercised on hosted GitHub Actions (verified locally via `bin/pr_dry_run` + YAML load)
+    - Shared hosted deployment: not exercised on live Vercel/external Rails host (verified locally via Rails + Chrome E2E and Vitest Vercel handler tests)
+- **Gate Command & Exit Status**: `./bin/check all` -> exit `0`; `./bin/verify_clean_checkout` -> exit `0`.
+- **Remaining Tasks**: None (all 10 implementation stages complete).
+- **Next Command**: `./bin/check all`

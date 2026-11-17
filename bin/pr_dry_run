@@ -1,0 +1,506 @@
+#!/usr/bin/env python3.11
+"""End-to-end local PR dry run against real Rails Puma + Solid Queue + Python/Ruby search.
+
+Creates an isolated temporary git repository with base, benign, regression,
+renamed, and deleted commits on snippets/card-product.liquid, boots a real
+production-mode Rails Puma + Solid Queue worker against an isolated SQLite DB,
+executes bin/pr-check across all scenarios, and records evidence under
+artifacts/stage-10/.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import secrets
+import shutil
+import signal
+import socket
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
+from typing import Any
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+API_ROOT = REPO_ROOT / "api"
+PR_CHECK_BIN = REPO_ROOT / "bin" / "pr-check"
+MANIFEST_PATH = REPO_ROOT / "comparison-manifest.json"
+SNIPPET_SOURCE_PATH = REPO_ROOT / "snippets" / "card-product.liquid"
+
+
+def _resolve_executable(candidates: list[str], fallback: str) -> str:
+    for cand in candidates:
+        if os.path.isfile(cand) and os.access(cand, os.X_OK):
+            return cand
+    found = shutil.which(fallback)
+    if found:
+        return found
+    raise RuntimeError(f"Unable to locate {fallback!r} executable")
+
+
+def _free_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
+def _git(repo_dir: Path, *args: str) -> str:
+    proc = subprocess.run(
+        ["git", "-C", str(repo_dir), *args],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return proc.stdout.strip()
+
+
+def _commit_snippet(repo_dir: Path, rel_path: str, content: str, message: str) -> str:
+    target = repo_dir / rel_path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(content.encode("utf-8"))
+    _git(repo_dir, "add", rel_path)
+    _git(repo_dir, "commit", "-m", message)
+    return _git(repo_dir, "rev-parse", "HEAD")
+
+
+def _http_get_json(url: str) -> tuple[int, dict[str, Any]]:
+    req = urllib.request.Request(url, headers={"Accept": "application/json"}, method="GET")
+    try:
+        with urllib.request.urlopen(req, timeout=5.0) as resp:
+            return int(resp.status), json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        return int(exc.code), json.loads(exc.read().decode("utf-8"))
+
+
+def _stop_process_group(proc: subprocess.Popen[bytes] | None, label: str) -> None:
+    if proc is None or proc.poll() is not None:
+        return
+    try:
+        os.killpg(proc.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
+    deadline = time.monotonic() + 5.0
+    while time.monotonic() < deadline:
+        if proc.poll() is not None:
+            return
+        time.sleep(0.05)
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    proc.wait(timeout=2.0)
+    print(f"[pr_dry_run] Force-killed {label} (pid={proc.pid})", file=sys.stderr)
+
+
+def _wait_for_health(port: int, server_proc: subprocess.Popen[bytes], server_log: Path, timeout_s: float = 25.0) -> None:
+    url = f"http://127.0.0.1:{port}/api/v1/health"
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        if server_proc.poll() is not None:
+            tail = server_log.read_text(encoding="utf-8", errors="replace")[-2000:] if server_log.exists() else ""
+            raise RuntimeError(f"Rails server exited early (code={server_proc.returncode}):\n{tail}")
+        try:
+            code, payload = _http_get_json(url)
+            if code == 200 and payload == {"status": "ok"}:
+                return
+        except Exception:
+            pass
+        time.sleep(0.1)
+    tail = server_log.read_text(encoding="utf-8", errors="replace")[-2000:] if server_log.exists() else ""
+    raise RuntimeError(f"Timed out waiting for Rails server health on port {port}:\n{tail}")
+
+
+def _run_pr_check(
+    *,
+    repo_dir: Path,
+    base_sha: str,
+    head_sha: str,
+    api_url: str,
+    summary_file: Path,
+    token: str | None,
+    extra_args: list[str] | None = None,
+) -> tuple[int, dict[str, Any], str]:
+    env = os.environ.copy()
+    env["GITHUB_STEP_SUMMARY"] = str(summary_file)
+    if token is not None:
+        env["LIQUID_REGRESSION_API_TOKEN"] = token
+    else:
+        env.pop("LIQUID_REGRESSION_API_TOKEN", None)
+
+    cmd = [
+        str(PR_CHECK_BIN),
+        "--manifest",
+        str(MANIFEST_PATH),
+        "--base-sha",
+        base_sha,
+        "--head-sha",
+        head_sha,
+        "--repo",
+        "Med-NCoding/liquid-regression-finder",
+        "--api-url",
+        api_url,
+        "--web-url",
+        api_url,
+        "--git-dir",
+        str(repo_dir),
+        "--poll-timeout",
+        "45",
+        "--poll-interval",
+        "0.25",
+    ]
+    if extra_args:
+        cmd.extend(extra_args)
+
+    proc = subprocess.run(cmd, capture_output=True, text=True, env=env, check=False)
+    try:
+        report = json.loads(proc.stdout)
+    except json.JSONDecodeError as exc:
+        raise AssertionError(
+            f"bin/pr-check emitted invalid JSON (rc={proc.returncode}):\nstdout={proc.stdout}\nstderr={proc.stderr}"
+        ) from exc
+    summary_text = summary_file.read_text(encoding="utf-8") if summary_file.exists() else ""
+    return proc.returncode, report, summary_text
+
+
+def run_dry_run(report_out: Path, summary_out: Path) -> dict[str, Any]:
+    bundle_bin = _resolve_executable(["/opt/homebrew/opt/ruby@3.3/bin/bundle"], "bundle")
+    ruby_bin = _resolve_executable(["/opt/homebrew/opt/ruby@3.3/bin/ruby"], "ruby")
+    python_bin = _resolve_executable(["/opt/homebrew/opt/python@3.11/bin/python3.11"], "python3.11")
+
+    base_snippet = SNIPPET_SOURCE_PATH.read_text(encoding="utf-8")
+    benign_snippet = base_snippet.replace(
+        '<div class="card-product"',
+        '<div class="card-product card-product--compact"',
+        1,
+    )
+    if benign_snippet == base_snippet:
+        raise RuntimeError("Expected <div class=\"card-product\" inside snippets/card-product.liquid")
+
+    regression_snippet = (
+        '<div class="card-product" data-available="{{ product.available }}">\n'
+        '  {%- if product.compare_at_price != nil and product.compare_at_price > product.price -%}\n'
+        '  <span class="badge" data-regression-badge="sale">Sale</span>\n'
+        '  {%- endif -%}\n'
+        '  <span class="price">{{ product.price }}</span>\n'
+        '</div>\n'
+    )
+
+    api_token = f"dry-run-token-{secrets.token_hex(8)}"
+
+    with tempfile.TemporaryDirectory(prefix="lrf-pr-dry-run-") as td:
+        tmp = Path(td)
+        git_repo = tmp / "pr-repo"
+        git_repo.mkdir()
+        _git(git_repo, "init")
+        _git(git_repo, "config", "user.email", "ci@example.com")
+        _git(git_repo, "config", "user.name", "CI Dry Run")
+
+        base_sha = _commit_snippet(git_repo, "snippets/card-product.liquid", base_snippet, "base: variant-loop sale logic")
+        benign_sha = _commit_snippet(git_repo, "snippets/card-product.liquid", benign_snippet, "benign: card modifier class")
+
+        _git(git_repo, "checkout", "-b", "regression", base_sha)
+        regression_sha = _commit_snippet(
+            git_repo,
+            "snippets/card-product.liquid",
+            regression_snippet,
+            "regression: product aggregate compare_at_price",
+        )
+
+        _git(git_repo, "checkout", "-b", "renamed", base_sha)
+        _git(git_repo, "mv", "snippets/card-product.liquid", "snippets/card-product-renamed.liquid")
+        _git(git_repo, "commit", "-m", "rename: move card-product snippet")
+        renamed_sha = _git(git_repo, "rev-parse", "HEAD")
+
+        _git(git_repo, "checkout", "-b", "deleted", base_sha)
+        _git(git_repo, "rm", "snippets/card-product.liquid")
+        _git(git_repo, "commit", "-m", "delete: remove card-product snippet")
+        deleted_sha = _git(git_repo, "rev-parse", "HEAD")
+
+        db_path = tmp / "pr_dry_run_production.sqlite3"
+        server_log = tmp / "puma.log"
+        worker_log = tmp / "solid_queue.log"
+        pidfile = tmp / "puma.pid"
+
+        path_parts = [
+            str(Path(ruby_bin).parent),
+            str(Path(python_bin).parent),
+            os.environ.get("PATH", ""),
+        ]
+        child_env = {
+            k: v
+            for k, v in os.environ.items()
+            if not k.startswith("BUNDLE_") and k != "RUBYOPT"
+        }
+        child_env.update(
+            {
+                "PATH": os.pathsep.join([p for p in path_parts if p]),
+                "RAILS_ENV": "production",
+                "LIQUID_REGRESSION_DB_PATH": str(db_path),
+                "LIQUID_REGRESSION_REPO_ROOT": str(REPO_ROOT),
+                "LIQUID_REGRESSION_PYTHON_BIN": python_bin,
+                "LIQUID_REGRESSION_API_TOKEN": api_token,
+                "RAILS_FORCE_SSL": "false",
+                "SOLID_QUEUE_SKIP_RECURRING": "true",
+                "JOB_CONCURRENCY": "1",
+            }
+        )
+
+        print(f"[pr_dry_run] Migrating isolated SQLite DB at {db_path}...")
+        mig = subprocess.run(
+            [bundle_bin, "exec", "ruby", "bin/rails", "db:migrate"],
+            cwd=API_ROOT,
+            env=child_env,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if mig.returncode != 0:
+            raise RuntimeError(f"db:migrate failed:\n{mig.stdout}\n{mig.stderr}")
+
+        port = _free_port()
+        api_url = f"http://127.0.0.1:{port}"
+        worker_proc: subprocess.Popen[bytes] | None = None
+        server_proc: subprocess.Popen[bytes] | None = None
+
+        try:
+            print(f"[pr_dry_run] Starting Solid Queue worker and Rails Puma on {api_url}...")
+            with worker_log.open("wb") as w_out:
+                worker_proc = subprocess.Popen(
+                    [bundle_bin, "exec", "bin/jobs"],
+                    cwd=API_ROOT,
+                    env=child_env,
+                    stdin=subprocess.DEVNULL,
+                    stdout=w_out,
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                )
+
+            with server_log.open("wb") as s_out:
+                server_proc = subprocess.Popen(
+                    [
+                        bundle_bin,
+                        "exec",
+                        "ruby",
+                        "bin/rails",
+                        "server",
+                        "-b",
+                        "127.0.0.1",
+                        "-p",
+                        str(port),
+                        "-P",
+                        str(pidfile),
+                    ],
+                    cwd=API_ROOT,
+                    env=child_env,
+                    stdin=subprocess.DEVNULL,
+                    stdout=s_out,
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                )
+
+            _wait_for_health(port, server_proc, server_log)
+
+            # 1. Benign PR commit -> expect no_difference_found, exit 0
+            benign_summary_file = tmp / "benign_summary.md"
+            benign_rc, benign_report, benign_summary = _run_pr_check(
+                repo_dir=git_repo,
+                base_sha=base_sha,
+                head_sha=benign_sha,
+                api_url=api_url,
+                summary_file=benign_summary_file,
+                token=api_token,
+            )
+            assert benign_rc == 0, f"Expected benign exit 0, got {benign_rc}: {benign_report}"
+            assert benign_report["status"] == "no_difference_found"
+            assert "no difference found within this search" in benign_summary
+            assert benign_report["result_url"] in benign_summary
+            benign_get_code, benign_job = _http_get_json(f"{api_url}/api/v1/comparisons/{benign_report['job_id']}")
+            assert benign_get_code == 200 and benign_job["status"] == "no_difference_found"
+            assert benign_job["stats"]["search_pairs"] == 256
+            print(
+                f"[pr_dry_run] Benign case PASS: exit={benign_rc} status={benign_job['status']} "
+                f"search_pairs={benign_job['stats']['search_pairs']} result_url={benign_report['result_url']}"
+            )
+
+            # 2. Regression PR commit -> expect difference_found, exit 1
+            reg_summary_file = tmp / "regression_summary.md"
+            reg_rc, reg_report, reg_summary = _run_pr_check(
+                repo_dir=git_repo,
+                base_sha=base_sha,
+                head_sha=regression_sha,
+                api_url=api_url,
+                summary_file=reg_summary_file,
+                token=api_token,
+            )
+            assert reg_rc == 1, f"Expected regression exit 1, got {reg_rc}: {reg_report}"
+            assert reg_report["status"] == "difference_found"
+            expl = reg_report["finding"]["explanation"]
+            assert expl["kind"] == "structural_change", f"Expected structural_change, got {expl}"
+            assert "`seed` | `0`" in reg_summary
+            assert "search_pairs" in reg_summary and "shrink_pairs" in reg_summary
+            assert "structural_change" in reg_summary
+            assert reg_report["result_url"] in reg_summary
+
+            reg_get_code, reg_job = _http_get_json(f"{api_url}/api/v1/comparisons/{reg_report['job_id']}")
+            assert reg_get_code == 200 and reg_job["status"] == "difference_found"
+            assert reg_job["finding"] == reg_report["finding"]
+            print(
+                f"[pr_dry_run] Regression case PASS: exit={reg_rc} status={reg_job['status']} "
+                f"search_pairs={reg_job['stats']['search_pairs']} shrink_pairs={reg_job['stats']['shrink_pairs']} "
+                f"explanation={expl['kind']} result_url={reg_report['result_url']}"
+            )
+
+            # 2b. Repeat same regression commit -> verify deterministic Idempotency-Key returns same job ID
+            reg_idem_rc, reg_idem_report, _ = _run_pr_check(
+                repo_dir=git_repo,
+                base_sha=base_sha,
+                head_sha=regression_sha,
+                api_url=api_url,
+                summary_file=tmp / "idem_summary.md",
+                token=api_token,
+            )
+            assert reg_idem_rc == 1
+            assert reg_idem_report["job_id"] == reg_report["job_id"]
+            assert reg_idem_report["idempotency_key"] == reg_report["idempotency_key"]
+
+            # 3. Untrusted fork against token-gated API -> expect exit 0 skipped_untrusted_fork
+            fork_summary_file = tmp / "fork_summary.md"
+            fork_rc, fork_report, fork_summary = _run_pr_check(
+                repo_dir=git_repo,
+                base_sha=base_sha,
+                head_sha=regression_sha,
+                api_url=api_url,
+                summary_file=fork_summary_file,
+                token=api_token,
+                extra_args=["--is-fork"],
+            )
+            assert fork_rc == 0, f"Expected fork skip exit 0, got {fork_rc}: {fork_report}"
+            assert fork_report["status"] == "skipped_untrusted_fork"
+            assert "skipped_untrusted_fork" in fork_summary
+
+            # 4. Renamed blob -> expect exit 2 with renamed_blob diagnostic
+            renamed_summary_file = tmp / "renamed_summary.md"
+            renamed_rc, renamed_report, renamed_summary = _run_pr_check(
+                repo_dir=git_repo,
+                base_sha=base_sha,
+                head_sha=renamed_sha,
+                api_url=api_url,
+                summary_file=renamed_summary_file,
+                token=api_token,
+            )
+            assert renamed_rc == 2, f"Expected renamed exit 2, got {renamed_rc}: {renamed_report}"
+            assert renamed_report["error"]["code"] == "renamed_blob"
+            assert "renamed_blob" in renamed_summary
+
+            # 5. Missing/deleted blob -> expect exit 2 with missing_blob diagnostic
+            missing_summary_file = tmp / "missing_summary.md"
+            missing_rc, missing_report, missing_summary = _run_pr_check(
+                repo_dir=git_repo,
+                base_sha=base_sha,
+                head_sha=deleted_sha,
+                api_url=api_url,
+                summary_file=missing_summary_file,
+                token=api_token,
+            )
+            assert missing_rc == 2, f"Expected missing exit 2, got {missing_rc}: {missing_report}"
+            assert missing_report["error"]["code"] == "missing_blob"
+            assert "missing_blob" in missing_summary
+
+        finally:
+            _stop_process_group(server_proc, "rails server")
+            _stop_process_group(worker_proc, "solid_queue worker")
+
+        for lp in (server_log, worker_log):
+            if lp.exists():
+                txt = lp.read_text(encoding="utf-8", errors="replace")
+                assert "for variant in product.variants" not in txt, f"Snippet leaked into {lp}"
+                assert api_token not in txt, f"API token leaked into {lp}"
+
+        combined_summary = "\n---\n\n".join(
+            [
+                "<!-- Case 1: Benign Non-Semantic Edit -->\n" + benign_summary.strip(),
+                "<!-- Case 2: Product-Aggregate Sale Badge Regression -->\n" + reg_summary.strip(),
+                "<!-- Case 3: Untrusted Fork Token Suppression -->\n" + fork_summary.strip(),
+                "<!-- Case 4: Renamed Snippet Diagnostic -->\n" + renamed_summary.strip(),
+                "<!-- Case 5: Missing Snippet Diagnostic -->\n" + missing_summary.strip(),
+            ]
+        ) + "\n"
+        summary_out.parent.mkdir(parents=True, exist_ok=True)
+        summary_out.write_text(combined_summary, encoding="utf-8")
+
+        artifact = {
+            "status": "passed",
+            "manifest": "comparison-manifest.json",
+            "snippet_path": "snippets/card-product.liquid",
+            "auth_mode": "bearer_token_enabled",
+            "logs_redacted": True,
+            "cases": {
+                "benign_head": {
+                    "exit_code": benign_rc,
+                    "status": benign_report["status"],
+                    "job_id": benign_report["job_id"],
+                    "result_url": benign_report["result_url"],
+                    "idempotency_key": benign_report["idempotency_key"],
+                    "stats": benign_report["stats"],
+                    "message": benign_report["message"],
+                },
+                "regression_head": {
+                    "exit_code": reg_rc,
+                    "status": reg_report["status"],
+                    "job_id": reg_report["job_id"],
+                    "result_url": reg_report["result_url"],
+                    "idempotency_key": reg_report["idempotency_key"],
+                    "idempotent_replay_job_id": reg_idem_report["job_id"],
+                    "stats": reg_report["stats"],
+                    "explanation_kind": expl["kind"],
+                    "explanation_summary": expl["summary"],
+                    "before_anchor": expl["before"],
+                    "after_anchor": expl["after"],
+                    "variants_after_shrink": len(reg_report["finding"]["replay"]["fixture"]["variants"]),
+                },
+                "untrusted_fork": {
+                    "exit_code": fork_rc,
+                    "status": fork_report["status"],
+                },
+                "renamed_blob": {
+                    "exit_code": renamed_rc,
+                    "error_code": renamed_report["error"]["code"],
+                    "message": renamed_report["error"]["message"],
+                },
+                "missing_blob": {
+                    "exit_code": missing_rc,
+                    "error_code": missing_report["error"]["code"],
+                    "message": missing_report["error"]["message"],
+                },
+            },
+        }
+        report_out.parent.mkdir(parents=True, exist_ok=True)
+        report_out.write_text(json.dumps(artifact, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        print(f"[pr_dry_run] PASS: wrote {report_out} and {summary_out}")
+        return artifact
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Run local end-to-end Stage 10 PR dry run.")
+    parser.add_argument(
+        "--report-out",
+        default=str(REPO_ROOT / "artifacts" / "stage-10" / "pr-dry-run-report.json"),
+        help="Path to write JSON dry-run report.",
+    )
+    parser.add_argument(
+        "--summary-out",
+        default=str(REPO_ROOT / "artifacts" / "stage-10" / "pr-dry-run-summary.md"),
+        help="Path to write combined Markdown job summary.",
+    )
+    args = parser.parse_args(argv)
+    run_dry_run(Path(args.report_out), Path(args.summary_out))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

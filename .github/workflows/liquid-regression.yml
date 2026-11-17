@@ -1,0 +1,134 @@
+name: Liquid Regression Check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Setup and Full Stage Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby 3.3
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: false
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+
+      - name: Run deterministic setup and full verification suite
+        run: ./bin/setup && ./bin/check all
+
+  pr-snippet-check:
+    name: PR Snippet Regression Check
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout full PR history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Ruby 3.3
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: false
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install root and API bundles from lockfiles
+        run: |
+          bundle config set --local path vendor/bundle
+          BUNDLE_FROZEN=true bundle install
+          (
+            cd api
+            bundle config set --local path vendor/bundle
+            BUNDLE_FROZEN=true bundle install
+          )
+
+      - name: Run PR snippet comparison check
+        env:
+          LIQUID_REGRESSION_API_TOKEN: ${{ secrets.LIQUID_REGRESSION_API_TOKEN }}
+          LIQUID_REGRESSION_API_URL: ${{ vars.LIQUID_REGRESSION_API_URL }}
+          LIQUID_REGRESSION_WEB_URL: ${{ vars.LIQUID_REGRESSION_WEB_URL }}
+          GITHUB_EVENT_HEAD_FORK: ${{ github.event.pull_request.head.repo.fork }}
+        run: |
+          set -euo pipefail
+          API_URL="${LIQUID_REGRESSION_API_URL:-}"
+          WEB_URL="${LIQUID_REGRESSION_WEB_URL:-$API_URL}"
+          SERVER_PID=""
+          WORKER_PID=""
+          TMP_WORK_DIR=""
+
+          cleanup() {
+            if [ -n "$SERVER_PID" ]; then
+              kill -TERM "$SERVER_PID" 2>/dev/null || true
+            fi
+            if [ -n "$WORKER_PID" ]; then
+              kill -TERM "$WORKER_PID" 2>/dev/null || true
+            fi
+            if [ -n "$TMP_WORK_DIR" ]; then
+              rm -rf "$TMP_WORK_DIR"
+            fi
+          }
+          trap cleanup EXIT
+
+          if [ -z "$API_URL" ]; then
+            TMP_WORK_DIR="$(mktemp -d)"
+            PORT="$(python3.11 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
+            export RAILS_ENV=production
+            export LIQUID_REGRESSION_DB_PATH="$TMP_WORK_DIR/pr_check_production.sqlite3"
+            export LIQUID_REGRESSION_REPO_ROOT="$PWD"
+            export RAILS_FORCE_SSL=false
+            export SOLID_QUEUE_SKIP_RECURRING=true
+            export JOB_CONCURRENCY=1
+            export SECRET_KEY_BASE="$(python3.11 -c 'import secrets; print(secrets.token_hex(64))')"
+
+            (
+              cd api
+              bundle exec ruby bin/rails db:migrate
+              bundle exec bin/jobs > "$TMP_WORK_DIR/worker.log" 2>&1 &
+              echo $! > "$TMP_WORK_DIR/worker.pid"
+              bundle exec ruby bin/rails server -b 127.0.0.1 -p "$PORT" -P "$TMP_WORK_DIR/puma.pid" > "$TMP_WORK_DIR/server.log" 2>&1 &
+              echo $! > "$TMP_WORK_DIR/server.pid"
+            )
+            WORKER_PID="$(cat "$TMP_WORK_DIR/worker.pid")"
+            SERVER_PID="$(cat "$TMP_WORK_DIR/server.pid")"
+
+            for _ in $(seq 1 60); do
+              if python3.11 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:${PORT}/api/v1/health', timeout=2).read()" >/dev/null 2>&1; then
+                break
+              fi
+              sleep 0.5
+            done
+
+            API_URL="http://127.0.0.1:${PORT}"
+            WEB_URL="${WEB_URL:-$API_URL}"
+          fi
+
+          ./bin/pr-check \
+            --manifest comparison-manifest.json \
+            --base-sha "${{ github.event.pull_request.base.sha }}" \
+            --head-sha "${{ github.event.pull_request.head.sha }}" \
+            --repo "${{ github.repository }}" \
+            --api-url "$API_URL" \
+            --web-url "$WEB_URL"
