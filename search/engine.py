@@ -34,6 +34,7 @@ MAX_SEED = 4_294_967_295
 MAX_SEARCH_PAIRS = 5_000
 MAX_SHRINK_PAIRS = 1_000
 SUPPORTED_OBSERVERS = ("sale_badge",)
+BENCHMARK_OBSERVERS = ("sale_badge", "sold_out_badge", "price_range")
 
 _COMPARE_REQUEST_KEYS = frozenset({"schema_version", "before", "after", "observer", "seed", "budget"})
 _SNIPPET_KEYS = frozenset({"source"})
@@ -118,7 +119,7 @@ def build_compare_request(
     }
 
 
-def validate_compare_request(request: Any) -> dict[str, Any]:
+def validate_compare_request(request: Any, *, benchmark: bool = False) -> dict[str, Any]:
     """Validate a CompareRequest against contract bounds and snippet size limits."""
     if not isinstance(request, dict) or frozenset(request.keys()) != _COMPARE_REQUEST_KEYS:
         raise InvalidCompareRequestError(
@@ -149,11 +150,12 @@ def validate_compare_request(request: Any) -> dict[str, Any]:
                 f"CompareRequest.{side}.source ({len(source_bytes)} bytes) exceeds {MAX_SNIPPET_BYTES} byte limit",
             )
 
+    allowed_observers = BENCHMARK_OBSERVERS if benchmark else SUPPORTED_OBSERVERS
     observer = request["observer"]
-    if not isinstance(observer, str) or observer not in SUPPORTED_OBSERVERS:
+    if not isinstance(observer, str) or observer not in allowed_observers:
         raise InvalidCompareRequestError(
             "unsupported_observer",
-            f"Unsupported observer {observer!r}; expected one of {SUPPORTED_OBSERVERS}",
+            f"Unsupported observer {observer!r}; expected one of {allowed_observers}",
         )
 
     seed = request["seed"]
@@ -264,12 +266,36 @@ class SearchEngine:
             return self._versions
         return resolve_runtime_versions(self._repo_root)
 
-    def compare(self, request: dict[str, Any], *, worker: Any | None = None) -> dict[str, Any]:
+    def compare(
+        self,
+        request: dict[str, Any],
+        *,
+        worker: Any | None = None,
+        benchmark: bool = False,
+        selector: str | None = None,
+        fixed_context: dict[str, Any] | None = None,
+        candidate_fixtures: Sequence[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         """Run deterministic counterexample search for `request` and return a structured report."""
         start_monotonic = time.monotonic()
 
         try:
-            validated = validate_compare_request(request)
+            if not benchmark and (selector is not None or fixed_context is not None):
+                raise InvalidCompareRequestError(
+                    "invalid_request",
+                    "selector and fixed_context are only supported when benchmark=True",
+                )
+            if fixed_context is not None and (not isinstance(fixed_context, dict) or "product" in fixed_context):
+                raise InvalidCompareRequestError(
+                    "invalid_request",
+                    "fixed_context must be a dict without a 'product' key",
+                )
+            if selector is not None and (not isinstance(selector, str) or not selector.strip()):
+                raise InvalidCompareRequestError(
+                    "invalid_request",
+                    "selector must be a non-empty string or None",
+                )
+            validated = validate_compare_request(request, benchmark=benchmark)
         except InvalidCompareRequestError as exc:
             seed_val = request.get("seed") if isinstance(request, dict) and _is_strict_int(request.get("seed")) else None
             return _failed_report(
@@ -316,27 +342,47 @@ class SearchEngine:
                 cwd=self._repo_root,
                 request_timeout_s=self._request_timeout_s,
                 job_deadline_s=self._job_deadline_s,
+                benchmark=benchmark,
             )
             owns_worker = True
 
         try:
             self._check_deadline(deadline_monotonic)
-            compile_res = active_worker.compile(before_src, after_src, observer=observer)
+            if benchmark:
+                compile_res = active_worker.compile(
+                    before_src,
+                    after_src,
+                    observer=observer,
+                    benchmark=True,
+                    selector=selector,
+                    fixed_context=fixed_context,
+                )
+            else:
+                compile_res = active_worker.compile(before_src, after_src, observer=observer)
+
             if (
                 compile_res.get("before_sha256") != before_sha256
                 or compile_res.get("after_sha256") != after_sha256
             ):
                 raise WorkerProtocolError("Worker compile SHA-256 digest does not match request UTF-8 bytes")
 
-            generator = CandidateGenerator(
-                seed=seed,
-                max_pairs=search_budget,
-                max_duplicate_attempts=self._max_duplicate_attempts,
-                phase1_fixtures=self._phase1_fixtures,
-                phase2_sampler=self._phase2_sampler,
-            )
+            if candidate_fixtures is not None:
+                bounded_candidates = list(candidate_fixtures[:search_budget])
+                candidate_iter: Any = enumerate(bounded_candidates)
+                generator = None
+                exhausted_by_candidate_space = len(candidate_fixtures) <= search_budget and len(bounded_candidates) < search_budget
+            else:
+                generator = CandidateGenerator(
+                    seed=seed,
+                    max_pairs=search_budget,
+                    max_duplicate_attempts=self._max_duplicate_attempts,
+                    phase1_fixtures=self._phase1_fixtures,
+                    phase2_sampler=self._phase2_sampler,
+                )
+                candidate_iter = enumerate(generator)
+                exhausted_by_candidate_space = False
 
-            for candidate_index, fixture in enumerate(generator):
+            for candidate_index, fixture in candidate_iter:
                 self._check_deadline(deadline_monotonic)
 
                 search_pairs += 1
@@ -405,6 +451,7 @@ class SearchEngine:
                 target_after_obs = bool(custom_after["observed"])
                 direction = "before_only" if target_before_obs else "after_only"
 
+                shrink_start_monotonic = time.monotonic()
                 shrink_result = shrink_confirmed_case(
                     worker=active_worker,
                     fixture=fixture,
@@ -418,6 +465,7 @@ class SearchEngine:
                     initial_reference_before=ref_before,
                     initial_reference_after=ref_after,
                 )
+                shrink_ms = _elapsed_ms(shrink_start_monotonic)
                 shrink_pairs = shrink_result.shrink_pairs
                 final_fixture = shrink_result.fixture
                 final_untraced_before = shrink_result.final_custom_before
@@ -467,6 +515,7 @@ class SearchEngine:
                     traced_before,
                     traced_after,
                     observer=observer,
+                    selector=selector,
                 )
 
                 replay_bundle = {
@@ -502,6 +551,7 @@ class SearchEngine:
                 shrink_meta = {
                     "budget": shrink_budget,
                     "shrink_pairs": shrink_pairs,
+                    "shrink_ms": shrink_ms,
                     "accepted_steps": shrink_result.accepted_steps,
                     "parity_rejections": shrink_result.parity_rejections,
                     "local_fixed_point": shrink_result.local_fixed_point,
@@ -532,7 +582,10 @@ class SearchEngine:
                     "error": None,
                 }
 
-            exhausted_by = "candidate_space" if generator.exhausted_space else "pair_limit"
+            if generator is not None:
+                exhausted_by = "candidate_space" if generator.exhausted_space else "pair_limit"
+            else:
+                exhausted_by = "candidate_space" if exhausted_by_candidate_space else "pair_limit"
             elapsed_ms = _elapsed_ms(start_monotonic)
 
             if parity_rejections > 0:

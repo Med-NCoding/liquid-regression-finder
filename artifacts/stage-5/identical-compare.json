@@ -30,7 +30,7 @@
     "parity_rejections": 0,
     "exhausted_by": "pair_limit",
     "first_difference_ms": null,
-    "elapsed_ms": 256
+    "elapsed_ms": 265
   },
   "error": null
 }

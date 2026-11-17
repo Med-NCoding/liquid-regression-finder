@@ -10,8 +10,9 @@ module LiquidInterpreter
       normalized = Lexer.normalize_utf8(source)
       max_snippet_bytes = options.fetch(:max_snippet_bytes, Lexer::MAX_SNIPPET_BYTES)
       max_depth = options.fetch(:max_depth, Parser::MAX_DEPTH)
+      filters = options[:filters]
       tokens = Lexer.tokenize(normalized, max_snippet_bytes: max_snippet_bytes)
-      ast = Parser.parse(tokens, source: normalized, max_depth: max_depth)
+      ast = Parser.parse(tokens, source: normalized, max_depth: max_depth, filters: filters)
       new(source: normalized, ast: ast, compile_options: options)
     end
 
@@ -24,6 +25,7 @@ module LiquidInterpreter
         max_steps: options.fetch(:max_steps, Evaluator::MAX_STEPS),
         max_output_bytes: options.fetch(:max_output_bytes, Evaluator::MAX_OUTPUT_BYTES),
         max_trace_events: options.fetch(:max_trace_events, Evaluator::MAX_TRACE_EVENTS),
+        filters: options[:filters],
       ).evaluate(template.ast, assigns: assigns, **options)
 
       {
@@ -82,6 +84,7 @@ module LiquidInterpreter
         max_steps: options.fetch(:max_steps, Evaluator::MAX_STEPS),
         max_output_bytes: options.fetch(:max_output_bytes, Evaluator::MAX_OUTPUT_BYTES),
         max_trace_events: options.fetch(:max_trace_events, Evaluator::MAX_TRACE_EVENTS),
+        filters: options.fetch(:filters, @compile_options[:filters]),
       )
     end
   end

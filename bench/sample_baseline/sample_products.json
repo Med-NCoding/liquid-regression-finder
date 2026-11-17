@@ -1,0 +1,1146 @@
+{
+  "schema_version": 1,
+  "source_repository": "https://github.com/shopifypartners/product-csvs",
+  "pinned_commit_sha": "045fb432d85dc59d558717208399176d62bf106d",
+  "csv_files": [
+    {
+      "filename": "apparel.csv",
+      "sha256": "90291acf9147ab2eeccb7ead518bb5b3dd8900f7285b8cea918403e732c451b3",
+      "csv_rows": 22,
+      "product_count": 20
+    },
+    {
+      "filename": "home-and-garden.csv",
+      "sha256": "97ebc4140c67c05b35de78f55f555fc3bd0e5ee70558ae2cd4cc141eaddf8d02",
+      "csv_rows": 21,
+      "product_count": 20
+    },
+    {
+      "filename": "jewelery.csv",
+      "sha256": "92ed726816ef3f84be43a5b43a8a8faf358dd7584277258d85788e1eed549aa9",
+      "csv_rows": 41,
+      "product_count": 20
+    }
+  ],
+  "product_count": 60,
+  "variant_count": 66,
+  "truncated_handles": [],
+  "products": [
+    {
+      "id": "apparel/ocean-blue-shirt",
+      "source_csv": "apparel.csv",
+      "handle": "ocean-blue-shirt",
+      "title": "Ocean Blue Shirt",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 5000,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "apparel/classic-varsity-top",
+      "source_csv": "apparel.csv",
+      "handle": "classic-varsity-top",
+      "title": "Classic Varsity Top",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 6000,
+            "compare_at_price": null,
+            "available": true
+          },
+          {
+            "id": "v2",
+            "price": 6000,
+            "compare_at_price": null,
+            "available": true
+          },
+          {
+            "id": "v3",
+            "price": 6000,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "apparel/yellow-wool-jumper",
+      "source_csv": "apparel.csv",
+      "handle": "yellow-wool-jumper",
+      "title": "Yellow Wool Jumper",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 8000,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "apparel/floral-white-top",
+      "source_csv": "apparel.csv",
+      "handle": "floral-white-top",
+      "title": "Floral White Top",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 7500,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "apparel/striped-silk-blouse",
+      "source_csv": "apparel.csv",
+      "handle": "striped-silk-blouse",
+      "title": "Striped Silk Blouse",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 5000,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "apparel/classic-leather-jacket",
+      "source_csv": "apparel.csv",
+      "handle": "classic-leather-jacket",
+      "title": "Classic Leather Jacket",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 8000,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "apparel/dark-denim-top",
+      "source_csv": "apparel.csv",
+      "handle": "dark-denim-top",
+      "title": "Dark Denim Top",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 6000,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "apparel/navy-sport-jacket",
+      "source_csv": "apparel.csv",
+      "handle": "navy-sport-jacket",
+      "title": "Navy Sports Jacket",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 6000,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "apparel/dark-winter-jacket",
+      "source_csv": "apparel.csv",
+      "handle": "dark-winter-jacket",
+      "title": "Soft Winter Jacket",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 5000,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "apparel/black-leather-bag",
+      "source_csv": "apparel.csv",
+      "handle": "black-leather-bag",
+      "title": "Black Leather Bag",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 3000,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "apparel/zipped-jacket",
+      "source_csv": "apparel.csv",
+      "handle": "zipped-jacket",
+      "title": "Zipped Jacket",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 6500,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "apparel/silk-summer-top",
+      "source_csv": "apparel.csv",
+      "handle": "silk-summer-top",
+      "title": "Silk Summer Top",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 7000,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "apparel/longsleeve-cotton-top",
+      "source_csv": "apparel.csv",
+      "handle": "longsleeve-cotton-top",
+      "title": "Long Sleeve Cotton Top",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 5000,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "apparel/chequered-red-shirt",
+      "source_csv": "apparel.csv",
+      "handle": "chequered-red-shirt",
+      "title": "Chequered Red Shirt",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 5000,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "apparel/white-cotton-shirt",
+      "source_csv": "apparel.csv",
+      "handle": "white-cotton-shirt",
+      "title": "White Cotton Shirt",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 3000,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "apparel/olive-green-jacket",
+      "source_csv": "apparel.csv",
+      "handle": "olive-green-jacket",
+      "title": "Olive Green Jacket",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 6500,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "apparel/blue-silk-tuxedo",
+      "source_csv": "apparel.csv",
+      "handle": "blue-silk-tuxedo",
+      "title": "Blue Silk Tuxedo",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 7000,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "apparel/red-sports-tee",
+      "source_csv": "apparel.csv",
+      "handle": "red-sports-tee",
+      "title": "Red Sports Tee",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 5000,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "apparel/striped-skirt-and-top",
+      "source_csv": "apparel.csv",
+      "handle": "striped-skirt-and-top",
+      "title": "Striped Skirt and Top",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 5000,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "apparel/led-high-tops",
+      "source_csv": "apparel.csv",
+      "handle": "led-high-tops",
+      "title": "LED High Tops",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 8000,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/clay-plant-pot",
+      "source_csv": "home-and-garden.csv",
+      "handle": "clay-plant-pot",
+      "title": "Clay Plant Pot",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 999,
+            "compare_at_price": null,
+            "available": true
+          },
+          {
+            "id": "v2",
+            "price": 1599,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/copper-light",
+      "source_csv": "home-and-garden.csv",
+      "handle": "copper-light",
+      "title": "Copper Light",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 5999,
+            "compare_at_price": 7500,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/cream-sofa",
+      "source_csv": "home-and-garden.csv",
+      "handle": "cream-sofa",
+      "title": "Cream Sofa",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 50000,
+            "compare_at_price": 75000,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/antique-drawers",
+      "source_csv": "home-and-garden.csv",
+      "handle": "antique-drawers",
+      "title": "Antique Drawers",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 25000,
+            "compare_at_price": 30000,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/white-bed-clothes",
+      "source_csv": "home-and-garden.csv",
+      "handle": "white-bed-clothes",
+      "title": "White Bed Clothes",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 2999,
+            "compare_at_price": 3500,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/pink-armchair",
+      "source_csv": "home-and-garden.csv",
+      "handle": "pink-armchair",
+      "title": "Pink Armchair",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 75000,
+            "compare_at_price": null,
+            "available": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/wooden-outdoor-table",
+      "source_csv": "home-and-garden.csv",
+      "handle": "wooden-outdoor-table",
+      "title": "Wooden Outdoor Table",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 9999,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/brown-throw-pillows",
+      "source_csv": "home-and-garden.csv",
+      "handle": "brown-throw-pillows",
+      "title": "Brown Throw Pillows",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 1999,
+            "compare_at_price": 2599,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/white-ceramic-pot",
+      "source_csv": "home-and-garden.csv",
+      "handle": "white-ceramic-pot",
+      "title": "White Ceramic Pot",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 1599,
+            "compare_at_price": 3000,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/yellow-watering-can",
+      "source_csv": "home-and-garden.csv",
+      "handle": "yellow-watering-can",
+      "title": "Yellow watering can",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 4099,
+            "compare_at_price": 5000,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/gardening-hand-trowel",
+      "source_csv": "home-and-garden.csv",
+      "handle": "gardening-hand-trowel",
+      "title": "Gardening hand trowel",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 1099,
+            "compare_at_price": 2500,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/biodegradable-cardboard-pots",
+      "source_csv": "home-and-garden.csv",
+      "handle": "biodegradable-cardboard-pots",
+      "title": "Biodegradable cardboard pots",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 1000,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/grey-sofa",
+      "source_csv": "home-and-garden.csv",
+      "handle": "grey-sofa",
+      "title": "Grey Sofa",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 2999,
+            "compare_at_price": 3500,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/wooden-outdoor-slats",
+      "source_csv": "home-and-garden.csv",
+      "handle": "wooden-outdoor-slats",
+      "title": "Wooden outdoor slats",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 2599,
+            "compare_at_price": 3500,
+            "available": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/wooden-fence",
+      "source_csv": "home-and-garden.csv",
+      "handle": "wooden-fence",
+      "title": "Wooden Fence",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 20000,
+            "compare_at_price": 30000,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/yellow-sofa",
+      "source_csv": "home-and-garden.csv",
+      "handle": "yellow-sofa",
+      "title": "Yellow Sofa",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 9999,
+            "compare_at_price": 15000,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/knitted-throw-pillows",
+      "source_csv": "home-and-garden.csv",
+      "handle": "knitted-throw-pillows",
+      "title": "Knitted Throw Pillows",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 1999,
+            "compare_at_price": 2599,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/vanilla-candle",
+      "source_csv": "home-and-garden.csv",
+      "handle": "vanilla-candle",
+      "title": "Vanilla candle",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 1599,
+            "compare_at_price": 3000,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/black-bean-bag",
+      "source_csv": "home-and-garden.csv",
+      "handle": "black-bean-bag",
+      "title": "Black Beanbag",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 6999,
+            "compare_at_price": 8000,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-and-garden/bedside-table",
+      "source_csv": "home-and-garden.csv",
+      "handle": "bedside-table",
+      "title": "Bedside Table",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 6999,
+            "compare_at_price": 8500,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/chain-bracelet",
+      "source_csv": "jewelery.csv",
+      "handle": "chain-bracelet",
+      "title": "7 Shakra Bracelet",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 4299,
+            "compare_at_price": 4499,
+            "available": true
+          },
+          {
+            "id": "v2",
+            "price": 4299,
+            "compare_at_price": 4499,
+            "available": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/leather-anchor",
+      "source_csv": "jewelery.csv",
+      "handle": "leather-anchor",
+      "title": "Anchor Bracelet Mens",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 6999,
+            "compare_at_price": 8500,
+            "available": true
+          },
+          {
+            "id": "v2",
+            "price": 5500,
+            "compare_at_price": 8500,
+            "available": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/bangle-bracelet",
+      "source_csv": "jewelery.csv",
+      "handle": "bangle-bracelet",
+      "title": "Bangle Bracelet",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 3999,
+            "compare_at_price": 4399,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/bangle-bracelet-with-feathers",
+      "source_csv": "jewelery.csv",
+      "handle": "bangle-bracelet-with-feathers",
+      "title": "Boho Bangle Bracelet",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 4299,
+            "compare_at_price": 4499,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/boho-earrings",
+      "source_csv": "jewelery.csv",
+      "handle": "boho-earrings",
+      "title": "Boho Earrings",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 2799,
+            "compare_at_price": 3599,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/choker-with-bead",
+      "source_csv": "jewelery.csv",
+      "handle": "choker-with-bead",
+      "title": "Choker with Bead",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 1499,
+            "compare_at_price": 1999,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/choker-with-gold-pendant",
+      "source_csv": "jewelery.csv",
+      "handle": "choker-with-gold-pendant",
+      "title": "Choker with Gold Pendant",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 2999,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/choker-with-triangle",
+      "source_csv": "jewelery.csv",
+      "handle": "choker-with-triangle",
+      "title": "Choker with Triangle",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 4799,
+            "compare_at_price": 4999,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/dainty-gold-neclace",
+      "source_csv": "jewelery.csv",
+      "handle": "dainty-gold-neclace",
+      "title": "Dainty Gold Necklace",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 6399,
+            "compare_at_price": 6999,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/dreamcatcher-pendant-necklace",
+      "source_csv": "jewelery.csv",
+      "handle": "dreamcatcher-pendant-necklace",
+      "title": "Dreamcatcher Pendant Necklace",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 2399,
+            "compare_at_price": 4199,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/galaxy-earrings",
+      "source_csv": "jewelery.csv",
+      "handle": "galaxy-earrings",
+      "title": "Galaxy Earrings",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 3799,
+            "compare_at_price": 4599,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/gemstone",
+      "source_csv": "jewelery.csv",
+      "handle": "gemstone",
+      "title": "Gemstone Necklace",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 2799,
+            "compare_at_price": 2999,
+            "available": true
+          },
+          {
+            "id": "v2",
+            "price": 2799,
+            "compare_at_price": 2999,
+            "available": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/gold-bird-necklace",
+      "source_csv": "jewelery.csv",
+      "handle": "gold-bird-necklace",
+      "title": "Gold Bird Necklace",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 7999,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/looped-earrings",
+      "source_csv": "jewelery.csv",
+      "handle": "looped-earrings",
+      "title": "Gold Elephant Earrings",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 5499,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/guardian-angel-earrings",
+      "source_csv": "jewelery.csv",
+      "handle": "guardian-angel-earrings",
+      "title": "Guardian Angel Earrings",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 1999,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/moon-charm-bracelet",
+      "source_csv": "jewelery.csv",
+      "handle": "moon-charm-bracelet",
+      "title": "Moon Charm Bracelet",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 4799,
+            "compare_at_price": 4999,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/origami-crane-necklace",
+      "source_csv": "jewelery.csv",
+      "handle": "origami-crane-necklace",
+      "title": "Origami Crane Necklace",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 7599,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/pretty-gold-necklace",
+      "source_csv": "jewelery.csv",
+      "handle": "pretty-gold-necklace",
+      "title": "Pretty Gold Necklace",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 4495,
+            "compare_at_price": 6399,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/silver-threader-necklace",
+      "source_csv": "jewelery.csv",
+      "handle": "silver-threader-necklace",
+      "title": "Silver Threader Necklace",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 1499,
+            "compare_at_price": 1999,
+            "available": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "jewelery/stylish-summer-neclace",
+      "source_csv": "jewelery.csv",
+      "handle": "stylish-summer-neclace",
+      "title": "Stylish Summer Necklace",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 4499,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      }
+    }
+  ]
+}

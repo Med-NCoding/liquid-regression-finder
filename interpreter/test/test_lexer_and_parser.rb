@@ -160,7 +160,7 @@ class LexerAndParserTest < Minitest::Test
       ["{% for i in items limit: 2 %}{% endfor %}", "unsupported_for_modifier", 1, 19],
       ["{% comment %}hi{% endcomment %}", "unsupported_tag", 1, 1],
       ["{% raw %}{{ x }}{% endraw %}", "unsupported_tag", 1, 1],
-      ["{% liquid\n  assign x = 1\n%}", "unsupported_tag", 1, 1],
+      ["{% capture x %}hi{% endcapture %}", "unsupported_tag", 1, 1],
     ]
 
     cases.each do |src, code, line, col|

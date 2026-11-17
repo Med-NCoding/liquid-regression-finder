@@ -627,6 +627,7 @@
   "shrink": {
     "budget": 128,
     "shrink_pairs": 28,
+    "shrink_ms": 7,
     "accepted_steps": 6,
     "parity_rejections": 0,
     "local_fixed_point": true,
@@ -652,8 +653,8 @@
     "shrink_pairs": 28,
     "parity_rejections": 0,
     "exhausted_by": null,
-    "first_difference_ms": 267,
-    "elapsed_ms": 275
+    "first_difference_ms": 268,
+    "elapsed_ms": 277
   },
   "error": null
 }

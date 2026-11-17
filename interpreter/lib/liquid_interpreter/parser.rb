@@ -10,7 +10,8 @@ module LiquidInterpreter
     INT_SCAN = /\A-?\d+/.freeze
     TAG_SPLIT_PATTERN = /\A([ \t\r\n\f\v]*)([a-zA-Z_#][a-zA-Z0-9_-]*)([ \t\r\n\f\v]*)(.*)\z/m.freeze
 
-    SUPPORTED_TAGS = %w[if elsif else endif unless endunless for endfor assign].freeze
+    SUPPORTED_TAGS = %w[if elsif else endif unless endunless for endfor assign liquid].freeze
+    STANDARD_FILTERS = %w[default].freeze
     ROOT_LITERALS = {
       "true" => true,
       "false" => false,
@@ -20,14 +21,15 @@ module LiquidInterpreter
     UNSUPPORTED_KEYWORDS = %w[empty blank].freeze
     UNSUPPORTED_FOR_MODIFIERS = %w[limit offset reversed].freeze
 
-    def self.parse(tokens, source:, max_depth: MAX_DEPTH)
-      new(tokens, source: source, max_depth: max_depth).parse
+    def self.parse(tokens, source:, max_depth: MAX_DEPTH, filters: nil)
+      new(tokens, source: source, max_depth: max_depth, filters: filters).parse
     end
 
-    def initialize(tokens, source:, max_depth: MAX_DEPTH)
+    def initialize(tokens, source:, max_depth: MAX_DEPTH, filters: nil)
       @tokens = tokens
       @source = source
       @max_depth = Integer(max_depth)
+      @extra_filter_names = extract_filter_names(filters)
       @mapper = SpanMapper.new(@source)
       @cursor = 0
     end
@@ -75,6 +77,8 @@ module LiquidInterpreter
           case tag_name
           when "assign"
             nodes << parse_assign_tag(token, markup, markup_base_byte)
+          when "liquid"
+            nodes.concat(parse_liquid_tag(token, markup, markup_base_byte, depth))
           when "if"
             nodes << parse_conditional_tag(:if, "endif", token, markup, markup_base_byte, depth)
           when "unless"
@@ -143,8 +147,7 @@ module LiquidInterpreter
         return { kind: :output, expression: nil, span: token.span }
       end
 
-      idx = 0
-      expr, idx = parse_operand(expr_tokens, idx)
+      expr, idx = parse_filtered_expression(expr_tokens, 0)
       if idx < expr_tokens.length
         unexpected = expr_tokens[idx]
         raise SyntaxError.new(
@@ -190,7 +193,7 @@ module LiquidInterpreter
         raise SyntaxError.new("Missing value expression in 'assign' tag", code: "syntax_error", span: token.span)
       end
 
-      value_expr, idx = parse_operand(expr_tokens, 2)
+      value_expr, idx = parse_filtered_expression(expr_tokens, 2)
       if idx < expr_tokens.length
         unexpected = expr_tokens[idx]
         raise SyntaxError.new(
@@ -201,6 +204,64 @@ module LiquidInterpreter
       end
 
       { kind: :assign, name: target_tok[1], value_expr: value_expr, span: token.span }
+    end
+
+    def parse_liquid_tag(_open_token, markup, base_byte, depth)
+      liquid_tokens = tokenize_liquid_tag_lines(markup, base_byte)
+      return [] if liquid_tokens.empty?
+
+      prev_tokens = @tokens
+      prev_cursor = @cursor
+      @tokens = liquid_tokens
+      @cursor = 0
+      begin
+        inner_nodes, terminator = parse_body(stop_tags: [], depth: depth)
+        if terminator
+          raise SyntaxError.new(
+            "Unexpected '#{terminator[:tag_name]}' tag inside 'liquid' tag",
+            code: "unexpected_tag",
+            span: terminator[:token].span,
+          )
+        end
+        inner_nodes
+      ensure
+        @tokens = prev_tokens
+        @cursor = prev_cursor
+      end
+    end
+
+    def tokenize_liquid_tag_lines(markup, base_byte)
+      tokens = []
+      pos = 0
+      len = markup.bytesize
+
+      while pos < len
+        nl = markup.byteindex("\n", pos)
+        line_end = nl || len
+        line_raw = markup.byteslice(pos, line_end - pos)
+        trimmed_right = line_raw.sub(/[ \t\v\f\r]+\z/, "")
+
+        unless trimmed_right.empty?
+          leading_ws = trimmed_right[/\A[ \t\v\f\r]*/]
+          content = trimmed_right.byteslice(leading_ws.bytesize, trimmed_right.bytesize - leading_ws.bytesize)
+          if content && !content.empty? && !content.start_with?("#")
+            abs_start = base_byte + pos + leading_ws.bytesize
+            abs_end = abs_start + content.bytesize
+            span = @mapper.span_for(abs_start, abs_end)
+            tokens << Token.new(
+              type: :tag,
+              raw: content,
+              value: content,
+              span: span,
+              inner_span: span,
+            )
+          end
+        end
+
+        pos = nl ? nl + 1 : len
+      end
+
+      tokens
     end
 
     def parse_conditional_tag(kind, end_tag, open_token, markup, base_byte, depth)
@@ -512,6 +573,135 @@ module LiquidInterpreter
       end
     end
 
+    def parse_filtered_expression(expr_tokens, idx)
+      base_expr, idx = parse_operand(expr_tokens, idx)
+      return [base_expr, idx] unless idx < expr_tokens.length && expr_tokens[idx][0] == :pipe
+
+      stages = []
+      last_span = base_expr[:span]
+
+      while idx < expr_tokens.length && expr_tokens[idx][0] == :pipe
+        pipe_tok = expr_tokens[idx]
+        idx += 1
+
+        name_tok = expr_tokens[idx]
+        unless name_tok
+          raise SyntaxError.new(
+            "Expected filter name after '|'",
+            code: "syntax_error",
+            span: pipe_tok[2],
+          )
+        end
+        unless name_tok[0] == :id
+          raise SyntaxError.new(
+            "Expected filter name, got '#{name_tok[1]}'",
+            code: "syntax_error",
+            span: name_tok[2],
+          )
+        end
+
+        filter_name = name_tok[1]
+        unless filter_supported?(filter_name)
+          raise UnsupportedFeatureError.new(
+            "Filter '#{filter_name}' is not supported",
+            code: "unsupported_filter",
+            span: pipe_tok[2],
+          )
+        end
+
+        stage_end_span = name_tok[2]
+        idx += 1
+        pos_args = []
+        kw_args = []
+
+        if idx < expr_tokens.length && expr_tokens[idx][0] == :colon
+          colon_tok = expr_tokens[idx]
+          stage_end_span = colon_tok[2]
+          idx += 1
+
+          unless at_filter_arg_end?(expr_tokens, idx)
+            arg_span, idx = parse_filter_argument(expr_tokens, idx, pos_args, kw_args)
+            stage_end_span = arg_span
+
+            while idx < expr_tokens.length && expr_tokens[idx][0] == :comma
+              stage_end_span = expr_tokens[idx][2]
+              idx += 1
+              break if at_filter_arg_end?(expr_tokens, idx)
+
+              arg_span, idx = parse_filter_argument(expr_tokens, idx, pos_args, kw_args)
+              stage_end_span = arg_span
+            end
+          end
+        end
+
+        stage_span = @mapper.span_for(pipe_tok[2].start_byte, stage_end_span.end_byte)
+        stages << {
+          name: filter_name,
+          pos_args: pos_args,
+          kw_args: kw_args,
+          span: stage_span,
+        }
+        last_span = stage_span
+      end
+
+      pipeline_span = @mapper.span_for(base_expr[:span].start_byte, last_span.end_byte)
+      [
+        {
+          kind: :filter_pipeline,
+          input_expr: base_expr,
+          stages: stages,
+          span: pipeline_span,
+        },
+        idx,
+      ]
+    end
+
+    def parse_filter_argument(expr_tokens, idx, pos_args, kw_args)
+      tok = expr_tokens[idx]
+      next_tok = expr_tokens[idx + 1]
+      if tok && tok[0] == :id && next_tok && next_tok[0] == :colon
+        key = tok[1]
+        colon_tok = next_tok
+        idx += 2
+        if idx >= expr_tokens.length
+          raise SyntaxError.new(
+            "Expected value expression after '#{key}:'",
+            code: "syntax_error",
+            span: colon_tok[2],
+          )
+        end
+        val_expr, idx = parse_operand(expr_tokens, idx)
+        kw_args << [key, val_expr]
+        [val_expr[:span], idx]
+      else
+        val_expr, idx = parse_operand(expr_tokens, idx)
+        pos_args << val_expr
+        [val_expr[:span], idx]
+      end
+    end
+
+    def at_filter_arg_end?(expr_tokens, idx)
+      idx >= expr_tokens.length || expr_tokens[idx][0] == :pipe
+    end
+
+    def filter_supported?(name)
+      STANDARD_FILTERS.include?(name) || @extra_filter_names.include?(name)
+    end
+
+    def extract_filter_names(filters)
+      return [].freeze if filters.nil?
+
+      if filters.is_a?(Hash)
+        filters.keys.map(&:to_s).freeze
+      elsif filters.is_a?(Module)
+        filters.public_instance_methods(false).map(&:to_s).freeze
+      elsif filters.respond_to?(:map)
+        filters.map(&:to_s).freeze
+      else
+        raise ArgumentError, "Unsupported filters registry: #{filters.inspect}"
+      end
+    end
+
     def parse_operand(expr_tokens, idx)
       tok = expr_tokens[idx]
       unless tok
@@ -634,11 +824,9 @@ module LiquidInterpreter
         end
 
         if byte == 124 # '|'
-          raise UnsupportedFeatureError.new(
-            "Filters '|' are not supported in Stage 2",
-            code: "unsupported_filter",
-            span: @mapper.span_for(base_byte + pos, base_byte + pos + 1),
-          )
+          tokens << [:pipe, "|", @mapper.span_for(base_byte + pos, base_byte + pos + 1)]
+          pos += 1
+          next
         end
 
         if byte == 91 || byte == 93 # '[' or ']'
@@ -882,6 +1070,30 @@ module LiquidInterpreter
         left = finalize_expr(raw[:left], "#{path}.l")
         right = finalize_expr(raw[:right], "#{path}.r")
         AST::Logical.new(op: raw[:op], left: left, right: right, span: raw[:span], node_id: "#{path}:logical")
+      when :filter_pipeline
+        input_expr = finalize_expr(raw[:input_expr], "#{path}.in")
+        stages = raw[:stages].each_with_index.map do |st, s_idx|
+          stage_prefix = "#{path}.f#{s_idx}"
+          pos_args = st[:pos_args].each_with_index.map do |arg, a_idx|
+            finalize_expr(arg, "#{stage_prefix}.p#{a_idx}")
+          end
+          kw_args = st[:kw_args].each_with_index.map do |(k, v_expr), k_idx|
+            [k, finalize_expr(v_expr, "#{stage_prefix}.k#{k_idx}")]
+          end
+          AST::FilterStage.new(
+            name: st[:name],
+            pos_args: pos_args,
+            kw_args: kw_args,
+            span: st[:span],
+            node_id: "#{stage_prefix}:filter",
+          )
+        end
+        AST::FilterPipeline.new(
+          input_expr: input_expr,
+          stages: stages,
+          span: raw[:span],
+          node_id: "#{path}:pipeline",
+        )
       else
         raise SyntaxError.new("Unknown expression kind '#{raw[:kind]}'", code: "syntax_error", span: raw[:span])
       end

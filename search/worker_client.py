@@ -221,6 +221,7 @@ class WorkerClient:
         max_response_bytes: int = DEFAULT_MAX_RESPONSE_BYTES,
         quit_timeout_s: float = DEFAULT_QUIT_TIMEOUT_S,
         env: dict[str, str] | None = None,
+        benchmark: bool = False,
     ) -> None:
         if request_timeout_s <= 0:
             raise ValueError("request_timeout_s must be positive")
@@ -238,6 +239,7 @@ class WorkerClient:
         self._max_response_bytes = int(max_response_bytes)
         self._quit_timeout_s = float(quit_timeout_s)
         self._env = dict(env) if env is not None else None
+        self._benchmark = bool(benchmark)
 
         self._proc: subprocess.Popen[bytes] | None = None
         self._read_buf = bytearray()
@@ -278,6 +280,8 @@ class WorkerClient:
         else:
             bundle_exe = resolve_bundle_executable()
             cmd = [bundle_exe, "exec", "ruby", "reference/bin/worker"]
+            if self._benchmark:
+                cmd.append("--benchmark")
             bundle_dir = os.path.dirname(bundle_exe)
             if bundle_dir:
                 base_env = dict(os.environ) if child_env is None else child_env
@@ -322,16 +326,31 @@ class WorkerClient:
             self._job_deadline = time.monotonic() + self._job_deadline_s
         return self
 
-    def compile(self, before: str, after: str, observer: str = "sale_badge") -> dict[str, str]:
+    def compile(
+        self,
+        before: str,
+        after: str,
+        observer: str = "sale_badge",
+        *,
+        benchmark: bool = False,
+        selector: str | None = None,
+        fixed_context: dict[str, Any] | None = None,
+    ) -> dict[str, str]:
         """Compile both snippets once in the persistent worker."""
-        resp_kind, payload = self._rpc(
-            {
-                "op": "compile",
-                "before": before,
-                "after": after,
-                "observer": observer,
-            }
-        )
+        req_body: dict[str, Any] = {
+            "op": "compile",
+            "before": before,
+            "after": after,
+            "observer": observer,
+        }
+        if benchmark:
+            req_body["benchmark"] = True
+            if selector is not None:
+                req_body["selector"] = selector
+            if fixed_context is not None:
+                req_body["fixed_context"] = fixed_context
+
+        resp_kind, payload = self._rpc(req_body)
         if resp_kind == "error":
             raise WorkerCompileError(payload["message"], diagnostic=payload)
 

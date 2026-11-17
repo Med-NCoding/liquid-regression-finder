@@ -126,12 +126,12 @@ def _skip_end_tag(html_bytes: bytes, lt_pos: int) -> int:
     return n
 
 
-def find_sale_badge_opening_tags(html_text: str) -> list[HtmlTagSpan]:
-    """Walk rendered HTML UTF-8 bytes and return every opening tag with data-regression-badge='sale'."""
+def _walk_opening_tags(html_text: str) -> list[HtmlTagSpan]:
+    """Walk rendered HTML UTF-8 bytes and return every opening tag span with parsed attributes."""
     html_bytes = html_text.encode("utf-8")
     n = len(html_bytes)
     pos = 0
-    matches: list[HtmlTagSpan] = []
+    tags: list[HtmlTagSpan] = []
 
     while pos < n:
         lt = html_bytes.find(b"<", pos)
@@ -227,38 +227,123 @@ def find_sale_badge_opening_tags(html_text: str) -> list[HtmlTagSpan]:
         if not closed_gt:
             break
 
-        if attrs.get("data-regression-badge") == "sale":
-            matches.append(
-                HtmlTagSpan(
-                    tag_name=tag_name,
-                    start_byte=lt,
-                    end_byte=tag_end,
-                    attrs=attrs,
-                )
+        tags.append(
+            HtmlTagSpan(
+                tag_name=tag_name,
+                start_byte=lt,
+                end_byte=tag_end,
+                attrs=attrs,
             )
+        )
 
         if tag_name in _RAW_TEXT_TAGS:
             pos = _find_raw_text_end(html_bytes, tag_end, tag_name)
         else:
             pos = tag_end
 
-    return matches
+    return tags
+
+
+def find_sale_badge_opening_tags(html_text: str) -> list[HtmlTagSpan]:
+    """Walk rendered HTML UTF-8 bytes and return every opening tag with data-regression-badge='sale'."""
+    return [t for t in _walk_opening_tags(html_text) if t.attrs.get("data-regression-badge") == "sale"]
+
+
+def find_observed_opening_tags(
+    html_text: str,
+    *,
+    observer: str = "sale_badge",
+    selector: str | None = None,
+) -> list[HtmlTagSpan]:
+    """Return opening tags matching `observer` (and leaf predicates of `selector` when provided)."""
+    if observer == "sale_badge" and selector is None:
+        return find_sale_badge_opening_tags(html_text)
+
+    all_tags = _walk_opening_tags(html_text)
+    if observer == "sale_badge":
+        candidates = [t for t in all_tags if t.attrs.get("data-regression-badge") == "sale"]
+    elif observer == "sold_out_badge":
+        candidates = [t for t in all_tags if t.attrs.get("data-regression-badge") == "sold_out"]
+    elif observer == "price_range":
+        candidates = [t for t in all_tags if "data-regression-price-range" in t.attrs]
+    else:
+        return []
+
+    if selector:
+        leaf = selector.strip().split()[-1]
+        if ':not([aria-hidden="true"])' in leaf or ":not([aria-hidden='true'])" in leaf:
+            candidates = [t for t in candidates if t.attrs.get("aria-hidden") != "true"]
+        tag_match = re.match(r"^([a-zA-Z][a-zA-Z0-9-]*)\[", leaf)
+        if tag_match:
+            required_tag = tag_match.group(1).lower()
+            candidates = [t for t in candidates if t.tag_name == required_tag]
+
+    return candidates
 
 
 find_sale_badge_tags = find_sale_badge_opening_tags
 
 
-def _has_badge_markup_hint(source_slice: str) -> bool:
-    """Check whether a Liquid arm body slice contains a sale badge tag (including dynamic attribute values)."""
-    if find_sale_badge_opening_tags(source_slice):
+def _has_badge_markup_hint(source_slice: str, observer: str = "sale_badge") -> bool:
+    """Check whether a Liquid arm body slice contains observed marker markup."""
+    if find_observed_opening_tags(source_slice, observer=observer):
         return True
     lowered = source_slice.lower()
+    if observer == "price_range":
+        return "data-regression-price-range" in lowered
     if "data-regression-badge" not in lowered:
         return False
-    return bool(re.search(r"data-regression-badge\s*=\s*(?:['\"]sale['\"]|['\"]\{\{|\{\{|sale\b)", lowered))
+    target = "sold_out" if observer == "sold_out_badge" else "sale"
+    return bool(re.search(rf"data-regression-badge\s*=\s*(?:['\"]{target}['\"]|['\"]\{{\{{|\{{\{{|{target}\b)", lowered))
 
 
-def _scan_liquid_source(source: str | None) -> _SourceIndex:
+def _expand_liquid_tag_lines(
+    match_start: int,
+    inner_bytes: bytes,
+    raw_bytes: bytes,
+    observer_tags: list[_ParsedTag],
+) -> None:
+    inner_start_in_source = raw_bytes.find(inner_bytes, match_start)
+    if inner_start_in_source == -1:
+        return
+
+    body_text = inner_bytes.decode("utf-8", errors="replace")
+    m = re.match(r"^liquid\b[ \t\r\n\f\v]*(.*)$", body_text, re.DOTALL)
+    if not m:
+        return
+    markup_str = m.group(1)
+    markup_offset = inner_start_in_source + len(body_text[: m.start(1)].encode("utf-8"))
+
+    pos = 0
+    markup_bytes = markup_str.encode("utf-8")
+    mlen = len(markup_bytes)
+    while pos < mlen:
+        nl = markup_bytes.find(b"\n", pos)
+        line_end = nl if nl != -1 else mlen
+        raw_line = markup_bytes[pos:line_end].decode("utf-8", errors="replace")
+        stripped = raw_line.strip()
+        if stripped and not stripped.startswith("#"):
+            lws = len(raw_line) - len(raw_line.lstrip(" \t\r\v\f"))
+            abs_start = markup_offset + pos + len(raw_line[:lws].encode("utf-8"))
+            abs_end = abs_start + len(stripped.encode("utf-8"))
+            parts = stripped.split(None, 1)
+            kw = parts[0]
+            rest = parts[1] if len(parts) > 1 else ""
+            if kw == "liquid":
+                _expand_liquid_tag_lines(abs_start, stripped.encode("utf-8"), raw_bytes, observer_tags)
+            else:
+                observer_tags.append(
+                    _ParsedTag(
+                        start_byte=abs_start,
+                        end_byte=abs_end,
+                        keyword=kw,
+                        markup=rest,
+                    )
+                )
+        pos = nl + 1 if nl != -1 else mlen
+
+
+def _scan_liquid_source(source: str | None, observer: str = "sale_badge") -> _SourceIndex:
     if not source:
         return _SourceIndex({}, {}, {}, {}, frozenset(), frozenset(), False)
 
@@ -271,14 +356,17 @@ def _scan_liquid_source(source: str | None) -> _SourceIndex:
         parts = inner.split(None, 1)
         keyword = parts[0]
         markup = parts[1] if len(parts) > 1 else ""
-        tags.append(
-            _ParsedTag(
-                start_byte=match.start(),
-                end_byte=match.end(),
-                keyword=keyword,
-                markup=markup,
+        if keyword == "liquid":
+            _expand_liquid_tag_lines(match.start(), match.group(1).strip(), source_bytes, tags)
+        else:
+            tags.append(
+                _ParsedTag(
+                    start_byte=match.start(),
+                    end_byte=match.end(),
+                    keyword=keyword,
+                    markup=markup,
+                )
             )
-        )
 
     if not tags:
         return _SourceIndex({}, {}, {}, {}, frozenset(), frozenset(), False)
@@ -406,7 +494,7 @@ def _scan_liquid_source(source: str | None) -> _SourceIndex:
     direct_badge_starts: set[int] = set()
     for raw in closed_arms_raw:
         body_slice = source_bytes[raw["body_start_byte"] : raw["body_end_byte"]].decode("utf-8", errors="replace")
-        has_direct = _has_badge_markup_hint(body_slice)
+        has_direct = _has_badge_markup_hint(body_slice, observer=observer)
         if has_direct:
             direct_badge_starts.add(raw["tag_start_byte"])
         arm = _ParsedArm(
@@ -941,9 +1029,10 @@ def build_explanation(
     after_result: dict[str, Any],
     *,
     observer: str = "sale_badge",
+    selector: str | None = None,
 ) -> dict[str, Any]:
     """Attribute the badge difference between `before_result` and `after_result` to trace anchors."""
-    if observer != "sale_badge":
+    if observer not in ("sale_badge", "sold_out_badge", "price_range"):
         return {
             "kind": "undetermined",
             "before": None,
@@ -973,14 +1062,14 @@ def build_explanation(
     emit_events = emit_res.get("events") or []
     non_emit_events = non_emit_res.get("events") or []
 
-    badge_tags = find_sale_badge_opening_tags(emit_html)
+    badge_tags = find_observed_opening_tags(emit_html, observer=observer, selector=selector)
     if len(badge_tags) != 1:
         return {
             "kind": "undetermined",
             "before": None,
             "after": None,
             "summary": (
-                f"Undetermined: expected exactly 1 unambiguous sale badge opening tag on "
+                f"Undetermined: expected exactly 1 unambiguous {observer} opening tag on "
                 f"{'before' if emit_is_before else 'after'}, found {len(badge_tags)}."
             ),
         }
@@ -998,7 +1087,7 @@ def build_explanation(
             "kind": "undetermined",
             "before": None,
             "after": None,
-            "summary": "Undetermined: no traced emit event overlaps the recognized sale badge opening tag.",
+            "summary": f"Undetermined: no traced emit event overlaps the recognized {observer} opening tag.",
         }
 
     common_chain = _common_branch_prefix([ev["data"]["active_branch_seqs"] for ev in overlapping_emits])
@@ -1008,13 +1097,13 @@ def build_explanation(
             "before": None,
             "after": None,
             "summary": (
-                "Undetermined: overlapping emits for the sale badge opening tag lack a common "
+                f"Undetermined: overlapping emits for the {observer} opening tag lack a common "
                 "governing branch chain."
             ),
         }
 
-    emit_src_index = _scan_liquid_source(emit_source)
-    non_emit_src_index = _scan_liquid_source(non_emit_source)
+    emit_src_index = _scan_liquid_source(emit_source, observer=observer)
+    non_emit_src_index = _scan_liquid_source(non_emit_source, observer=observer)
     emit_loop_colls = _collect_loop_collections(emit_events)
     non_emit_loop_colls = _collect_loop_collections(non_emit_events)
 

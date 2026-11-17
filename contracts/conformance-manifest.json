@@ -2,7 +2,7 @@
   "schema_version": 1,
   "liquid_spec_sha": "84bf25e0edbca5f7e530574788b0f875ab331f50",
   "liquid_gem_version": "5.14.0",
-  "stage_scope": "stage-2",
+  "stage_scope": "stage-7",
   "selection_policy": {
     "inventoried_suites": [
       "basics",
@@ -10,14 +10,15 @@
     ],
     "included_constructs": [
       "plain_text",
-      "output_tags_without_filters",
+      "output_tags_with_default_filter",
       "whitespace_trimming",
       "literals_string_int_bool_nil",
-      "identifiers_and_dot_property_access",
-      "assign_tag_without_filters",
+      "identifiers_dot_property_access_and_size",
+      "assign_tag_with_default_filter",
       "conditionals_if_elsif_else_unless",
-      "comparison_and_logical_operators",
-      "for_loops_without_ranges_modifiers_or_forloop"
+      "comparison_and_logical_operators_with_collection_equality",
+      "for_loops_without_ranges_modifiers_or_forloop",
+      "liquid_tag_with_allowed_statements_and_inline_comments"
     ],
     "excluded_constructs": [
       "benchmark_suite_out_of_scope",
@@ -44,25 +45,25 @@
   "totals": {
     "all_suites": 7395,
     "inventoried": 3061,
-    "selected": 359,
+    "selected": 399,
     "plain_text_selected": 14,
-    "skipped_in_inventoried": 2702,
+    "skipped_in_inventoried": 2662,
     "skipped_other_suites": 4334
   },
   "skip_reason_counts": {
     "bracket_access_out_of_scope": 51,
     "drops_and_ruby_objects": 506,
     "error_wording_or_inline_error_mode": 186,
-    "floats_out_of_scope": 12,
-    "for_loop_extensions_out_of_scope": 59,
+    "floats_out_of_scope": 15,
+    "for_loop_extensions_out_of_scope": 60,
     "partials_and_filesystem": 305,
-    "range_expressions_out_of_scope": 84,
+    "range_expressions_out_of_scope": 85,
     "resource_limit_accounting_out_of_scope": 10,
     "shopify_extensions": 3,
-    "unsupported_filters": 1076,
-    "unsupported_operators_or_keywords": 66,
-    "unsupported_tags": 326,
-    "virtual_collection_properties": 18
+    "unsupported_filters": 1045,
+    "unsupported_operators_or_keywords": 67,
+    "unsupported_tags": 315,
+    "virtual_collection_properties": 14
   },
   "suites": {
     "basics": {
@@ -71,9 +72,9 @@
       "status": "inventoried",
       "skip_reason": null,
       "total": 955,
-      "selected": 141,
+      "selected": 155,
       "plain_text_selected": 8,
-      "skipped": 814
+      "skipped": 800
     },
     "benchmarks": {
       "default": false,
@@ -91,9 +92,9 @@
       "status": "inventoried",
       "skip_reason": null,
       "total": 2106,
-      "selected": 218,
+      "selected": 244,
       "plain_text_selected": 6,
-      "skipped": 1888
+      "skipped": 1862
     },
     "liquid_ruby_lax": {
       "default": true,
@@ -353,9 +354,9 @@
       "source_file": "specs/basics/blank-and-empty.yml",
       "line_number": 192,
       "complexity": 145,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "basics/blank-and-empty.yml:204#default_with_whitespace",
@@ -364,9 +365,9 @@
       "source_file": "specs/basics/blank-and-empty.yml",
       "line_number": 204,
       "complexity": 150,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "basics/blank-and-empty.yml:216#unless_empty_guard",
@@ -432,7 +433,7 @@
       "complexity": 175,
       "status": "skipped",
       "category": null,
-      "skip_reason": "virtual_collection_properties"
+      "skip_reason": "unsupported_operators_or_keywords"
     },
     {
       "id": "basics/blank-and-empty.yml:284#presence_chain_with_empty",
@@ -441,9 +442,9 @@
       "source_file": "specs/basics/blank-and-empty.yml",
       "line_number": 284,
       "complexity": 180,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "basics/boolean-chains.yml:2#boolean_chain_and_then_or_continues_after_true_left",
@@ -2696,9 +2697,9 @@
       "source_file": "specs/basics/error-handling.yml",
       "line_number": 296,
       "complexity": 295,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "basics/error-handling.yml:310#empty_filter_chain_lax",
@@ -4038,9 +4039,9 @@
       "source_file": "specs/basics/filter-nil-safety.yml",
       "line_number": 175,
       "complexity": 85,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "basics/filter-nil-safety.yml:186#chained_filters_intermediate_nil",
@@ -5063,7 +5064,7 @@
       "complexity": 180,
       "status": "skipped",
       "category": null,
-      "skip_reason": "unsupported_tags"
+      "skip_reason": "for_loop_extensions_out_of_scope"
     },
     {
       "id": "basics/nested-parameters.yml:425#liquid_tag_case_with_dotted_path",
@@ -5314,9 +5315,9 @@
       "source_file": "specs/basics/nil-handling.yml",
       "line_number": 145,
       "complexity": 70,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "basics/nil-handling.yml:152#undefined_with_default_filter",
@@ -5325,9 +5326,9 @@
       "source_file": "specs/basics/nil-handling.yml",
       "line_number": 152,
       "complexity": 70,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "basics/nil-handling.yml:159#nil_with_upcase_filter",
@@ -7173,9 +7174,9 @@
       "source_file": "specs/basics/specs.yml",
       "line_number": 309,
       "complexity": 40,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "basics/specs.yml:317#filter_default_with_value",
@@ -7184,9 +7185,9 @@
       "source_file": "specs/basics/specs.yml",
       "line_number": 317,
       "complexity": 40,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "basics/specs.yml:324#assign_string",
@@ -8339,9 +8340,9 @@
       "source_file": "specs/basics/specs.yml",
       "line_number": 1177,
       "complexity": 110,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "basics/specs.yml:1184#filter_default_empty_string",
@@ -8350,9 +8351,9 @@
       "source_file": "specs/basics/specs.yml",
       "line_number": 1184,
       "complexity": 110,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "basics/specs.yml:1191#increment_basic",
@@ -8528,7 +8529,7 @@
       "complexity": 130,
       "status": "skipped",
       "category": null,
-      "skip_reason": "unsupported_tags"
+      "skip_reason": "range_expressions_out_of_scope"
     },
     {
       "id": "basics/specs.yml:1332#liquid_tag_with_comments",
@@ -8572,7 +8573,7 @@
       "complexity": 135,
       "status": "skipped",
       "category": null,
-      "skip_reason": "unsupported_tags"
+      "skip_reason": "unsupported_filters"
     },
     {
       "id": "basics/specs.yml:1400#liquid_tag_csv_parser",
@@ -8583,7 +8584,7 @@
       "complexity": 135,
       "status": "skipped",
       "category": null,
-      "skip_reason": "unsupported_tags"
+      "skip_reason": "unsupported_filters"
     },
     {
       "id": "basics/specs.yml:1433#liquid_tag_case_when_with_filters",
@@ -8594,7 +8595,7 @@
       "complexity": 135,
       "status": "skipped",
       "category": null,
-      "skip_reason": "unsupported_tags"
+      "skip_reason": "unsupported_filters"
     },
     {
       "id": "basics/specs.yml:1462#liquid_tag_nested_loops_with_break_continue",
@@ -8605,7 +8606,7 @@
       "complexity": 135,
       "status": "skipped",
       "category": null,
-      "skip_reason": "unsupported_tags"
+      "skip_reason": "unsupported_filters"
     },
     {
       "id": "basics/specs.yml:1489#liquid_tag_accumulator_with_capture",
@@ -8616,7 +8617,7 @@
       "complexity": 140,
       "status": "skipped",
       "category": null,
-      "skip_reason": "unsupported_tags"
+      "skip_reason": "unsupported_filters"
     },
     {
       "id": "basics/specs.yml:1518#liquid_tag_math_pipeline",
@@ -8627,7 +8628,7 @@
       "complexity": 135,
       "status": "skipped",
       "category": null,
-      "skip_reason": "unsupported_tags"
+      "skip_reason": "unsupported_filters"
     },
     {
       "id": "basics/specs.yml:1547#comment_inline_with_liquid_syntax",
@@ -8660,7 +8661,7 @@
       "complexity": 130,
       "status": "skipped",
       "category": null,
-      "skip_reason": "unsupported_tags"
+      "skip_reason": "unsupported_filters"
     },
     {
       "id": "basics/specs.yml:1582#comment_inline_preserves_flow",
@@ -9879,9 +9880,9 @@
       "source_file": "specs/basics/truthiness.yml",
       "line_number": 153,
       "complexity": 120,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "basics/truthiness.yml:178#truthiness_blank_vs_empty_vs_default_contrast",
@@ -10506,9 +10507,9 @@
       "source_file": "specs/basics/type-coercion.yml",
       "line_number": 272,
       "complexity": 145,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "basics/type-coercion.yml:282#default_filter_with_zero",
@@ -10517,9 +10518,9 @@
       "source_file": "specs/basics/type-coercion.yml",
       "line_number": 282,
       "complexity": 150,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "basics/type-coercion.yml:292#at_least_with_string_numbers",
@@ -16138,9 +16139,9 @@
       "source_file": "specs/liquid_ruby/specs.yml",
       "line_number": 1303,
       "complexity": 140,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "virtual_collection_properties"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/specs.yml:1315#ContextTest#test_ranges_150beab4",
@@ -19427,9 +19428,9 @@
       "source_file": "specs/liquid_ruby/specs.yml",
       "line_number": 4307,
       "complexity": 300,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_tags"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/specs.yml:4318#InlineCommentTest#test_inline_comment_returns_nothing_29700972",
@@ -19495,7 +19496,7 @@
       "complexity": 130,
       "status": "skipped",
       "category": null,
-      "skip_reason": "unsupported_tags"
+      "skip_reason": "unsupported_filters"
     },
     {
       "id": "liquid_ruby/specs.yml:4382#LiquidTagTest#test_liquid_tag_6765d499",
@@ -20780,9 +20781,9 @@
       "source_file": "specs/liquid_ruby/specs.yml",
       "line_number": 5364,
       "complexity": 180,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/specs.yml:5370#StandardFiltersTest#test_default_ce94fa11",
@@ -20802,9 +20803,9 @@
       "source_file": "specs/liquid_ruby/specs.yml",
       "line_number": 5382,
       "complexity": 180,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/specs.yml:5388#StandardFiltersTest#test_default_handle_false_b5a82ccc",
@@ -22903,9 +22904,9 @@
       "source_file": "specs/liquid_ruby/specs.yml",
       "line_number": 7125,
       "complexity": 140,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "virtual_collection_properties"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/specs.yml:7137#StandardTagTest#test_size_of_hash_f93beacd",
@@ -26170,9 +26171,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1125,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1132#StandardFilterTest#test_default_18b9c904",
@@ -26181,9 +26182,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1132,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1138#StandardFilterTest#test_default_19a88fce",
@@ -26192,9 +26193,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1138,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1145#StandardFilterTest#test_default_203ca4eb",
@@ -26203,9 +26204,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1145,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1151#StandardFilterTest#test_default_246cc9ec",
@@ -26214,9 +26215,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1151,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1160#StandardFilterTest#test_default_2858b76a",
@@ -26236,9 +26237,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1169,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1176#StandardFilterTest#test_default_350c791c",
@@ -26247,9 +26248,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1176,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1183#StandardFilterTest#test_default_37dc8148",
@@ -26258,9 +26259,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1183,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1192#StandardFilterTest#test_default_3bce02da",
@@ -26271,7 +26272,7 @@
       "complexity": 160,
       "status": "skipped",
       "category": null,
-      "skip_reason": "unsupported_filters"
+      "skip_reason": "floats_out_of_scope"
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1198#StandardFilterTest#test_default_3cceaa49",
@@ -26282,7 +26283,7 @@
       "complexity": 160,
       "status": "skipped",
       "category": null,
-      "skip_reason": "unsupported_filters"
+      "skip_reason": "floats_out_of_scope"
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1204#StandardFilterTest#test_default_43dbbb97",
@@ -26324,9 +26325,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1238,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1244#StandardFilterTest#test_default_5b3b96bd",
@@ -26335,9 +26336,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1244,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1250#StandardFilterTest#test_default_65b543df",
@@ -26346,9 +26347,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1250,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1256#StandardFilterTest#test_default_7c2b2d11",
@@ -26357,9 +26358,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1256,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1262#StandardFilterTest#test_default_84f30d94",
@@ -26368,9 +26369,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1262,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1269#StandardFilterTest#test_default_85afd5ad",
@@ -26379,9 +26380,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1269,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1278#StandardFilterTest#test_default_96ebf824",
@@ -26390,9 +26391,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1278,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1287#StandardFilterTest#test_default_9944b1ef",
@@ -26401,9 +26402,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1287,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1296#StandardFilterTest#test_default_9c498060",
@@ -26412,9 +26413,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1296,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1304#StandardFilterTest#test_default_9ee110c1",
@@ -26423,9 +26424,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1304,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1313#StandardFilterTest#test_default_9ee50606",
@@ -26434,9 +26435,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1313,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1320#StandardFilterTest#test_default_9fb9f023",
@@ -26447,7 +26448,7 @@
       "complexity": 160,
       "status": "skipped",
       "category": null,
-      "skip_reason": "unsupported_filters"
+      "skip_reason": "floats_out_of_scope"
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1326#StandardFilterTest#test_default_a8c7a8f0",
@@ -26467,9 +26468,9 @@
       "source_file": "specs/liquid_ruby/standard_filters.yml",
       "line_number": 1355,
       "complexity": 160,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "unsupported_filters"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/standard_filters.yml:1361#StandardFilterTest#test_default_e24094d3",
@@ -33672,9 +33673,9 @@
       "source_file": "specs/liquid_ruby/variable_type_filters.yml",
       "line_number": 324,
       "complexity": 300,
-      "status": "skipped",
-      "category": null,
-      "skip_reason": "virtual_collection_properties"
+      "status": "selected",
+      "category": "stage2_liquid",
+      "skip_reason": null
     },
     {
       "id": "liquid_ruby/variable_type_filters.yml:331#filter_range_first_last_size",

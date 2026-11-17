@@ -14,44 +14,9 @@ module DawnCorpus
   # Minimal Shopify-compatible filter stubs isolated exclusively to Stage 6-7
   # benchmark corpus verification. Stage 3 LiquidReference::Renderer remains untouched.
   module DawnBenchmarkFilters
-    include Liquid::StandardFilters
+    include LiquidReference::BenchmarkFilters
 
-    TRANSLATIONS = {
-      "products.product.on_sale" => "Sale",
-      "products.product.sold_out" => "Sold out",
-      "products.product.add_to_cart" => "Add to cart",
-      "products.product.choose_options" => "Choose options",
-      "products.product.unavailable" => "Unavailable",
-      "products.product.price.regular_price" => "Regular price",
-      "products.product.price.sale_price" => "Sale price",
-      "products.product.price.from_price_html" => "From {{ price }}",
-      "products.product.volume_pricing.price_range" => "{{ minimum }} - {{ maximum }}",
-    }.freeze
-
-    def money(cents)
-      return "" if cents.nil?
-
-      amount = Integer(cents)
-      sign = amount.negative? ? "-" : ""
-      abs = amount.abs
-      format("%s$%d.%02d", sign, abs / 100, abs % 100)
-    rescue ArgumentError, TypeError
-      cents.to_s
-    end
-
-    def money_with_currency(cents)
-      formatted = money(cents)
-      formatted.empty? ? "" : "#{formatted} USD"
-    end
-
-    def t(key, params = nil)
-      template = TRANSLATIONS[key.to_s] || key.to_s
-      return template unless params.is_a?(Hash)
-
-      params.each_with_object(template.dup) do |(param_key, param_val), rendered|
-        rendered.gsub!(/\{\{\s*#{Regexp.escape(param_key.to_s)}\s*\}\}/, param_val.to_s)
-      end
-    end
+    TRANSLATIONS = LiquidReference::BenchmarkFilters::TRANSLATIONS
   end
 
   module Verifier

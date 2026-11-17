@@ -13,6 +13,9 @@ module LiquidInterpreter
     INVENTORIED_SUITES = %i[basics liquid_ruby].freeze
 
     ALLOWED_STAGE2_TAGS = %w[if elsif else endif unless endunless for endfor assign].freeze
+    ALLOWED_LIQUID_SUBTAGS = ALLOWED_STAGE2_TAGS
+    ALLOWED_ALL_TAGS = (ALLOWED_STAGE2_TAGS + ["liquid"]).freeze
+    ALLOWED_STANDARD_FILTERS = %w[default].freeze
 
     SHOPIFY_FEATURES = %i[
       shopify_tags
@@ -99,6 +102,67 @@ module LiquidInterpreter
       expr.gsub(/'[^']*'|"[^"]*"/, " STR ")
     end
 
+    def classify_expression_scope(context_kind, raw_code)
+      code_no_strings = strip_quoted_strings(raw_code)
+
+      if code_no_strings.include?("|")
+        return "unsupported_filters" unless context_kind == :output || context_kind == "assign"
+
+        parts = code_no_strings.split("|", -1)
+        filter_parts = parts[1..] || []
+        return "error_wording_or_inline_error_mode" if filter_parts.empty? || filter_parts.any? { |p| p.strip.empty? }
+
+        filter_parts.each do |part|
+          filter_name = part.strip.split(/[\s:]/, 2).first.to_s
+          return "unsupported_filters" unless ALLOWED_STANDARD_FILTERS.include?(filter_name)
+        end
+      end
+
+      return "drops_and_ruby_objects" if code_no_strings.match?(/\bself\b/)
+      return "for_loop_extensions_out_of_scope" if code_no_strings.match?(/\bforloop\b/)
+      if code_no_strings.include?("[") || code_no_strings.include?("]")
+        return "bracket_access_out_of_scope"
+      end
+      return "range_expressions_out_of_scope" if code_no_strings.include?("..")
+      if code_no_strings.match?(/\b(contains|empty|blank)\b/)
+        return "unsupported_operators_or_keywords"
+      end
+      return "floats_out_of_scope" if code_no_strings.match?(/\b\d+\.\d+\b/)
+      if code_no_strings.match?(/\.\s*(first|last)\b/)
+        return "virtual_collection_properties"
+      end
+
+      nil
+    end
+
+    def classify_liquid_tag_body(body_text)
+      body_text.split("\n").each do |raw_line|
+        line = raw_line.strip
+        next if line.empty? || line.start_with?("#")
+
+        subtag_name, rest = line.split(/\s+/, 2)
+        subtag_name = subtag_name.to_s
+        rest = rest.to_s
+
+        if subtag_name == "liquid"
+          nested_skip = classify_liquid_tag_body(rest)
+          return nested_skip if nested_skip
+          next
+        end
+
+        return "partials_and_filesystem" if subtag_name == "include" || subtag_name == "render"
+        return "unsupported_tags" unless ALLOWED_LIQUID_SUBTAGS.include?(subtag_name)
+        if subtag_name == "for" && strip_quoted_strings(rest).match?(/\b(limit|offset|reversed)\b/)
+          return "for_loop_extensions_out_of_scope"
+        end
+
+        expr_skip = classify_expression_scope(subtag_name, rest)
+        return expr_skip if expr_skip
+      end
+
+      nil
+    end
+
     # Classifies a spec purely from static metadata and template syntax before execution.
     # Returns [status, category, skip_reason].
     def classify_spec(spec)
@@ -128,30 +192,29 @@ module LiquidInterpreter
       blocks.each do |blk|
         is_tag = blk.start_with?("{%")
         inner = blk.sub(/\A\{[{%]-?/, "").sub(/-?[%}]\}\z/, "").strip
-        code_no_strings = strip_quoted_strings(inner)
 
         if is_tag
-          tag_name = inner.split(/\s+/, 2).first.to_s
+          tag_name, rest = inner.split(/\s+/, 2)
+          tag_name = tag_name.to_s
+          rest = rest.to_s
           return ["skipped", nil, "partials_and_filesystem"] if tag_name == "include" || tag_name == "render"
-          return ["skipped", nil, "unsupported_tags"] unless ALLOWED_STAGE2_TAGS.include?(tag_name)
-          if tag_name == "for" && code_no_strings.match?(/\b(limit|offset|reversed)\b/)
+          return ["skipped", nil, "unsupported_tags"] unless ALLOWED_ALL_TAGS.include?(tag_name)
+
+          if tag_name == "liquid"
+            skip_reason = classify_liquid_tag_body(rest)
+            return ["skipped", nil, skip_reason] if skip_reason
+            next
+          end
+
+          if tag_name == "for" && strip_quoted_strings(rest).match?(/\b(limit|offset|reversed)\b/)
             return ["skipped", nil, "for_loop_extensions_out_of_scope"]
           end
-        end
 
-        return ["skipped", nil, "unsupported_filters"] if code_no_strings.include?("|")
-        return ["skipped", nil, "drops_and_ruby_objects"] if code_no_strings.match?(/\bself\b/)
-        return ["skipped", nil, "for_loop_extensions_out_of_scope"] if code_no_strings.match?(/\bforloop\b/)
-        if code_no_strings.include?("[") || code_no_strings.include?("]")
-          return ["skipped", nil, "bracket_access_out_of_scope"]
-        end
-        return ["skipped", nil, "range_expressions_out_of_scope"] if code_no_strings.include?("..")
-        if code_no_strings.match?(/\b(contains|empty|blank)\b/)
-          return ["skipped", nil, "unsupported_operators_or_keywords"]
-        end
-        return ["skipped", nil, "floats_out_of_scope"] if code_no_strings.match?(/\b\d+\.\d+\b/)
-        if code_no_strings.match?(/\.\s*(first|last|size)\b/)
-          return ["skipped", nil, "virtual_collection_properties"]
+          skip_reason = classify_expression_scope(tag_name, inner)
+          return ["skipped", nil, skip_reason] if skip_reason
+        else
+          skip_reason = classify_expression_scope(:output, inner)
+          return ["skipped", nil, skip_reason] if skip_reason
         end
       end
 
@@ -236,19 +299,20 @@ module LiquidInterpreter
         "schema_version" => 1,
         "liquid_spec_sha" => PINNED_LIQUID_SPEC_SHA,
         "liquid_gem_version" => Liquid::VERSION,
-        "stage_scope" => "stage-2",
+        "stage_scope" => "stage-7",
         "selection_policy" => {
           "inventoried_suites" => INVENTORIED_SUITES.map(&:to_s),
           "included_constructs" => [
             "plain_text",
-            "output_tags_without_filters",
+            "output_tags_with_default_filter",
             "whitespace_trimming",
             "literals_string_int_bool_nil",
-            "identifiers_and_dot_property_access",
-            "assign_tag_without_filters",
+            "identifiers_dot_property_access_and_size",
+            "assign_tag_with_default_filter",
             "conditionals_if_elsif_else_unless",
-            "comparison_and_logical_operators",
+            "comparison_and_logical_operators_with_collection_equality",
             "for_loops_without_ranges_modifiers_or_forloop",
+            "liquid_tag_with_allowed_statements_and_inline_comments",
           ],
           "excluded_constructs" => (
             skip_reason_counts.keys.sort + SUITE_SKIP_REASONS.values.uniq

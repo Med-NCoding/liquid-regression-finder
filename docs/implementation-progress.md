@@ -1,7 +1,7 @@
 # Implementation Progress — Shopify Liquid Regression Finder
 
-- **Current Stage**: Stage 5 (`passed`)
-- **Last Completed Stage**: Stage 5 — Shrink, explanation and replay
+- **Current Stage**: Stage 7 (`passed`)
+- **Last Completed Stage**: Stage 7 — Benchmark and engine extensions
 - **Repository**: https://github.com/Med-NCoding/liquid-regression-finder
 
 ## Stage Tracker
@@ -13,8 +13,8 @@
 | 3 | Shopify projection and reference | passed | `bin/check stage-3` | 0 | `artifacts/stage-3/ordinary-parity.json`, `fixtures/storefront_probe_matrix.json`, `docs/storefront-probe.md`, `reference/test/` |
 | 4 | Counterexample search | passed | `bin/check stage-4` | 0 | `artifacts/stage-4/demo-compare.json`, `artifacts/stage-4/demo-replay.json`, `artifacts/stage-4/identical-compare.json`, `search/tests/` |
 | 5 | Shrink, explanation and replay | passed | `bin/check stage-5` | 0 | `artifacts/stage-5/demo-compare.json`, `artifacts/stage-5/demo-replay.json`, `artifacts/stage-5/demo-replay-result.json`, `artifacts/stage-5/identical-compare.json`, `search/tests/` |
-| 6 | Dawn corpus | pending | `bin/check stage-6` | — | — |
-| 7 | Benchmark and engine extensions | pending | `bin/check stage-7` | — | — |
+| 6 | Dawn corpus | passed | `bin/check stage-6` | 0 | `bench/corpus/manifest.json`, `fixtures/witnesses/`, `artifacts/stage-6/corpus-verification.json`, `artifacts/stage-6/corpus-summary.md`, `bench/tests/test_dawn_corpus.rb` |
+| 7 | Benchmark and engine extensions | passed | `bin/check stage-7` | 0 | `bench/reports/benchmark.md`, `bench/reports/benchmark.csv`, `bench/reports/benchmark_details.json`, `bench/sample_baseline/PROVENANCE.md`, `artifacts/stage-7/conformance-report.txt` |
 | 8 | Rails API and jobs | pending | `bin/check stage-8` | — | — |
 | 9 | React results UI | pending | `bin/check stage-9` | — | — |
 | 10 | PR workflow and release | pending | `bin/check all` | — | — |
@@ -82,6 +82,7 @@
   - Selected-subset `liquid-spec` CLI checks in `bin/check stage-2` (`-s basics` `34/34` passes, `-s liquid_ruby` `68/68` passes) -> exit `0`.
   - Nested-loop trace demo (`interpreter/bin/nested_loop_demo --out artifacts/stage-2/nested-loop-trace.json`) -> exit `0` (`status=ok`, `html_bytes=142`, `observed=true`, `events=38`, validated against `render_result.schema.json` and `trace_event.schema.json`).
 - **Gate Command & Exit Status**: `./bin/check stage-2` -> exit `0` (`./bin/check stage-1` -> exit `0`).
+- **Stage 7 Note on Stage 2 Regression Test & Manifest**: In Stage 7, `interpreter/test/test_lexer_and_parser.rb` (`test_rejects_unsupported_features_with_line_column_diagnostics`) was updated on one entry from `{% liquid ... %}` (now implemented in Stage 7) to `{% capture x %}hi{% endcapture %}`, and `contracts/conformance-manifest.json` was regenerated to widen from `359/359` to `399/399` (`+40` cases across `default` filter, `.size` property, and `liquid` tag).
 - **Remaining Tasks**: Stage 3 through Stage 10.
 - **Next Command**: Start Stage 3 worker (`bin/check stage-3`).
 
@@ -143,3 +144,34 @@
 - **Gate Command & Exit Status**: `./bin/check stage-6` -> exit `0` (includes Stage 1–5 regression checks).
 - **Remaining Tasks**: Stage 7 through Stage 10.
 - **Next Command**: Start Stage 7 worker (`bin/check stage-7`).
+
+### Stage 7 — Benchmark and Engine Extensions
+- **Status**: `passed`
+- **Completed Tasks**:
+  - **Coherent Liquid Engine Extensions (`interpreter/lib/liquid_interpreter/{ast,parser,evaluator,template,conformance}.rb`)**:
+    - Added `.size` virtual property on `Array`, `String` (codepoint count), and `Hash` (with explicit Hash `"size"` key taking precedence over `Hash#size`), plus `Hash == Hash` / `Array == Array` value equality verified against `liquid 5.14.0`.
+    - Added `{% liquid ... %}` multiline tag parsing (`assign`, `if`, `elsif`, `else`, `unless`, `for`, `endif`, `endunless`, `endfor`, nested `liquid`, `#` inline comment lines, blank lines) into the exact same AST nodes (`Assign`, `Conditional`, `For`) with `SpanMapper` UTF-8 line/column spans preserved.
+    - Added standard Liquid filter pipeline parsing (`AST::FilterPipeline`, `AST::FilterStage`) in `Output` and `Assign` tags and implemented the standard `default` filter (with optional `allow_false` keyword option matching `liquid 5.14.0`), plus an opt-in `filters:` option on `Template.compile`/`Evaluator` isolated to benchmark mode (`LiquidReference::BenchmarkFilters` providing `money`, `money_with_currency`, `t`, disabled in default `LiquidInterpreter` and `liquid_spec_adapter.rb`).
+    - Added `interpreter/test/test_stage7_extensions.rb` (`6 runs, 1628 assertions, 0 failures, 0 errors, 0 skips`) probing every extension and trace invariance against `liquid 5.14.0`.
+  - **Conformance Coverage Expansion (`contracts/conformance-manifest.json`, `artifacts/stage-7/conformance-report.txt`)**:
+    - Regenerated `contracts/conformance-manifest.json` via `interpreter/bin/generate_manifest` (`stage_scope: "stage-7"`) and verified `100.00%` pass in `interpreter/bin/conformance_report --require-all-selected`:
+      - Before Stage 7 (`stage-2`): **`359/359`** (`100.00%`; `basics=141`, `liquid_ruby=218`; `11.73%` inventoried; `4.85%` all suites).
+      - After Stage 7 (`stage-7`): **`399/399`** (`100.00%`; `basics=155` [`+14`], `liquid_ruby=244` [`+26`]; `13.03%` inventoried; `5.40%` all suites; `fail=0`, `error=0`).
+  - **Benchmark-Only Worker & Search Support (`reference/`, `search/`)**:
+    - Extracted `LiquidReference::BenchmarkFilters` (`reference/lib/liquid_reference/benchmark_filters.rb`, shared with `DawnCorpus::DawnBenchmarkFilters`), extended `Renderer` (`BENCHMARK_ENVIRONMENT`, `benchmark:`, `selector:`, `fixed_context:`), `Worker` (`benchmark_mode:`), and `reference/bin/worker --benchmark`, while keeping default worker mode strictly enforcing `jsonl_request.schema.json` and `sale_badge` only (`reference/test/test_jsonl_worker.rb`: `4 runs, 203 assertions, 0 failures`).
+    - Updated `search/worker_client.py` (`benchmark=True`), `search/explain.py` (added `sold_out_badge`, `price_range`, leaf selector support, and `{% liquid %}` tag-line indexing), and `search/engine.py` (`benchmark=True`, `selector`, `fixed_context`, `candidate_fixtures`, and `shrink_ms` tracking while keeping public `validate_compare_request` and `contracts/schemas/compare_request.schema.json` strictly scoped to `sale_badge`).
+  - **Official Shopify Sample Baseline (`bench/sample_baseline/`)**:
+    - Downloaded pinned CSVs (`apparel.csv`, `home-and-garden.csv`, `jewelery.csv`, `readme.md`) from `https://github.com/shopifypartners/product-csvs` at commit SHA `045fb432d85dc59d558717208399176d62bf106d` under `bench/sample_baseline/raw/`.
+    - Converted deterministically via `bench/sample_baseline/convert_csvs.py` into `60` schema-valid `Fixture` objects (`66` variants, `0` truncated) in `bench/sample_baseline/sample_products.json` and documented full mapping rules in `bench/sample_baseline/PROVENANCE.md`.
+  - **Benchmark Runner, Subprocess IPC Overhead & Reports (`bench/run.py`, `bench/measure_ipc_overhead.rb`, `bench/reports/`)**:
+    - Executed frozen experiment across all **15** verified Dawn cases (`10` supported, `5` unsupported), seeds `[0, 1, 2, 3, 4]`, `search_pairs=256`, `shrink_pairs=128`, vs `sample_baseline` (`60` products evaluated once per case, `shrink_pairs=128`):
+      - **All 15 verified cases**: `generated_search` detected **`10/15` (`66.7%`)** [`50/75` runs: `50` detected, `0` budget_exhausted, `25` unsupported, `0` error] vs `sample_baseline` **`9/15` (`60.0%`)** [`9/15` runs: `9` detected, `1` budget_exhausted (`dawn_pr_662_compare_at_price_varies`), `5` unsupported, `0` error].
+      - **Supported-only (10 cases)**: `generated_search` **`10/10` (`100.0%`, `50/50` runs)** in median **`3.5` pairs** (`first_difference_ms=262 ms`, `shrink_ms=0 ms`, `parity_rejections=0`) vs `sample_baseline` **`9/10` (`90.0%`)** in median **`22` pairs** (`first_difference_ms=264 ms`, `shrink_ms=1 ms`, `parity_rejections=0`).
+      - **Instrumented JSONL IPC overhead (`256` `render_pair` calls on `dawn_pr_794`)**: `custom` in-process Ruby `59.196 ms` (`0.2312 ms/pair`) vs JSONL IPC `68.133 ms` (`0.2661 ms/pair`, startup+compile `260.713 ms`) -> `+0.0349 ms/pair` (`13.1%`, `1.15x`); `reference` in-process `66.456 ms` (`0.2596 ms/pair`) vs JSONL IPC `75.073 ms` (`0.2933 ms/pair`) -> `+0.0337 ms/pair` (`11.5%`, `1.13x`).
+    - Generated `bench/reports/benchmark.csv`, `bench/reports/benchmark_details.json`, and `bench/reports/benchmark.md`.
+  - **Stage 7 Tests & Gate (`bench/tests/test_benchmark.py`, `bin/check stage-7`)**:
+    - Added `bench/tests/test_benchmark.py` (`5` tests passing, Python 3.11 stdlib-only verified, validating all 60 sample fixtures against `fixture.schema.json`, 10-case worker parity, 15-case accounting, and deterministic reproducibility across repeated runs).
+    - Extended `bin/check` with `run_stage_7` / `stage-7`.
+- **Gate Command & Exit Status**: `./bin/check stage-7` -> exit `0` (includes Stage 1–6 regression checks).
+- **Remaining Tasks**: Stage 8 through Stage 10.
+- **Next Command**: Start Stage 8 worker (`bin/check stage-8`).

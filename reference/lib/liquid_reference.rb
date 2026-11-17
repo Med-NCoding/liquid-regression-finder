@@ -7,6 +7,7 @@ require "nokogiri"
 require "liquid_interpreter"
 
 require_relative "liquid_reference/version"
+require_relative "liquid_reference/benchmark_filters"
 require_relative "liquid_reference/fixture_validator"
 require_relative "liquid_reference/projection"
 require_relative "liquid_reference/observer"

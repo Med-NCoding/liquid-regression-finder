@@ -32,7 +32,20 @@ module LiquidReference
       }.freeze
     end
 
-    CompiledReference = Struct.new(:source, :source_sha256, :template, keyword_init: true)
+    BENCHMARK_ENVIRONMENT = Liquid::Environment.build(
+      tags: Liquid::Tags::STANDARD_TAGS.dup,
+      error_mode: :strict2,
+      file_system: DisabledFileSystem.new,
+    ) do |env|
+      env.register_filter(Liquid::StandardFilters)
+      env.register_filter(BenchmarkFilters)
+      env.default_resource_limits = {
+        render_length_limit: MAX_OUTPUT_BYTES,
+        render_score_limit: MAX_STEPS,
+      }.freeze
+    end
+
+    CompiledReference = Struct.new(:source, :source_sha256, :template, :environment, keyword_init: true)
     CompiledPair = Struct.new(
       :custom_before,
       :custom_after,
@@ -41,20 +54,29 @@ module LiquidReference
       :before_sha256,
       :after_sha256,
       :observer,
+      :benchmark,
+      :selector,
+      :fixed_context,
       keyword_init: true,
     )
 
     module_function
 
-    def compile_custom(source, max_snippet_bytes: MAX_SNIPPET_BYTES, max_depth: MAX_DEPTH)
+    def compile_custom(source, max_snippet_bytes: MAX_SNIPPET_BYTES, max_depth: MAX_DEPTH, filters: nil)
       LiquidInterpreter::Template.compile(
         source,
         max_snippet_bytes: max_snippet_bytes,
         max_depth: max_depth,
+        filters: filters,
       )
     end
 
-    def compile_reference(source, max_snippet_bytes: MAX_SNIPPET_BYTES, max_depth: MAX_DEPTH)
+    def compile_reference(
+      source,
+      max_snippet_bytes: MAX_SNIPPET_BYTES,
+      max_depth: MAX_DEPTH,
+      environment: REFERENCE_ENVIRONMENT
+    )
       normalized = LiquidInterpreter::Lexer.normalize_utf8(source)
       if normalized.bytesize > max_snippet_bytes
         raise LiquidInterpreter::LimitError.new(
@@ -66,7 +88,7 @@ module LiquidReference
 
       template = Liquid::Template.parse(
         normalized,
-        environment: REFERENCE_ENVIRONMENT,
+        environment: environment,
         line_numbers: true,
       )
 
@@ -83,6 +105,7 @@ module LiquidReference
         source: normalized.freeze,
         source_sha256: Digest::SHA256.hexdigest(normalized).freeze,
         template: template,
+        environment: environment,
       )
     rescue Liquid::StackLevelError => e
       raise LiquidInterpreter::LimitError.new(
@@ -98,13 +121,39 @@ module LiquidReference
       )
     end
 
-    def compile_pair(before:, after:, observer:, max_snippet_bytes: MAX_SNIPPET_BYTES, max_depth: MAX_DEPTH)
-      Observer.validate_name!(observer)
+    def compile_pair(
+      before:,
+      after:,
+      observer:,
+      max_snippet_bytes: MAX_SNIPPET_BYTES,
+      max_depth: MAX_DEPTH,
+      benchmark: false,
+      selector: nil,
+      fixed_context: nil
+    )
+      if benchmark
+        Observer.validate_benchmark_name!(observer)
+        unless selector.nil? || (selector.is_a?(String) && !selector.strip.empty?)
+          raise ArgumentError, "Benchmark selector must be nil or a non-empty String"
+        end
+        unless fixed_context.nil? || (fixed_context.is_a?(Hash) && !fixed_context.key?("product"))
+          raise ArgumentError, "Benchmark fixed_context must be nil or a Hash without 'product'"
+        end
+        custom_filters = BenchmarkFilters.custom_registry
+        ref_env = BENCHMARK_ENVIRONMENT
+      else
+        Observer.validate_name!(observer)
+        raise ArgumentError, "selector is only supported in benchmark mode" unless selector.nil?
+        raise ArgumentError, "fixed_context is only supported in benchmark mode" unless fixed_context.nil?
 
-      custom_before = compile_custom(before, max_snippet_bytes: max_snippet_bytes, max_depth: max_depth)
-      ref_before = compile_reference(before, max_snippet_bytes: max_snippet_bytes, max_depth: max_depth)
-      custom_after = compile_custom(after, max_snippet_bytes: max_snippet_bytes, max_depth: max_depth)
-      ref_after = compile_reference(after, max_snippet_bytes: max_snippet_bytes, max_depth: max_depth)
+        custom_filters = nil
+        ref_env = REFERENCE_ENVIRONMENT
+      end
+
+      custom_before = compile_custom(before, max_snippet_bytes: max_snippet_bytes, max_depth: max_depth, filters: custom_filters)
+      ref_before = compile_reference(before, max_snippet_bytes: max_snippet_bytes, max_depth: max_depth, environment: ref_env)
+      custom_after = compile_custom(after, max_snippet_bytes: max_snippet_bytes, max_depth: max_depth, filters: custom_filters)
+      ref_after = compile_reference(after, max_snippet_bytes: max_snippet_bytes, max_depth: max_depth, environment: ref_env)
 
       CompiledPair.new(
         custom_before: custom_before,
@@ -114,22 +163,30 @@ module LiquidReference
         before_sha256: custom_before.source_sha256,
         after_sha256: custom_after.source_sha256,
         observer: observer,
+        benchmark: !!benchmark,
+        selector: selector,
+        fixed_context: fixed_context ? Projection.deep_copy(fixed_context) : nil,
       )
     end
 
-    def render(engine:, template:, assigns:, observer:, trace: false, **limits)
+    def render(engine:, template:, assigns:, observer:, trace: false, benchmark: false, selector: nil, **limits)
       case engine
       when "custom"
-        render_custom(template, assigns, observer: observer, trace: trace, **limits)
+        render_custom(template, assigns, observer: observer, trace: trace, benchmark: benchmark, selector: selector, **limits)
       when "reference"
-        render_reference(template, assigns, observer: observer, trace: trace, **limits)
+        render_reference(template, assigns, observer: observer, trace: trace, benchmark: benchmark, selector: selector, **limits)
       else
         raise ArgumentError, "Unknown engine #{engine.inspect}; expected 'custom' or 'reference'"
       end
     end
 
-    def render_custom(template_or_source, assigns = {}, observer: "sale_badge", trace: true, **limits)
-      Observer.validate_name!(observer)
+    def render_custom(template_or_source, assigns = {}, observer: "sale_badge", trace: true, benchmark: false, selector: nil, **limits)
+      if benchmark
+        Observer.validate_benchmark_name!(observer)
+      else
+        Observer.validate_name!(observer)
+        raise ArgumentError, "selector is only supported in benchmark mode" unless selector.nil?
+      end
       max_snippet_bytes = limits.fetch(:max_snippet_bytes, MAX_SNIPPET_BYTES)
       max_depth = limits.fetch(:max_depth, MAX_DEPTH)
       max_steps = limits.fetch(:max_steps, MAX_STEPS)
@@ -140,7 +197,12 @@ module LiquidReference
       compiled = if template_or_source.is_a?(LiquidInterpreter::Template)
         template_or_source
       else
-        compile_custom(template_or_source, max_snippet_bytes: max_snippet_bytes, max_depth: max_depth)
+        compile_custom(
+          template_or_source,
+          max_snippet_bytes: max_snippet_bytes,
+          max_depth: max_depth,
+          filters: benchmark ? BenchmarkFilters.custom_registry : nil,
+        )
       end
 
       fresh_assigns = Projection.deep_copy(assigns || {})
@@ -150,6 +212,7 @@ module LiquidReference
         max_steps: max_steps,
         max_output_bytes: max_output_bytes,
         max_trace_events: max_trace_events,
+        filters: compiled.compile_options[:filters],
       )
 
       eval_result = Timeout.timeout(timeout_seconds) do
@@ -165,10 +228,11 @@ module LiquidReference
         )
       end
 
+      observed = benchmark ? Observer.observe_benchmark(observer, html, selector: selector) : Observer.observe(observer, html)
       {
         "status" => "ok",
         "html" => html,
-        "observed" => Observer.observe(observer, html),
+        "observed" => observed,
         "events" => trace ? eval_result.events : [],
         "error" => nil,
       }
@@ -182,9 +246,17 @@ module LiquidReference
       )
     end
 
-    def render_reference(template_or_source, assigns = {}, observer: "sale_badge", trace: false, **limits)
+    def render_reference(template_or_source, assigns = {}, observer: "sale_badge", trace: false, benchmark: false, selector: nil, **limits)
       _ = trace # Reference engine never emits trace events.
-      Observer.validate_name!(observer)
+      if benchmark
+        Observer.validate_benchmark_name!(observer)
+        active_env = BENCHMARK_ENVIRONMENT
+      else
+        Observer.validate_name!(observer)
+        raise ArgumentError, "selector is only supported in benchmark mode" unless selector.nil?
+
+        active_env = REFERENCE_ENVIRONMENT
+      end
       max_snippet_bytes = limits.fetch(:max_snippet_bytes, MAX_SNIPPET_BYTES)
       max_depth = limits.fetch(:max_depth, MAX_DEPTH)
       max_steps = limits.fetch(:max_steps, MAX_STEPS)
@@ -202,18 +274,19 @@ module LiquidReference
         end
         template_or_source
       else
-        compile_reference(template_or_source, max_snippet_bytes: max_snippet_bytes, max_depth: max_depth)
+        compile_reference(template_or_source, max_snippet_bytes: max_snippet_bytes, max_depth: max_depth, environment: active_env)
       end
 
+      render_env = compiled.environment || active_env
       fresh_assigns = Projection.deep_copy(assigns || {})
       resource_limits = Liquid::ResourceLimits.new(
         render_length_limit: max_output_bytes,
         render_score_limit: max_steps,
       )
       context = Liquid::Context.build(
-        environment: REFERENCE_ENVIRONMENT,
+        environment: render_env,
         environments: [fresh_assigns],
-        registers: { file_system: REFERENCE_ENVIRONMENT.file_system },
+        registers: { file_system: render_env.file_system },
         rethrow_errors: true,
         resource_limits: resource_limits,
       )
@@ -232,10 +305,11 @@ module LiquidReference
         )
       end
 
+      observed = benchmark ? Observer.observe_benchmark(observer, html, selector: selector) : Observer.observe(observer, html)
       {
         "status" => "ok",
         "html" => html,
-        "observed" => Observer.observe(observer, html),
+        "observed" => observed,
         "events" => [],
         "error" => nil,
       }

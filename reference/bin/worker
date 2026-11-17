@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "bundler/setup"
+require "optparse"
 
 repo_root = File.expand_path("../..", __dir__)
 $LOAD_PATH.unshift(File.join(repo_root, "interpreter/lib"))
@@ -9,4 +10,11 @@ $LOAD_PATH.unshift(File.join(repo_root, "reference/lib"))
 
 require "liquid_reference"
 
-exit(LiquidReference::Worker.new.run)
+benchmark_mode = false
+OptionParser.new do |opts|
+  opts.on("--benchmark", "Enable benchmark-only observers, selectors, fixed_context, and DawnBenchmarkFilters") do
+    benchmark_mode = true
+  end
+end.parse!
+
+exit(LiquidReference::Worker.new(benchmark_mode: benchmark_mode).run)

@@ -168,5 +168,28 @@ module LiquidInterpreter
         freeze
       end
     end
+
+    class FilterStage < Node
+      attr_reader :name, :pos_args, :kw_args
+
+      def initialize(name:, pos_args:, kw_args:, span:, node_id:)
+        super(node_id: node_id, span: span)
+        @name = String(name).dup.freeze
+        @pos_args = pos_args.dup.freeze
+        @kw_args = kw_args.map { |k, v| [String(k).dup.freeze, v].freeze }.freeze
+        freeze
+      end
+    end
+
+    class FilterPipeline < Expr
+      attr_reader :input_expr, :stages
+
+      def initialize(input_expr:, stages:, span:, node_id:)
+        super(node_id: node_id, span: span)
+        @input_expr = input_expr
+        @stages = stages.dup.freeze
+        freeze
+      end
+    end
   end
 end

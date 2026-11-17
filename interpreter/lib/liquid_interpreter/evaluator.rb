@@ -14,13 +14,15 @@ module LiquidInterpreter
       max_depth: MAX_DEPTH,
       max_steps: MAX_STEPS,
       max_output_bytes: MAX_OUTPUT_BYTES,
-      max_trace_events: MAX_TRACE_EVENTS
+      max_trace_events: MAX_TRACE_EVENTS,
+      filters: nil
     )
       @trace = !!trace
       @max_depth = Integer(max_depth)
       @max_steps = Integer(max_steps)
       @max_output_bytes = Integer(max_output_bytes)
       @max_trace_events = Integer(max_trace_events)
+      @filters = normalize_filters(filters)
     end
 
     def evaluate(document, assigns: {}, **_options)
@@ -224,6 +226,8 @@ module LiquidInterpreter
         result
       when AST::Logical
         eval_logical(expr)
+      when AST::FilterPipeline
+        eval_filter_pipeline(expr)
       else
         raise RenderError.new(
           "Unsupported expression node: #{expr.class}",
@@ -277,6 +281,75 @@ module LiquidInterpreter
       end
     end
 
+    def eval_filter_pipeline(expr)
+      val = eval_expr(expr.input_expr)
+      expr.stages.each do |stage|
+        step!(stage.span)
+        args = stage.pos_args.map { |arg_expr| eval_expr(arg_expr) }
+        unless stage.kw_args.empty?
+          kwargs = {}
+          stage.kw_args.each { |k, v_expr| kwargs[k] = eval_expr(v_expr) }
+          args << kwargs
+        end
+        val = invoke_filter(stage.name, val, args, stage.span)
+      end
+      val
+    end
+
+    def invoke_filter(name, input, args, span)
+      if @filters.key?(name)
+        begin
+          return @filters[name].call(input, *args)
+        rescue ArgumentError => e
+          raise RenderError.new(e.message, code: "filter_error", span: span)
+        end
+      end
+
+      return apply_default_filter(input, args, span) if name == "default"
+
+      raise UnsupportedFeatureError.new(
+        "Filter '#{name}' is not supported",
+        code: "unsupported_filter",
+        span: span,
+      )
+    end
+
+    def apply_default_filter(input, args, span)
+      if args.length > 2
+        raise RenderError.new(
+          "wrong number of arguments (given #{args.length + 1}, expected 1..3)",
+          code: "filter_error",
+          span: span,
+        )
+      end
+
+      default_value = args.length >= 1 ? args[0] : ""
+      options = args.length >= 2 && args[1].is_a?(Hash) ? args[1] : {}
+      allow_false = truthy?(options["allow_false"])
+      false_check = allow_false ? input.nil? : !truthy?(input)
+      is_empty = input.respond_to?(:empty?) && input.empty?
+      (false_check || is_empty) ? default_value : input
+    end
+
+    def normalize_filters(filters)
+      return {}.freeze if filters.nil?
+
+      if filters.is_a?(Hash)
+        filters.each_with_object({}) do |(k, v), out|
+          raise ArgumentError, "Filter '#{k}' must respond to #call" unless v.respond_to?(:call)
+
+          out[k.to_s] = v
+        end.freeze
+      elsif filters.is_a?(Module)
+        host = Object.new.extend(filters)
+        filters.public_instance_methods(false).each_with_object({}) do |m, out|
+          out[m.to_s] = host.method(m)
+        end.freeze
+      else
+        raise ArgumentError, "Unsupported filters registry: #{filters.inspect}"
+      end
+    end
+
     def resolve_path(segments)
       root = segments[0]
       found, current = lookup_root(root)
@@ -287,6 +360,8 @@ module LiquidInterpreter
         seg = segments[i]
         if current.is_a?(Hash) && current.key?(seg)
           current = current[seg]
+        elsif seg == "size" && (current.is_a?(Array) || current.is_a?(String) || current.is_a?(Hash))
+          current = current.size
         else
           return [false, nil]
         end

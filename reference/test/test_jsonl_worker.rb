@@ -317,4 +317,103 @@ class JsonlWorkerTest < Minitest::Test
     assert_equal({ "id" => "q1", "result" => { "ok" => true } }, resp2)
     assert_equal "", err.string
   end
+
+  def test_default_worker_rejects_benchmark_fields_and_benchmark_worker_enables_dawn_parity
+    # Default worker strictly enforces jsonl_request.schema.json (sale_badge only, no benchmark fields)
+    with_worker do |stdin, stdout, stderr, wait_thr|
+      bad_obs = rpc(stdin, stdout, {
+        "id" => "pub-1",
+        "op" => "compile",
+        "before" => "a",
+        "after" => "b",
+        "observer" => "sold_out_badge",
+      }, validate_request: false)
+      assert_equal "unsupported_observer", bad_obs["error"]["code"]
+
+      bad_extra = rpc(stdin, stdout, {
+        "id" => "pub-2",
+        "op" => "compile",
+        "before" => "a",
+        "after" => "b",
+        "observer" => "sale_badge",
+        "benchmark" => true,
+      }, validate_request: false)
+      assert_equal "protocol_error", bad_extra["error"]["code"]
+
+      quit_resp = rpc(stdin, stdout, { "id" => "pub-q", "op" => "quit" })
+      assert_equal true, quit_resp["result"]["ok"]
+      stdin.close
+      assert_equal "", stderr.read
+      assert wait_thr.value.success?
+    end
+
+    # Benchmark worker (--benchmark) supports sold_out_badge, price_range, selector, fixed_context, and DawnBenchmarkFilters
+    Open3.popen3(RbConfig.ruby, WORKER_BIN, "--benchmark", chdir: REPO_ROOT) do |stdin, stdout, stderr, wait_thr|
+      stdin.set_encoding(Encoding::UTF_8)
+      stdout.set_encoding(Encoding::UTF_8)
+      stderr.set_encoding(Encoding::UTF_8)
+
+      manifest = JSON.parse(File.read(File.join(REPO_ROOT, "bench/corpus/manifest.json"), encoding: Encoding::UTF_8))
+      dawn_case = manifest.fetch("cases").find { |c| c["id"] == "dawn_pr_794_price_badge_sale_aria_hidden" }
+      before_src = File.read(File.join(REPO_ROOT, dawn_case["before_path"]), encoding: Encoding::UTF_8)
+      after_src = File.read(File.join(REPO_ROOT, dawn_case["after_path"]), encoding: Encoding::UTF_8)
+      witness = JSON.parse(File.read(File.join(REPO_ROOT, dawn_case["witness_fixture_path"]), encoding: Encoding::UTF_8))
+
+      comp = rpc(stdin, stdout, {
+        "id" => "b-1",
+        "op" => "compile",
+        "before" => before_src,
+        "after" => after_src,
+        "observer" => dawn_case["observable"],
+        "benchmark" => true,
+        "selector" => dawn_case["observer_selector"],
+        "fixed_context" => dawn_case["fixed_context"],
+      }, validate_request: false)
+      assert comp.key?("result"), "Expected compile success in benchmark mode, got #{comp.inspect}"
+
+      cust = rpc(stdin, stdout, {
+        "id" => "b-2",
+        "op" => "render_pair",
+        "fixture" => witness,
+        "engine" => "custom",
+        "trace" => true,
+      })["result"]
+      ref = rpc(stdin, stdout, {
+        "id" => "b-3",
+        "op" => "render_pair",
+        "fixture" => witness,
+        "engine" => "reference",
+        "trace" => false,
+      })["result"]
+
+      assert_equal "ok", cust["before"]["status"]
+      assert_equal "ok", cust["after"]["status"]
+      assert_equal ref["before"]["html"], cust["before"]["html"]
+      assert_equal ref["after"]["html"], cust["after"]["html"]
+      assert_equal false, cust["before"]["observed"]
+      assert_equal true, cust["after"]["observed"]
+      assert_equal false, ref["before"]["observed"]
+      assert_equal true, ref["after"]["observed"]
+      refute_empty cust["before"]["events"]
+      assert_empty ref["before"]["events"]
+
+      # Rejects fixed_context containing 'product'
+      bad_ctx = rpc(stdin, stdout, {
+        "id" => "b-4",
+        "op" => "compile",
+        "before" => "a",
+        "after" => "b",
+        "observer" => "price_range",
+        "benchmark" => true,
+        "fixed_context" => { "product" => {} },
+      }, validate_request: false)
+      assert_equal "protocol_error", bad_ctx["error"]["code"]
+
+      quit_resp = rpc(stdin, stdout, { "id" => "b-q", "op" => "quit" })
+      assert_equal true, quit_resp["result"]["ok"]
+      stdin.close
+      assert_equal "", stderr.read
+      assert wait_thr.value.success?
+    end
+  end
 end

@@ -8,15 +8,24 @@ module LiquidReference
     MAX_RESPONSE_BYTES = 16 * 1024 * 1024
 
     COMPILE_KEYS = %w[id op before after observer].freeze
+    BENCHMARK_COMPILE_OPTIONAL_KEYS = %w[benchmark selector fixed_context].freeze
     RENDER_PAIR_KEYS = %w[id op fixture engine trace].freeze
     QUIT_KEYS = %w[id op].freeze
     VALID_ENGINES = %w[custom reference].freeze
 
-    def initialize(input: $stdin, output: $stdout, error_output: $stderr, max_response_bytes: MAX_RESPONSE_BYTES, **render_limits)
+    def initialize(
+      input: $stdin,
+      output: $stdout,
+      error_output: $stderr,
+      max_response_bytes: MAX_RESPONSE_BYTES,
+      benchmark_mode: false,
+      **render_limits
+    )
       @input = input
       @output = output
       @error_output = error_output
       @max_response_bytes = Integer(max_response_bytes)
+      @benchmark_mode = !!benchmark_mode
       @render_limits = render_limits
       @compiled = nil
 
@@ -91,7 +100,8 @@ module LiquidReference
     end
 
     def handle_compile(req_id, req)
-      key_err = check_exact_keys(req, COMPILE_KEYS)
+      allowed_keys = @benchmark_mode ? (COMPILE_KEYS + BENCHMARK_COMPILE_OPTIONAL_KEYS) : COMPILE_KEYS
+      key_err = check_keys(req, required_keys: COMPILE_KEYS, allowed_keys: allowed_keys)
       return error_response(req_id, code: "protocol_error", message: key_err) if key_err
 
       before_src = req["before"]
@@ -106,11 +116,48 @@ module LiquidReference
         return error_response(req_id, code: "protocol_error", message: "'observer' must be a string")
       end
 
+      benchmark = false
+      selector = nil
+      fixed_context = nil
+
+      if @benchmark_mode
+        if req.key?("benchmark")
+          val = req["benchmark"]
+          unless val == true || val == false
+            return error_response(req_id, code: "protocol_error", message: "'benchmark' must be a boolean")
+          end
+          benchmark = val
+        else
+          benchmark = true
+        end
+
+        if req.key?("selector")
+          selector = req["selector"]
+          unless selector.nil? || (selector.is_a?(String) && !selector.strip.empty?)
+            return error_response(req_id, code: "protocol_error", message: "'selector' must be null or a non-empty string")
+          end
+        end
+
+        if req.key?("fixed_context")
+          fixed_context = req["fixed_context"]
+          unless fixed_context.nil? || (fixed_context.is_a?(Hash) && !fixed_context.key?("product"))
+            return error_response(req_id, code: "protocol_error", message: "'fixed_context' must be null or a JSON object without 'product'")
+          end
+        end
+
+        if !benchmark && (!selector.nil? || !fixed_context.nil?)
+          return error_response(req_id, code: "protocol_error", message: "'selector' and 'fixed_context' require benchmark=true")
+        end
+      end
+
       @compiled = nil
       pair = Renderer.compile_pair(
         before: before_src,
         after: after_src,
         observer: observer,
+        benchmark: benchmark,
+        selector: selector,
+        fixed_context: fixed_context,
         max_snippet_bytes: @render_limits.fetch(:max_snippet_bytes, Renderer::MAX_SNIPPET_BYTES),
         max_depth: @render_limits.fetch(:max_depth, Renderer::MAX_DEPTH),
       )
@@ -155,20 +202,27 @@ module LiquidReference
       before_tpl = engine == "custom" ? @compiled.custom_before : @compiled.reference_before
       after_tpl = engine == "custom" ? @compiled.custom_after : @compiled.reference_after
 
+      before_assigns = build_render_assigns(projected, @compiled.fixed_context)
+      after_assigns = build_render_assigns(projected, @compiled.fixed_context)
+
       before_result = Renderer.render(
         engine: engine,
         template: before_tpl,
-        assigns: projected.fresh_assigns,
+        assigns: before_assigns,
         observer: @compiled.observer,
         trace: trace,
+        benchmark: @compiled.benchmark,
+        selector: @compiled.selector,
         **@render_limits,
       )
       after_result = Renderer.render(
         engine: engine,
         template: after_tpl,
-        assigns: projected.fresh_assigns,
+        assigns: after_assigns,
         observer: @compiled.observer,
         trace: trace,
+        benchmark: @compiled.benchmark,
+        selector: @compiled.selector,
         **@render_limits,
       )
 
@@ -197,11 +251,21 @@ module LiquidReference
       val
     end
 
+    def build_render_assigns(projected, fixed_context)
+      return projected.fresh_assigns if fixed_context.nil? || fixed_context.empty?
+
+      Projection.deep_copy(fixed_context).merge(projected.fresh_assigns)
+    end
+
     def check_exact_keys(hash, expected_keys)
-      missing = expected_keys - hash.keys
+      check_keys(hash, required_keys: expected_keys, allowed_keys: expected_keys)
+    end
+
+    def check_keys(hash, required_keys:, allowed_keys:)
+      missing = required_keys - hash.keys
       return "Missing required key(s): #{missing.join(', ')}" unless missing.empty?
 
-      extra = hash.keys - expected_keys
+      extra = hash.keys - allowed_keys
       return "Unexpected key(s): #{extra.join(', ')}" unless extra.empty?
 
       nil
