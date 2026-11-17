@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "currency": "USD",
+  "variants": [
+    {
+      "id": "v1",
+      "price": 2000,
+      "compare_at_price": 3000,
+      "available": true
+    }
+  ]
+}

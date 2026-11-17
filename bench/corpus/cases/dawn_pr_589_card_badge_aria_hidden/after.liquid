@@ -1,0 +1,13 @@
+{%- assign product_card_product = product -%}
+<div class="card-wrapper">
+  <div class="card-information">
+    <h3 class="card-information__text h5"><a href="#" class="full-unstyled-link">Product</a></h3>
+  </div>
+  <div class="card__badge">
+    {%- if product_card_product.available == false -%}
+      <span class="badge badge--bottom-left">Sold out</span>
+    {%- elsif product_card_product.compare_at_price > product_card_product.price and product_card_product.available -%}
+      <span class="badge badge--bottom-left" data-regression-badge="sale">Sale</span>
+    {%- endif -%}
+  </div>
+</div>

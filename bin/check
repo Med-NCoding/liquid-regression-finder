@@ -14,7 +14,8 @@ Targets:
   stage-3   Run Stage 1-2 regression checks, Stage 3 projection/observer/reference/worker tests, and ordinary-product parity verification
   stage-4   Run Stage 1-3 regression checks, Stage 4 Python stdlib search tests, schema validation, and live demo/negative CLI checks
   stage-5   Run Stage 1-4 regression checks, Stage 5 shrink/explanation/replay acceptance checks, and contract schema validation
-  stage-6..stage-10   Future stage gates (not yet implemented)
+  stage-6   Run Stage 1-5 regression checks, Stage 6 Dawn corpus witness verification, and corpus unit tests
+  stage-7..stage-10   Future stage gates (not yet implemented)
   all       Run all stage gates (fails until all stages are implemented)
 USAGE
 }
@@ -388,6 +389,23 @@ PY
   echo "PASS: bin/check stage-5 succeeded."
 }
 
+run_stage_6() {
+  run_stage_5
+
+  local bundle_bin
+  bundle_bin="$(resolve_bundle)"
+
+  echo "==> Stage 6 Gate: Verify Dawn Corpus Manifest, Witness Fixtures, & Liquid 5.14.0 Renders"
+  "$bundle_bin" exec ruby "$ROOT_DIR/bench/verify_corpus.rb" \
+    --report-out "$ROOT_DIR/artifacts/stage-6/corpus-verification.json" \
+    --summary-out "$ROOT_DIR/artifacts/stage-6/corpus-summary.md"
+
+  echo "==> Stage 6 Gate: Run Dawn Corpus Minitest Suite"
+  "$bundle_bin" exec ruby "$ROOT_DIR/bench/tests/test_dawn_corpus.rb"
+
+  echo "PASS: bin/check stage-6 succeeded."
+}
+
 if [ $# -ne 1 ]; then
   usage
   exit 2
@@ -409,13 +427,16 @@ case "$1" in
   stage-5)
     run_stage_5
     ;;
-  stage-6|stage-7|stage-8|stage-9|stage-10)
-    echo "ERROR: $1 gate is not implemented yet (highest implemented stage: stage-5)." >&2
+  stage-6)
+    run_stage_6
+    ;;
+  stage-7|stage-8|stage-9|stage-10)
+    echo "ERROR: $1 gate is not implemented yet (highest implemented stage: stage-6)." >&2
     exit 2
     ;;
   all)
-    run_stage_5
-    echo "ERROR: bin/check all cannot pass yet: stage-6 through stage-10 are not implemented." >&2
+    run_stage_6
+    echo "ERROR: bin/check all cannot pass yet: stage-7 through stage-10 are not implemented." >&2
     exit 2
     ;;
   -h|--help)

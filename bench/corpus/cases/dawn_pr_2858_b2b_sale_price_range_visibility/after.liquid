@@ -1,0 +1,28 @@
+{%- liquid
+  assign target = product
+  assign compare_at_price = target.compare_at_price
+  assign price = target.price | default: 1999
+  assign price_min = product.price_min
+  assign price_max = product.price_max
+  assign available = target.available | default: false
+  assign money_price_min = price_min | money
+  assign money_price_max = price_max | money
+-%}
+<div class="price
+  {%- if available == false %} price--sold-out{% endif -%}
+  {%- if compare_at_price > price and quantity_price_breaks_configured != true %} price--on-sale{% endif -%}
+  {%- if compare_at_price > price and quantity_price_breaks_configured %} volume-pricing--sale-badge{% endif -%}
+  {%- if show_badges %} price--show-badge{% endif -%}">
+  <div class="price__container">
+    <div class="price__regular">
+      {%- if quantity_price_breaks_configured -%}
+        {%- if show_compare_at_price and compare_at_price -%}
+          <span><s class="price-item price-item--regular variant-item__old-price">{{ compare_at_price | money }}</s></span>
+        {%- endif -%}
+        <span class="price-item price-item--regular" data-regression-price-range>
+          {{- 'products.product.volume_pricing.price_range' | t: minimum: money_price_min, maximum: money_price_max -}}
+        </span>
+      {%- endif -%}
+    </div>
+  </div>
+</div>

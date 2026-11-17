@@ -1,0 +1,440 @@
+{
+  "schema_version": 1,
+  "status": "passed",
+  "liquid_version": "5.14.0",
+  "benchmark_stubs_version": "1.0.0",
+  "verified_case_count": 15,
+  "unverified_candidate_count": 7,
+  "counts_by_observable": {
+    "sale_badge": 4,
+    "sold_out_badge": 5,
+    "price_range": 6
+  },
+  "counts_by_direction": {
+    "bug_fixed": 12,
+    "bug_introduced": 3
+  },
+  "stage2_supported_count": 3,
+  "benchmark_supported_count": 10,
+  "benchmark_unsupported_count": 5,
+  "cases": [
+    {
+      "id": "dawn_pr_589_card_badge_aria_hidden",
+      "observable": "sale_badge",
+      "direction": "bug_fixed",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/589",
+      "before_sha": "051dd5c2f2ef09eb20f618350a5ec5a755d63f94",
+      "after_sha": "8c55375802fd23dab079eab275f962d9c42d35c2",
+      "upstream_paths": [
+        "snippets/product-card.liquid"
+      ],
+      "before_sha256": "657e9a9adef360cb61d2e17911adba46a6e3003561557f0317b95a49a1c98551",
+      "after_sha256": "5007bdd979d792ea15bd773fd57a6f9c2abd4e9c56d81e8e46fdae3897b42948",
+      "observer_selector": "[data-regression-badge=\"sale\"]:not([aria-hidden=\"true\"])",
+      "before_observed": false,
+      "after_observed": true,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_589_card_badge_aria_hidden.json",
+      "supported_in_stage2": true,
+      "supported_for_benchmark": true,
+      "stage2_parity_status": "matched",
+      "required_features": [
+        "assign",
+        "if",
+        "elsif",
+        "and_operator",
+        "dot_path"
+      ],
+      "unsupported_reason": null
+    },
+    {
+      "id": "dawn_pr_794_price_badge_sale_aria_hidden",
+      "observable": "sale_badge",
+      "direction": "bug_fixed",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/794",
+      "before_sha": "10891575e10e978ac8096bf0ace3ac2b78894f2e",
+      "after_sha": "85753c2e74c8a258c7234a4944350f109936531c",
+      "upstream_paths": [
+        "snippets/price.liquid"
+      ],
+      "before_sha256": "d7fec6197374d0f9b661e6932e4cfcbb7c21a677f9138b942066470d52a95e64",
+      "after_sha256": "668c10db39a086fe77956524ea7e379083180f6ae904062fb1ce39f8dd9b65c1",
+      "observer_selector": ".price.price--on-sale.price--show-badge [data-regression-badge=\"sale\"]:not([aria-hidden=\"true\"])",
+      "before_observed": false,
+      "after_observed": true,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_794_price_badge_sale_aria_hidden.json",
+      "supported_in_stage2": false,
+      "supported_for_benchmark": true,
+      "stage2_parity_status": "skipped_unsupported",
+      "required_features": [
+        "liquid_tag",
+        "filter_default",
+        "filter_money",
+        "filter_t"
+      ],
+      "unsupported_reason": null
+    },
+    {
+      "id": "dawn_pr_1938_horizontal_card_badge_suppressed",
+      "observable": "sale_badge",
+      "direction": "bug_introduced",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/1938",
+      "before_sha": "c1511aea53666f52b78102f8ae8bdf43f4712825",
+      "after_sha": "592c59886af795303c8da0666cbe22c146c6e221",
+      "upstream_paths": [
+        "snippets/card-product.liquid",
+        "assets/component-card.css"
+      ],
+      "before_sha256": "f64138ba9d9c85b32ad7678f682157cb9b8b0d62fe4b94c10d869eb960f2d7e2",
+      "after_sha256": "f0f09c0e944f56ac6708034c76e207d846f89b4ee9b2fe78d30917018340e2d7",
+      "observer_selector": ".card:not(.card--horizontal) [data-regression-badge=\"sale\"]",
+      "before_observed": true,
+      "after_observed": false,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_1938_horizontal_card_badge_suppressed.json",
+      "supported_in_stage2": false,
+      "supported_for_benchmark": false,
+      "stage2_parity_status": "skipped_unsupported",
+      "required_features": [
+        "filter_t",
+        "elsif",
+        "css_visibility_predicate"
+      ],
+      "unsupported_reason": "Visibility depends on external stylesheet rule (.card--horizontal .card__badge { display: none; }) in assets/component-card.css rather than pure Liquid DOM emission."
+    },
+    {
+      "id": "dawn_pr_3144_b2b_card_sale_badge_restricted",
+      "observable": "sale_badge",
+      "direction": "bug_introduced",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/3144",
+      "before_sha": "aa8e6d7d9bbb3995d66389844dd87289430e45f0",
+      "after_sha": "0b13435b3a999e804b695bacb223d4f2283db4f9",
+      "upstream_paths": [
+        "snippets/card-product.liquid"
+      ],
+      "before_sha256": "43cf95660f7a8947f593f45e5506a13ab808598b3fe9040bb41d2c19c004c540",
+      "after_sha256": "86028854dc8c1f7399901af8a55103a4460617298f776ca3e8d50a3d5866a6c8",
+      "observer_selector": "[data-regression-badge=\"sale\"]",
+      "before_observed": true,
+      "after_observed": false,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_3144_b2b_card_sale_badge_restricted.json",
+      "supported_in_stage2": false,
+      "supported_for_benchmark": false,
+      "stage2_parity_status": "skipped_unsupported",
+      "required_features": [
+        "shop_global_context",
+        "blank_literal",
+        "filter_t",
+        "elsif"
+      ],
+      "unsupported_reason": "Depends on Shopify storefront global shop.b2b_customers_enabled and Liquid blank keyword outside single-product Fixture schema."
+    },
+    {
+      "id": "dawn_pr_3487_quick_add_bulk_sold_out",
+      "observable": "sold_out_badge",
+      "direction": "bug_fixed",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/3487",
+      "before_sha": "abbf0ddec98a1141975691b2d9c3b4cb0d774970",
+      "after_sha": "83527586708e7fa0bdd713d86761f9390abd9569",
+      "upstream_paths": [
+        "snippets/card-product.liquid"
+      ],
+      "before_sha256": "b6692d44078609a213e173891671dc72fe68db45e351ab8d54bce44ece8cc640",
+      "after_sha256": "501531fdec61484c42d208ffcc8bfe05cde486595babe5398cdc9042cdc348ca",
+      "observer_selector": "[data-regression-badge=\"sold_out\"]",
+      "before_observed": false,
+      "after_observed": true,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_3487_quick_add_bulk_sold_out.json",
+      "supported_in_stage2": true,
+      "supported_for_benchmark": true,
+      "stage2_parity_status": "matched",
+      "required_features": [
+        "for_loop",
+        "assign",
+        "if",
+        "else",
+        "dot_path"
+      ],
+      "unsupported_reason": null
+    },
+    {
+      "id": "dawn_pr_1610_quick_add_single_variant_sold_out",
+      "observable": "sold_out_badge",
+      "direction": "bug_fixed",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/1610",
+      "before_sha": "98330b03a2b6b711a36977aaf7f84dc8b1e5aed1",
+      "after_sha": "f7e16a94e7bffdea9c1c69f9a60db634defeeceb",
+      "upstream_paths": [
+        "snippets/card-product.liquid"
+      ],
+      "before_sha256": "8435f130c5cefa8cab54f8898d083db74ff227ec1ab14e30392eab51ec286edb",
+      "after_sha256": "7a1b095a8ef3ab20d1cf283eadddb2a0f1d8c64394713592d69a0d50b3c540ce",
+      "observer_selector": "[data-regression-badge=\"sold_out\"]",
+      "before_observed": false,
+      "after_observed": true,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_1610_quick_add_single_variant_sold_out.json",
+      "supported_in_stage2": false,
+      "supported_for_benchmark": true,
+      "stage2_parity_status": "skipped_unsupported",
+      "required_features": [
+        "array_size_property",
+        "for_loop",
+        "if",
+        "else",
+        "filter_t"
+      ],
+      "unsupported_reason": null
+    },
+    {
+      "id": "dawn_pr_3293_quick_add_bulk_ghost_sold_out",
+      "observable": "sold_out_badge",
+      "direction": "bug_fixed",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/3293",
+      "before_sha": "d7ea9dd44c26087513ef891da465c5d26c2c08d5",
+      "after_sha": "213c4efdb940354980255a559285099c7572e569",
+      "upstream_paths": [
+        "snippets/card-product.liquid"
+      ],
+      "before_sha256": "865b0a5d2564766d3029e51c554612d0cb8fb63bcce5507bc618f33ee3a64134",
+      "after_sha256": "f9c629948213f8bcc0e1a2d0af8236b6c74bfbdcae089a1bb7be88f8abb37204",
+      "observer_selector": ".quick-add [data-regression-badge=\"sold_out\"]",
+      "before_observed": true,
+      "after_observed": false,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_3293_quick_add_bulk_ghost_sold_out.json",
+      "supported_in_stage2": false,
+      "supported_for_benchmark": true,
+      "stage2_parity_status": "skipped_unsupported",
+      "required_features": [
+        "unless",
+        "elsif",
+        "array_size_property",
+        "for_loop",
+        "filter_t"
+      ],
+      "unsupported_reason": null
+    },
+    {
+      "id": "dawn_pr_2255_buy_buttons_untracked_inventory",
+      "observable": "sold_out_badge",
+      "direction": "bug_fixed",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/2255",
+      "before_sha": "788f19bbcaa249b6881a73968319ae56988481c5",
+      "after_sha": "8eded486e6166cafdb7306cc786cdcd638eb0bbf",
+      "upstream_paths": [
+        "snippets/buy-buttons.liquid"
+      ],
+      "before_sha256": "21c27c7e6d6970214654b6f66e60d3e83e86c41f602c12c5b2aff12bb9d694bb",
+      "after_sha256": "fe17dc6c054b8ba1be6afeb3f723b6b0117554441e02ef24263f66d42c2324cd",
+      "observer_selector": "[data-regression-badge=\"sold_out\"]",
+      "before_observed": true,
+      "after_observed": false,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_2255_buy_buttons_untracked_inventory.json",
+      "supported_in_stage2": false,
+      "supported_for_benchmark": false,
+      "stage2_parity_status": "skipped_unsupported",
+      "required_features": [
+        "liquid_tag",
+        "filter_t",
+        "variant_inventory_fields",
+        "quantity_rule_object"
+      ],
+      "unsupported_reason": "Depends on Shopify variant inventory_management, inventory_policy, inventory_quantity, and quantity_rule fields outside the Fixture contract."
+    },
+    {
+      "id": "dawn_pr_3246_price_nil_target_sold_out",
+      "observable": "sold_out_badge",
+      "direction": "bug_fixed",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/3246",
+      "before_sha": "74595afbfd1845d1ecdf01592a65cb0a317e97a7",
+      "after_sha": "a2c6f54c28bb705f64305bb2227fcf07ff64e027",
+      "upstream_paths": [
+        "snippets/price.liquid"
+      ],
+      "before_sha256": "55af74879d6352c542f98aa4f7b9b2fdb31e6420603794f099ed8011d58226c3",
+      "after_sha256": "a6fd68f944ebef777720c98a990f5830978230f35c6a4bbfd9c5c3c47bc085c1",
+      "observer_selector": ".price.price--sold-out.price--show-badge [data-regression-badge=\"sold_out\"]",
+      "before_observed": true,
+      "after_observed": false,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_3246_price_nil_target_sold_out.json",
+      "supported_in_stage2": false,
+      "supported_for_benchmark": false,
+      "stage2_parity_status": "skipped_unsupported",
+      "required_features": [
+        "liquid_tag",
+        "unless",
+        "filter_default",
+        "filter_money",
+        "filter_t",
+        "nil_selected_variant"
+      ],
+      "unsupported_reason": "Triggers only when product.selected_or_first_available_variant is nil (combined listings / >2k variants), whereas normalized Fixture products always have 1..8 concrete variants."
+    },
+    {
+      "id": "dawn_pr_3574_use_variant_volume_price_range",
+      "observable": "price_range",
+      "direction": "bug_fixed",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/3574",
+      "before_sha": "a723f144d4627e6d113d1f688d72707f78782cb2",
+      "after_sha": "ce670c575b972768a61c75ed714f8f522f7d1e90",
+      "upstream_paths": [
+        "snippets/price.liquid"
+      ],
+      "before_sha256": "53f277db32af7a6531347d2fca707b441b706f6fba1ea116a84b4d104f44cf8c",
+      "after_sha256": "aec063ec0ca20c99e72cb5270cf0292d0307ecf2dd508e1bdffac1f26b6a32ff",
+      "observer_selector": "[data-regression-price-range]",
+      "before_observed": false,
+      "after_observed": true,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_3574_use_variant_volume_price_range.json",
+      "supported_in_stage2": true,
+      "supported_for_benchmark": true,
+      "stage2_parity_status": "matched",
+      "required_features": [
+        "for_loop",
+        "assign",
+        "if",
+        "else",
+        "and_operator",
+        "dot_path"
+      ],
+      "unsupported_reason": null
+    },
+    {
+      "id": "dawn_pr_2791_volume_pricing_price_range",
+      "observable": "price_range",
+      "direction": "bug_fixed",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/2791",
+      "before_sha": "f51749d7a7891057e41b2b780f115b53e1517d90",
+      "after_sha": "f247597ea0ff7aa0d36ed59acafc3ad94b088be4",
+      "upstream_paths": [
+        "snippets/price.liquid"
+      ],
+      "before_sha256": "306e5477de9246b1bf2a6e100afb1d9f17d3cd64651627f95985ba7a482d94b6",
+      "after_sha256": "1681b802f706d24d32cb1383661583a08fff1fb3f305151fb83bf048632a38f3",
+      "observer_selector": "[data-regression-price-range]",
+      "before_observed": false,
+      "after_observed": true,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_2791_volume_pricing_price_range.json",
+      "supported_in_stage2": false,
+      "supported_for_benchmark": true,
+      "stage2_parity_status": "skipped_unsupported",
+      "required_features": [
+        "liquid_tag",
+        "filter_default",
+        "filter_money",
+        "filter_t"
+      ],
+      "unsupported_reason": null
+    },
+    {
+      "id": "dawn_pr_662_compare_at_price_varies",
+      "observable": "price_range",
+      "direction": "bug_fixed",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/662",
+      "before_sha": "057e8fcea41b13eb5458bcdcc94a4c6d44e78b8d",
+      "after_sha": "37c1c64857c60c5e2e40b345981adb2dc937e776",
+      "upstream_paths": [
+        "snippets/price.liquid",
+        "assets/component-price.css"
+      ],
+      "before_sha256": "d4fc873c2212cc52c90d0b91678ff0ab40c8a9d1c947ee9b096f8db296b2cc29",
+      "after_sha256": "065f8251bfd8c05633d10112c33a5fb93458105e4ecac94e6b0174d828075332",
+      "observer_selector": ".price__sale s[data-regression-price-range]",
+      "before_observed": true,
+      "after_observed": false,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_662_compare_at_price_varies.json",
+      "supported_in_stage2": false,
+      "supported_for_benchmark": true,
+      "stage2_parity_status": "skipped_unsupported",
+      "required_features": [
+        "liquid_tag",
+        "unless",
+        "filter_money",
+        "filter_t",
+        "product_aggregates"
+      ],
+      "unsupported_reason": null
+    },
+    {
+      "id": "dawn_pr_2858_b2b_sale_price_range_visibility",
+      "observable": "price_range",
+      "direction": "bug_fixed",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/2858",
+      "before_sha": "91d61716a2ab43eb20473cb14348a22badb5d04a",
+      "after_sha": "ca15c89d59333fa9f826234eceb57699d7850d65",
+      "upstream_paths": [
+        "snippets/price.liquid",
+        "assets/component-price.css"
+      ],
+      "before_sha256": "9172455107393ff5d2da595c5611387e4189727ce4a5bdd7755a0672c9915ee0",
+      "after_sha256": "1b3d20a189ea5e7a2009b056322769c4e8dbb4951121a81f7cac63d28ee5c8ca",
+      "observer_selector": ".price:not(.price--on-sale) [data-regression-price-range]",
+      "before_observed": false,
+      "after_observed": true,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_2858_b2b_sale_price_range_visibility.json",
+      "supported_in_stage2": false,
+      "supported_for_benchmark": false,
+      "stage2_parity_status": "skipped_unsupported",
+      "required_features": [
+        "liquid_tag",
+        "filter_money",
+        "filter_t",
+        "css_visibility_predicate"
+      ],
+      "unsupported_reason": "Visibility of .price__regular price range depends on external stylesheet rule (.price--on-sale .price__regular { display: none; }) in assets/component-price.css."
+    },
+    {
+      "id": "dawn_pr_3000_volume_pricing_empty_compare_at",
+      "observable": "price_range",
+      "direction": "bug_fixed",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/3000",
+      "before_sha": "9f26497dc66a17f05435a0e1bf67008a4ca776b2",
+      "after_sha": "770621b615d12035ae5d7f5116fba8b89097e36d",
+      "upstream_paths": [
+        "snippets/price.liquid"
+      ],
+      "before_sha256": "cde081b8b58510420073f1f75dd38224961c6f5c058dd100be21f1077074938c",
+      "after_sha256": "d0fc2a43113b5490f4d956d840278138c85b028d130c2d2b25552f631126b3aa",
+      "observer_selector": ".price__regular s[data-regression-price-range]",
+      "before_observed": true,
+      "after_observed": false,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_3000_volume_pricing_empty_compare_at.json",
+      "supported_in_stage2": false,
+      "supported_for_benchmark": true,
+      "stage2_parity_status": "skipped_unsupported",
+      "required_features": [
+        "liquid_tag",
+        "unless",
+        "filter_money",
+        "filter_t"
+      ],
+      "unsupported_reason": null
+    },
+    {
+      "id": "dawn_horizon_price_varies_from_price",
+      "observable": "price_range",
+      "direction": "bug_introduced",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/commit/63e783f625a004e547f89a3f8e6a1c4a3d98efd2",
+      "before_sha": "d6f6b7d206786ad46d9a4ac457f3ef13985faefc",
+      "after_sha": "63e783f625a004e547f89a3f8e6a1c4a3d98efd2",
+      "upstream_paths": [
+        "snippets/price.liquid"
+      ],
+      "before_sha256": "32ab64927022de5876d99cfe0f6e37873637cefb48fde7f523360c1316f2b3e5",
+      "after_sha256": "12e7ab1dbe4f0d6cf01e65d4c87f688971d8134f40b6a026342bcfac87e4ca7f",
+      "observer_selector": "[data-regression-price-range]",
+      "before_observed": true,
+      "after_observed": false,
+      "witness_fixture_path": "fixtures/witnesses/dawn_horizon_price_varies_from_price.json",
+      "supported_in_stage2": false,
+      "supported_for_benchmark": true,
+      "stage2_parity_status": "skipped_unsupported",
+      "required_features": [
+        "liquid_tag",
+        "object_equality",
+        "filter_money",
+        "filter_t",
+        "for_loop",
+        "product_aggregates"
+      ],
+      "unsupported_reason": null
+    }
+  ]
+}

@@ -1,0 +1,575 @@
+{
+  "schema_version": 1,
+  "repository": "https://github.com/Shopify/dawn",
+  "license_file": "bench/corpus/LICENSE-DAWN-MIT.txt",
+  "cases": [
+    {
+      "id": "dawn_pr_589_card_badge_aria_hidden",
+      "observable": "sale_badge",
+      "symptom": "Product card sale badge carried aria-hidden=\"true\" inside card link, hiding badge from screen readers and accessible selectors; PR #589 moved .card__badge out of anchor and removed aria-hidden.",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/589",
+      "commit_url": "https://github.com/Shopify/dawn/commit/8c55375802fd23dab079eab275f962d9c42d35c2",
+      "before_sha": "051dd5c2f2ef09eb20f618350a5ec5a755d63f94",
+      "after_sha": "8c55375802fd23dab079eab275f962d9c42d35c2",
+      "upstream_paths": [
+        "snippets/product-card.liquid"
+      ],
+      "direction": "bug_fixed",
+      "extraction_notes": "Extracted .card__badge branch from snippets/product-card.liquid (lines 71-77 before, 91-97 after). Replaced '| t' locale filters and settings color classes with static text ('Sold out', 'Sale') so the core DOM & aria-hidden diff runs natively in Stage 2 LiquidInterpreter. Observable selector checks non-aria-hidden sale badge.",
+      "observer_selector": "[data-regression-badge=\"sale\"]:not([aria-hidden=\"true\"])",
+      "fixed_context": {},
+      "expected_before_observed": false,
+      "expected_after_observed": true,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_589_card_badge_aria_hidden.json",
+      "before_path": "bench/corpus/cases/dawn_pr_589_card_badge_aria_hidden/before.liquid",
+      "after_path": "bench/corpus/cases/dawn_pr_589_card_badge_aria_hidden/after.liquid",
+      "supported_in_stage2": true,
+      "required_features": [
+        "assign",
+        "if",
+        "elsif",
+        "and_operator",
+        "dot_path"
+      ],
+      "supported_for_benchmark": true,
+      "unsupported_reason": null,
+      "license": "MIT \u2014 Copyright (c) 2021-present Shopify Inc., sourced from Shopify/dawn (bench/corpus/LICENSE-DAWN-MIT.txt)"
+    },
+    {
+      "id": "dawn_pr_794_price_badge_sale_aria_hidden",
+      "observable": "sale_badge",
+      "symptom": "Price snippet sale badge (.price__badge-sale) carried aria-hidden=\"true\", hiding active sale badge state from screen readers and accessible queries; PR #794 removed aria-hidden.",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/794",
+      "commit_url": "https://github.com/Shopify/dawn/commit/85753c2e74c8a258c7234a4944350f109936531c",
+      "before_sha": "10891575e10e978ac8096bf0ace3ac2b78894f2e",
+      "after_sha": "85753c2e74c8a258c7234a4944350f109936531c",
+      "upstream_paths": [
+        "snippets/price.liquid"
+      ],
+      "direction": "bug_fixed",
+      "extraction_notes": "Extracted target/class resolution and badge markup from snippets/price.liquid (lines 12-90). Fixed context sets use_variant=false, show_badges=true, settings.currency_code_enabled=false. Selector pairs Liquid-computed wrapper classes (.price--on-sale.price--show-badge) with accessible sale badge [data-regression-badge=\"sale\"]:not([aria-hidden=\"true\"]).",
+      "observer_selector": ".price.price--on-sale.price--show-badge [data-regression-badge=\"sale\"]:not([aria-hidden=\"true\"])",
+      "fixed_context": {
+        "use_variant": false,
+        "show_badges": true,
+        "price_class": "",
+        "settings": {
+          "currency_code_enabled": false,
+          "sale_badge_color_scheme": "accent-2",
+          "sold_out_badge_color_scheme": "inverse"
+        }
+      },
+      "expected_before_observed": false,
+      "expected_after_observed": true,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_794_price_badge_sale_aria_hidden.json",
+      "before_path": "bench/corpus/cases/dawn_pr_794_price_badge_sale_aria_hidden/before.liquid",
+      "after_path": "bench/corpus/cases/dawn_pr_794_price_badge_sale_aria_hidden/after.liquid",
+      "supported_in_stage2": false,
+      "required_features": [
+        "liquid_tag",
+        "filter_default",
+        "filter_money",
+        "filter_t"
+      ],
+      "supported_for_benchmark": true,
+      "unsupported_reason": null,
+      "license": "MIT \u2014 Copyright (c) 2021-present Shopify Inc., sourced from Shopify/dawn (bench/corpus/LICENSE-DAWN-MIT.txt)"
+    },
+    {
+      "id": "dawn_pr_1938_horizontal_card_badge_suppressed",
+      "observable": "sale_badge",
+      "symptom": "Complementary products PR #1938 added horizontal_class (.card--horizontal) and CSS rule '.card--horizontal .card__badge { display: none; }', hiding sale badges visually via external stylesheet despite Liquid still emitting the badge span.",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/1938",
+      "commit_url": "https://github.com/Shopify/dawn/commit/592c59886af795303c8da0666cbe22c146c6e221",
+      "before_sha": "c1511aea53666f52b78102f8ae8bdf43f4712825",
+      "after_sha": "592c59886af795303c8da0666cbe22c146c6e221",
+      "upstream_paths": [
+        "snippets/card-product.liquid",
+        "assets/component-card.css"
+      ],
+      "direction": "bug_introduced",
+      "extraction_notes": "Extracted .card wrapper class computation and .card__badge block from snippets/card-product.liquid (lines 31-42 and 272-286), paired with component-card.css rule '.card--horizontal .card__badge { display: none; }'. Fixed horizontal_class=true. Selector '.card:not(.card--horizontal) [data-regression-badge=\"sale\"]' encodes CSS stylesheet visibility.",
+      "observer_selector": ".card:not(.card--horizontal) [data-regression-badge=\"sale\"]",
+      "fixed_context": {
+        "horizontal_class": true,
+        "settings": {
+          "card_style": "card",
+          "card_color_scheme": "background-2",
+          "badge_position": "bottom left",
+          "sold_out_badge_color_scheme": "inverse",
+          "sale_badge_color_scheme": "accent-2"
+        }
+      },
+      "expected_before_observed": true,
+      "expected_after_observed": false,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_1938_horizontal_card_badge_suppressed.json",
+      "before_path": "bench/corpus/cases/dawn_pr_1938_horizontal_card_badge_suppressed/before.liquid",
+      "after_path": "bench/corpus/cases/dawn_pr_1938_horizontal_card_badge_suppressed/after.liquid",
+      "supported_in_stage2": false,
+      "required_features": [
+        "filter_t",
+        "elsif",
+        "css_visibility_predicate"
+      ],
+      "supported_for_benchmark": false,
+      "unsupported_reason": "Visibility depends on external stylesheet rule (.card--horizontal .card__badge { display: none; }) in assets/component-card.css rather than pure Liquid DOM emission.",
+      "license": "MIT \u2014 Copyright (c) 2021-present Shopify Inc., sourced from Shopify/dawn (bench/corpus/LICENSE-DAWN-MIT.txt)"
+    },
+    {
+      "id": "dawn_pr_3144_b2b_card_sale_badge_restricted",
+      "observable": "sale_badge",
+      "symptom": "Unmerged B2B restriction commit in PR #3144 wrapped card-product badges in 'if shop.b2b_customers_enabled != blank', suppressing sale badges whenever shop.b2b_customers_enabled is nil/blank.",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/3144",
+      "commit_url": "https://github.com/Shopify/dawn/commit/0b13435b3a999e804b695bacb223d4f2283db4f9",
+      "before_sha": "aa8e6d7d9bbb3995d66389844dd87289430e45f0",
+      "after_sha": "0b13435b3a999e804b695bacb223d4f2283db4f9",
+      "upstream_paths": [
+        "snippets/card-product.liquid"
+      ],
+      "direction": "bug_introduced",
+      "extraction_notes": "Extracted outer .card__badge block from snippets/card-product.liquid on origin/b2b/restrict-pricing (lines 307-325 before, 309-334 after). Fixed shop.b2b_customers_enabled=null in fixed_context to represent non-B2B storefront.",
+      "observer_selector": "[data-regression-badge=\"sale\"]",
+      "fixed_context": {
+        "shop": {
+          "b2b_customers_enabled": null
+        },
+        "settings": {
+          "badge_position": "bottom left",
+          "sold_out_badge_color_scheme": "inverse",
+          "sale_badge_color_scheme": "accent-2"
+        }
+      },
+      "expected_before_observed": true,
+      "expected_after_observed": false,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_3144_b2b_card_sale_badge_restricted.json",
+      "before_path": "bench/corpus/cases/dawn_pr_3144_b2b_card_sale_badge_restricted/before.liquid",
+      "after_path": "bench/corpus/cases/dawn_pr_3144_b2b_card_sale_badge_restricted/after.liquid",
+      "supported_in_stage2": false,
+      "required_features": [
+        "shop_global_context",
+        "blank_literal",
+        "filter_t",
+        "elsif"
+      ],
+      "supported_for_benchmark": false,
+      "unsupported_reason": "Depends on Shopify storefront global shop.b2b_customers_enabled and Liquid blank keyword outside single-product Fixture schema.",
+      "license": "MIT \u2014 Copyright (c) 2021-present Shopify Inc., sourced from Shopify/dawn (bench/corpus/LICENSE-DAWN-MIT.txt)"
+    },
+    {
+      "id": "dawn_pr_3487_quick_add_bulk_sold_out",
+      "observable": "sold_out_badge",
+      "symptom": "Quick Add Bulk on single-variant products rendered an active quantity input even when all variants were sold out; PR #3487 added the available == false check rendering a disabled Sold out button.",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/3487",
+      "commit_url": "https://github.com/Shopify/dawn/commit/83527586708e7fa0bdd713d86761f9390abd9569",
+      "before_sha": "abbf0ddec98a1141975691b2d9c3b4cb0d774970",
+      "after_sha": "83527586708e7fa0bdd713d86761f9390abd9569",
+      "upstream_paths": [
+        "snippets/card-product.liquid"
+      ],
+      "direction": "bug_fixed",
+      "extraction_notes": "Extracted quick_add == 'bulk' single-variant block from snippets/card-product.liquid (lines 387-396 before, 387-413 after, addressing issue #3445). Uses pure Stage 2 loop preamble over product.variants to compute selected_variant and variant_count, replacing '| t' and 'quantity-input' render tag with static markup so it executes natively in Stage 2.",
+      "observer_selector": "[data-regression-badge=\"sold_out\"]",
+      "fixed_context": {
+        "quick_add": "bulk",
+        "section_id": "featured-collection"
+      },
+      "expected_before_observed": false,
+      "expected_after_observed": true,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_3487_quick_add_bulk_sold_out.json",
+      "before_path": "bench/corpus/cases/dawn_pr_3487_quick_add_bulk_sold_out/before.liquid",
+      "after_path": "bench/corpus/cases/dawn_pr_3487_quick_add_bulk_sold_out/after.liquid",
+      "supported_in_stage2": true,
+      "required_features": [
+        "for_loop",
+        "assign",
+        "if",
+        "else",
+        "dot_path"
+      ],
+      "supported_for_benchmark": true,
+      "unsupported_reason": null,
+      "license": "MIT \u2014 Copyright (c) 2021-present Shopify Inc., sourced from Shopify/dawn (bench/corpus/LICENSE-DAWN-MIT.txt)"
+    },
+    {
+      "id": "dawn_pr_1610_quick_add_single_variant_sold_out",
+      "observable": "sold_out_badge",
+      "symptom": "Quick Add checked card_product.has_only_default_variant instead of card_product.variants.size == 1, causing 1-variant products with a non-default option (e.g. single Size) to render 'Choose options' instead of a disabled 'Sold out' button when unavailable; fixed in PR #1610.",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/1610",
+      "commit_url": "https://github.com/Shopify/dawn/commit/f7e16a94e7bffdea9c1c69f9a60db634defeeceb",
+      "before_sha": "98330b03a2b6b711a36977aaf7f84dc8b1e5aed1",
+      "after_sha": "f7e16a94e7bffdea9c1c69f9a60db634defeeceb",
+      "upstream_paths": [
+        "snippets/card-product.liquid"
+      ],
+      "direction": "bug_fixed",
+      "extraction_notes": "Extracted show_quick_add branch from snippets/card-product.liquid (lines 143-190). Derives selected_variant via disclosed product.variants loop preamble while testing upstream card_product.variants.size == 1 vs fixed_context.has_only_default_variant (false for single non-default variant, addressing issue #1604).",
+      "observer_selector": "[data-regression-badge=\"sold_out\"]",
+      "fixed_context": {
+        "show_quick_add": true,
+        "has_only_default_variant": false
+      },
+      "expected_before_observed": false,
+      "expected_after_observed": true,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_1610_quick_add_single_variant_sold_out.json",
+      "before_path": "bench/corpus/cases/dawn_pr_1610_quick_add_single_variant_sold_out/before.liquid",
+      "after_path": "bench/corpus/cases/dawn_pr_1610_quick_add_single_variant_sold_out/after.liquid",
+      "supported_in_stage2": false,
+      "required_features": [
+        "array_size_property",
+        "for_loop",
+        "if",
+        "else",
+        "filter_t"
+      ],
+      "supported_for_benchmark": true,
+      "unsupported_reason": null,
+      "license": "MIT \u2014 Copyright (c) 2021-present Shopify Inc., sourced from Shopify/dawn (bench/corpus/LICENSE-DAWN-MIT.txt)"
+    },
+    {
+      "id": "dawn_pr_3293_quick_add_bulk_ghost_sold_out",
+      "observable": "sold_out_badge",
+      "symptom": "Before PR #3293, snippets/card-product.liquid always emitted the standard .quick-add disabled 'Sold out' button markup into HTML with a .hidden CSS class even when quick_add == 'bulk'; PR #3293 gated standard quick-add under {% if quick_add == 'standard' %}.",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/3293",
+      "commit_url": "https://github.com/Shopify/dawn/commit/213c4efdb940354980255a559285099c7572e569",
+      "before_sha": "d7ea9dd44c26087513ef891da465c5d26c2c08d5",
+      "after_sha": "213c4efdb940354980255a559285099c7572e569",
+      "upstream_paths": [
+        "snippets/card-product.liquid"
+      ],
+      "direction": "bug_fixed",
+      "extraction_notes": "Extracted standard vs bulk quick-add conditional from snippets/card-product.liquid (lines 218-325 before, 218-335 after). Note PR #3293 predates PR #3487, so bulk quick-add at 213c4efd rendered quantity-input only without a sold-out button. Uses selected_variant preamble over product.variants and fixed quick_add='bulk'.",
+      "observer_selector": ".quick-add [data-regression-badge=\"sold_out\"]",
+      "fixed_context": {
+        "quick_add": "bulk"
+      },
+      "expected_before_observed": true,
+      "expected_after_observed": false,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_3293_quick_add_bulk_ghost_sold_out.json",
+      "before_path": "bench/corpus/cases/dawn_pr_3293_quick_add_bulk_ghost_sold_out/before.liquid",
+      "after_path": "bench/corpus/cases/dawn_pr_3293_quick_add_bulk_ghost_sold_out/after.liquid",
+      "supported_in_stage2": false,
+      "required_features": [
+        "unless",
+        "elsif",
+        "array_size_property",
+        "for_loop",
+        "filter_t"
+      ],
+      "supported_for_benchmark": true,
+      "unsupported_reason": null,
+      "license": "MIT \u2014 Copyright (c) 2021-present Shopify Inc., sourced from Shopify/dawn (bench/corpus/LICENSE-DAWN-MIT.txt)"
+    },
+    {
+      "id": "dawn_pr_2255_buy_buttons_untracked_inventory",
+      "observable": "sold_out_badge",
+      "symptom": "Buy buttons compared quantity_rule.min > inventory_quantity even when inventory was untracked (inventory_management != 'shopify') or inventory_policy == 'continue', falsely rendering 'Sold out' on purchasable variants; fixed in PR #2255.",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/2255",
+      "commit_url": "https://github.com/Shopify/dawn/commit/8eded486e6166cafdb7306cc786cdcd638eb0bbf",
+      "before_sha": "788f19bbcaa249b6881a73968319ae56988481c5",
+      "after_sha": "8eded486e6166cafdb7306cc786cdcd638eb0bbf",
+      "upstream_paths": [
+        "snippets/buy-buttons.liquid"
+      ],
+      "direction": "bug_fixed",
+      "extraction_notes": "Extracted .product-form__buttons block from snippets/buy-buttons.liquid (lines 43-68). Combines projected selected_variant.available with variant_meta inventory/quantity_rule attributes in fixed_context since inventory fields are outside the Fixture schema.",
+      "observer_selector": "[data-regression-badge=\"sold_out\"]",
+      "fixed_context": {
+        "variant_meta": {
+          "inventory_management": null,
+          "inventory_policy": "deny",
+          "inventory_quantity": 0,
+          "quantity_rule": {
+            "min": 2
+          }
+        }
+      },
+      "expected_before_observed": true,
+      "expected_after_observed": false,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_2255_buy_buttons_untracked_inventory.json",
+      "before_path": "bench/corpus/cases/dawn_pr_2255_buy_buttons_untracked_inventory/before.liquid",
+      "after_path": "bench/corpus/cases/dawn_pr_2255_buy_buttons_untracked_inventory/after.liquid",
+      "supported_in_stage2": false,
+      "required_features": [
+        "liquid_tag",
+        "filter_t",
+        "variant_inventory_fields",
+        "quantity_rule_object"
+      ],
+      "supported_for_benchmark": false,
+      "unsupported_reason": "Depends on Shopify variant inventory_management, inventory_policy, inventory_quantity, and quantity_rule fields outside the Fixture contract.",
+      "license": "MIT \u2014 Copyright (c) 2021-present Shopify Inc., sourced from Shopify/dawn (bench/corpus/LICENSE-DAWN-MIT.txt)"
+    },
+    {
+      "id": "dawn_pr_3246_price_nil_target_sold_out",
+      "observable": "sold_out_badge",
+      "symptom": "When use_variant is true and product.selected_or_first_available_variant is nil (combined listings / >2k variants), price.liquid defaulted target.available to false and emitted a Sold out badge container; PR #3246 added 'unless target == nil'.",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/3246",
+      "commit_url": "https://github.com/Shopify/dawn/commit/a2c6f54c28bb705f64305bb2227fcf07ff64e027",
+      "before_sha": "74595afbfd1845d1ecdf01592a65cb0a317e97a7",
+      "after_sha": "a2c6f54c28bb705f64305bb2227fcf07ff64e027",
+      "upstream_paths": [
+        "snippets/price.liquid"
+      ],
+      "direction": "bug_fixed",
+      "extraction_notes": "Extracted target == nil guard around .price element from snippets/price.liquid (lines 14-129). Fixed selected_variant=null and use_variant=true in fixed_context to represent Shopify's nil selected_or_first_available_variant case.",
+      "observer_selector": ".price.price--sold-out.price--show-badge [data-regression-badge=\"sold_out\"]",
+      "fixed_context": {
+        "use_variant": true,
+        "selected_variant": null,
+        "show_badges": true,
+        "price_class": "",
+        "quantity_price_breaks_configured": false,
+        "settings": {
+          "currency_code_enabled": false,
+          "sale_badge_color_scheme": "accent-2",
+          "sold_out_badge_color_scheme": "inverse"
+        }
+      },
+      "expected_before_observed": true,
+      "expected_after_observed": false,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_3246_price_nil_target_sold_out.json",
+      "before_path": "bench/corpus/cases/dawn_pr_3246_price_nil_target_sold_out/before.liquid",
+      "after_path": "bench/corpus/cases/dawn_pr_3246_price_nil_target_sold_out/after.liquid",
+      "supported_in_stage2": false,
+      "required_features": [
+        "liquid_tag",
+        "unless",
+        "filter_default",
+        "filter_money",
+        "filter_t",
+        "nil_selected_variant"
+      ],
+      "supported_for_benchmark": false,
+      "unsupported_reason": "Triggers only when product.selected_or_first_available_variant is nil (combined listings / >2k variants), whereas normalized Fixture products always have 1..8 concrete variants.",
+      "license": "MIT \u2014 Copyright (c) 2021-present Shopify Inc., sourced from Shopify/dawn (bench/corpus/LICENSE-DAWN-MIT.txt)"
+    },
+    {
+      "id": "dawn_pr_3574_use_variant_volume_price_range",
+      "observable": "price_range",
+      "symptom": "Placeholder PR #3572 accidentally changed price_min/price_max from product to target; when use_variant is true, target is a variant (lacking price_min/price_max), dropping the volume-pricing price range; PR #3574 restored product.price_min/max.",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/3574",
+      "commit_url": "https://github.com/Shopify/dawn/commit/ce670c575b972768a61c75ed714f8f522f7d1e90",
+      "before_sha": "a723f144d4627e6d113d1f688d72707f78782cb2",
+      "after_sha": "ce670c575b972768a61c75ed714f8f522f7d1e90",
+      "upstream_paths": [
+        "snippets/price.liquid"
+      ],
+      "direction": "bug_fixed",
+      "extraction_notes": "Extracted target/price_min/price_max assignment and volume-pricing price_range block from snippets/price.liquid (lines 16-78). Fixed use_variant=true and quantity_price_breaks_configured=true; selected_variant is derived via Stage 2 product.variants loop, and '| money'/'| t' omitted so it runs natively in Stage 2. Attribute data-regression-price-range marks populated min/max bounds (price_min != nil and price_max != nil).",
+      "observer_selector": "[data-regression-price-range]",
+      "fixed_context": {
+        "use_variant": true,
+        "quantity_price_breaks_configured": true
+      },
+      "expected_before_observed": false,
+      "expected_after_observed": true,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_3574_use_variant_volume_price_range.json",
+      "before_path": "bench/corpus/cases/dawn_pr_3574_use_variant_volume_price_range/before.liquid",
+      "after_path": "bench/corpus/cases/dawn_pr_3574_use_variant_volume_price_range/after.liquid",
+      "supported_in_stage2": true,
+      "required_features": [
+        "for_loop",
+        "assign",
+        "if",
+        "else",
+        "and_operator",
+        "dot_path"
+      ],
+      "supported_for_benchmark": true,
+      "unsupported_reason": null,
+      "license": "MIT \u2014 Copyright (c) 2021-present Shopify Inc., sourced from Shopify/dawn (bench/corpus/LICENSE-DAWN-MIT.txt)"
+    },
+    {
+      "id": "dawn_pr_2791_volume_pricing_price_range",
+      "observable": "price_range",
+      "symptom": "Before PR #2791, price.liquid only rendered single money_price inside .price__regular; PR #2791 introduced product.price_min/price_max volume-pricing min-max price range rendering.",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/2791",
+      "commit_url": "https://github.com/Shopify/dawn/commit/f247597ea0ff7aa0d36ed59acafc3ad94b088be4",
+      "before_sha": "f51749d7a7891057e41b2b780f115b53e1517d90",
+      "after_sha": "f247597ea0ff7aa0d36ed59acafc3ad94b088be4",
+      "upstream_paths": [
+        "snippets/price.liquid"
+      ],
+      "direction": "bug_fixed",
+      "extraction_notes": "Extracted .price__regular price_min/price_max range rendering from snippets/price.liquid (lines 18-68). Fixed use_variant=false, quantity_price_breaks_configured=true, and settings.currency_code_enabled=false. Keeps full upstream '| money', '| default', and '| t' filters.",
+      "observer_selector": "[data-regression-price-range]",
+      "fixed_context": {
+        "use_variant": false,
+        "quantity_price_breaks_configured": true,
+        "settings": {
+          "currency_code_enabled": false
+        }
+      },
+      "expected_before_observed": false,
+      "expected_after_observed": true,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_2791_volume_pricing_price_range.json",
+      "before_path": "bench/corpus/cases/dawn_pr_2791_volume_pricing_price_range/before.liquid",
+      "after_path": "bench/corpus/cases/dawn_pr_2791_volume_pricing_price_range/after.liquid",
+      "supported_in_stage2": false,
+      "required_features": [
+        "liquid_tag",
+        "filter_default",
+        "filter_money",
+        "filter_t"
+      ],
+      "supported_for_benchmark": true,
+      "unsupported_reason": null,
+      "license": "MIT \u2014 Copyright (c) 2021-present Shopify Inc., sourced from Shopify/dawn (bench/corpus/LICENSE-DAWN-MIT.txt)"
+    },
+    {
+      "id": "dawn_pr_662_compare_at_price_varies",
+      "observable": "price_range",
+      "symptom": "Prior to PR #662, price.liquid unconditionally emitted the compare-at price <s> tag inside .price__sale (hiding it only via CSS .price--no-compare when product.price_varies == false and product.compare_at_price_varies); PR #662 moved that condition into Liquid 'unless'.",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/662",
+      "commit_url": "https://github.com/Shopify/dawn/commit/37c1c64857c60c5e2e40b345981adb2dc937e776",
+      "before_sha": "057e8fcea41b13eb5458bcdcc94a4c6d44e78b8d",
+      "after_sha": "37c1c64857c60c5e2e40b345981adb2dc937e776",
+      "upstream_paths": [
+        "snippets/price.liquid",
+        "assets/component-price.css"
+      ],
+      "direction": "bug_fixed",
+      "extraction_notes": "Extracted .price__sale compare-at strikeout block from snippets/price.liquid (lines 55-76 before, 55-75 after, fixing issue #74 and illuminating #871/#3231). Fixed use_variant=false, show_badges=false, settings.currency_code_enabled=false. Witness has constant variant prices (price_varies=false) and varying compare-at prices (compare_at_price_varies=true), separating unconditional DOM emission before from Liquid-gated omission after.",
+      "observer_selector": ".price__sale s[data-regression-price-range]",
+      "fixed_context": {
+        "use_variant": false,
+        "show_badges": false,
+        "settings": {
+          "currency_code_enabled": false
+        }
+      },
+      "expected_before_observed": true,
+      "expected_after_observed": false,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_662_compare_at_price_varies.json",
+      "before_path": "bench/corpus/cases/dawn_pr_662_compare_at_price_varies/before.liquid",
+      "after_path": "bench/corpus/cases/dawn_pr_662_compare_at_price_varies/after.liquid",
+      "supported_in_stage2": false,
+      "required_features": [
+        "liquid_tag",
+        "unless",
+        "filter_money",
+        "filter_t",
+        "product_aggregates"
+      ],
+      "supported_for_benchmark": true,
+      "unsupported_reason": null,
+      "license": "MIT \u2014 Copyright (c) 2021-present Shopify Inc., sourced from Shopify/dawn (bench/corpus/LICENSE-DAWN-MIT.txt)"
+    },
+    {
+      "id": "dawn_pr_2858_b2b_sale_price_range_visibility",
+      "observable": "price_range",
+      "symptom": "On-sale B2B products with quantity price breaks received .price--on-sale, causing CSS rule '.price--on-sale .price__regular { display: none; }' to hide the volume-pricing price range; PR #2858 switched it to .volume-pricing--sale-badge.",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/2858",
+      "commit_url": "https://github.com/Shopify/dawn/commit/ca15c89d59333fa9f826234eceb57699d7850d65",
+      "before_sha": "91d61716a2ab43eb20473cb14348a22badb5d04a",
+      "after_sha": "ca15c89d59333fa9f826234eceb57699d7850d65",
+      "upstream_paths": [
+        "snippets/price.liquid",
+        "assets/component-price.css"
+      ],
+      "direction": "bug_fixed",
+      "extraction_notes": "Extracted .price class toggle and .price__regular volume-pricing range from snippets/price.liquid (lines 40-75), paired with assets/component-price.css rule '.price--on-sale .price__regular { display: none; }'. Selector '.price:not(.price--on-sale) [data-regression-price-range]' encodes stylesheet visibility.",
+      "observer_selector": ".price:not(.price--on-sale) [data-regression-price-range]",
+      "fixed_context": {
+        "use_variant": false,
+        "show_badges": true,
+        "show_compare_at_price": true,
+        "quantity_price_breaks_configured": true,
+        "settings": {
+          "currency_code_enabled": false
+        }
+      },
+      "expected_before_observed": false,
+      "expected_after_observed": true,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_2858_b2b_sale_price_range_visibility.json",
+      "before_path": "bench/corpus/cases/dawn_pr_2858_b2b_sale_price_range_visibility/before.liquid",
+      "after_path": "bench/corpus/cases/dawn_pr_2858_b2b_sale_price_range_visibility/after.liquid",
+      "supported_in_stage2": false,
+      "required_features": [
+        "liquid_tag",
+        "filter_money",
+        "filter_t",
+        "css_visibility_predicate"
+      ],
+      "supported_for_benchmark": false,
+      "unsupported_reason": "Visibility of .price__regular price range depends on external stylesheet rule (.price--on-sale .price__regular { display: none; }) in assets/component-price.css.",
+      "license": "MIT \u2014 Copyright (c) 2021-present Shopify Inc., sourced from Shopify/dawn (bench/corpus/LICENSE-DAWN-MIT.txt)"
+    },
+    {
+      "id": "dawn_pr_3000_volume_pricing_empty_compare_at",
+      "observable": "price_range",
+      "symptom": "Volume-pricing price_range block checked 'if show_compare_at_price' without checking 'and compare_at_price', emitting an empty compare-at <s> element alongside the price range on non-sale products (issue #2999); fixed in PR #3000.",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/pull/3000",
+      "commit_url": "https://github.com/Shopify/dawn/commit/770621b615d12035ae5d7f5116fba8b89097e36d",
+      "before_sha": "9f26497dc66a17f05435a0e1bf67008a4ca776b2",
+      "after_sha": "770621b615d12035ae5d7f5116fba8b89097e36d",
+      "upstream_paths": [
+        "snippets/price.liquid"
+      ],
+      "direction": "bug_fixed",
+      "extraction_notes": "Extracted .price__regular volume-pricing compare-at guard from snippets/price.liquid (lines 55-82). Fixed show_compare_at_price=true and quantity_price_breaks_configured=true. Observable checks phantom <s> strikeout emitted inside the price-range container on non-sale products with nil compare_at_price.",
+      "observer_selector": ".price__regular s[data-regression-price-range]",
+      "fixed_context": {
+        "use_variant": false,
+        "show_compare_at_price": true,
+        "quantity_price_breaks_configured": true,
+        "settings": {
+          "currency_code_enabled": false
+        }
+      },
+      "expected_before_observed": true,
+      "expected_after_observed": false,
+      "witness_fixture_path": "fixtures/witnesses/dawn_pr_3000_volume_pricing_empty_compare_at.json",
+      "before_path": "bench/corpus/cases/dawn_pr_3000_volume_pricing_empty_compare_at/before.liquid",
+      "after_path": "bench/corpus/cases/dawn_pr_3000_volume_pricing_empty_compare_at/after.liquid",
+      "supported_in_stage2": false,
+      "required_features": [
+        "liquid_tag",
+        "unless",
+        "filter_money",
+        "filter_t"
+      ],
+      "supported_for_benchmark": true,
+      "unsupported_reason": null,
+      "license": "MIT \u2014 Copyright (c) 2021-present Shopify Inc., sourced from Shopify/dawn (bench/corpus/LICENSE-DAWN-MIT.txt)"
+    },
+    {
+      "id": "dawn_horizon_price_varies_from_price",
+      "observable": "price_range",
+      "symptom": "Horizon theme initialization commit 63e783f6 on Dawn's horizon-jp-theme branch replaced product.price_varies 'From {{ price }}' range formatting in snippets/price.liquid with single selected_variant.price rendering only, dropping multi-variant price-range indication.",
+      "issue_or_pr_url": "https://github.com/Shopify/dawn/commit/63e783f625a004e547f89a3f8e6a1c4a3d98efd2",
+      "commit_url": "https://github.com/Shopify/dawn/commit/63e783f625a004e547f89a3f8e6a1c4a3d98efd2",
+      "before_sha": "d6f6b7d206786ad46d9a4ac457f3ef13985faefc",
+      "after_sha": "63e783f625a004e547f89a3f8e6a1c4a3d98efd2",
+      "upstream_paths": [
+        "snippets/price.liquid"
+      ],
+      "direction": "bug_introduced",
+      "extraction_notes": "Extracted target/from_price_html price_varies branch in Dawn d6f6b7d2 vs Horizon 63e783f6 snippets/price.liquid (lines 14-60 before, 10-79 after). Replaced '{% doc %}' metadata header with comment, aliased product_resource=product, and derived selected_variant from product.variants. Attribute data-regression-price-range marks the 'from_price_html' price-range display.",
+      "observer_selector": "[data-regression-price-range]",
+      "fixed_context": {
+        "use_variant": false,
+        "settings": {
+          "currency_code_enabled": false
+        }
+      },
+      "expected_before_observed": true,
+      "expected_after_observed": false,
+      "witness_fixture_path": "fixtures/witnesses/dawn_horizon_price_varies_from_price.json",
+      "before_path": "bench/corpus/cases/dawn_horizon_price_varies_from_price/before.liquid",
+      "after_path": "bench/corpus/cases/dawn_horizon_price_varies_from_price/after.liquid",
+      "supported_in_stage2": false,
+      "required_features": [
+        "liquid_tag",
+        "object_equality",
+        "filter_money",
+        "filter_t",
+        "for_loop",
+        "product_aggregates"
+      ],
+      "supported_for_benchmark": true,
+      "unsupported_reason": null,
+      "license": "MIT \u2014 Copyright (c) 2021-present Shopify Inc., sourced from Shopify/dawn (bench/corpus/LICENSE-DAWN-MIT.txt)"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{%- assign selected_variant = nil -%}
+{%- assign first_variant = nil -%}
+{%- for v in product.variants -%}
+  {%- if first_variant == nil -%}
+    {%- assign first_variant = v -%}
+  {%- endif -%}
+  {%- if selected_variant == nil and v.available -%}
+    {%- assign selected_variant = v -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if selected_variant == nil -%}
+  {%- assign selected_variant = first_variant -%}
+{%- endif -%}
+{%- liquid
+  if use_variant
+    assign target = selected_variant
+  else
+    assign target = product
+  endif
+  assign price = target.price | default: 1999
+  assign money_price = price | money
+  assign has_from_price = false
+  if target == product and product.price_varies
+    assign money_price = 'products.product.price.from_price_html' | t: price: money_price
+    assign has_from_price = true
+  endif
+-%}
+<div class="price">
+  <div class="price__container">
+    <div class="price__regular">
+      <span class="price-item price-item--regular"{% if has_from_price %} data-regression-price-range{% endif %}>{{ money_price }}</span>
+    </div>
+  </div>
+</div>

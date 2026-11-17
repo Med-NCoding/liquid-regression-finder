@@ -1,0 +1,24 @@
+{%- liquid
+  assign target = product
+  assign compare_at_price = target.compare_at_price
+  assign price = target.price | default: 1999
+  assign money_price = price | money
+-%}
+<div class="price
+  {%- if compare_at_price > price %} price--on-sale{% endif -%}
+  {%- if product.price_varies == false and product.compare_at_price_varies %} price--no-compare{% endif -%}">
+  <dl>
+    <div class="price__sale">
+      <dt class="price__compare">
+        <span class="visually-hidden visually-hidden--inline">{{ 'products.product.price.regular_price' | t }}</span>
+      </dt>
+      <dd class="price__compare">
+        <s class="price-item price-item--regular" data-regression-price-range>
+          {{ compare_at_price | money }}
+        </s>
+      </dd>
+      <dt><span class="visually-hidden visually-hidden--inline">{{ 'products.product.price.sale_price' | t }}</span></dt>
+      <dd><span class="price-item price-item--sale">{{ money_price }}</span></dd>
+    </div>
+  </dl>
+</div>

@@ -201,4 +201,36 @@ class ObserverAndReferenceTest < Minitest::Test
       assert_empty ref_after["events"]
     end
   end
+
+  def test_benchmark_observers_without_relaxing_public_observe
+    assert LiquidReference::Observer.observe_benchmark("sale_badge", '<span data-regression-badge="sale">Sale</span>')
+    assert LiquidReference::Observer.observe_benchmark("sold_out_badge", '<button data-regression-badge="sold_out" disabled>Sold out</button>')
+    refute LiquidReference::Observer.observe_benchmark("sold_out_badge", '<span data-regression-badge="sale">Sale</span>')
+    assert LiquidReference::Observer.observe_benchmark("price_range", '<span data-regression-price-range>$10 - $20</span>')
+    refute LiquidReference::Observer.observe_benchmark("price_range", '<span>$10</span>')
+
+    # Case-specific CSS visibility / accessibility predicate selector support
+    assert LiquidReference::Observer.observe_benchmark(
+      "sale_badge",
+      '<span data-regression-badge="sale">Sale</span>',
+      selector: '[data-regression-badge="sale"]:not([aria-hidden="true"])',
+    )
+    refute LiquidReference::Observer.observe_benchmark(
+      "sale_badge",
+      '<span data-regression-badge="sale" aria-hidden="true">Sale</span>',
+      selector: '[data-regression-badge="sale"]:not([aria-hidden="true"])',
+    )
+
+    ["sold_out_badge", "price_range", "unknown", nil].each do |non_public|
+      assert_raises(LiquidReference::Observer::UnsupportedObserverError) do
+        LiquidReference::Observer.observe(non_public, '<span data-regression-badge="sold_out">Sold out</span>')
+      end
+    end
+
+    ["unknown", "", nil, :sold_out_badge].each do |bad_bench|
+      assert_raises(LiquidReference::Observer::UnsupportedObserverError) do
+        LiquidReference::Observer.observe_benchmark(bad_bench, "<span>ok</span>")
+      end
+    end
+  end
 end

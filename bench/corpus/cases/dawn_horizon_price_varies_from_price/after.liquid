@@ -1,0 +1,20 @@
+{%- assign selected_variant = nil -%}
+{%- assign first_variant = nil -%}
+{%- for v in product.variants -%}
+  {%- if first_variant == nil -%}
+    {%- assign first_variant = v -%}
+  {%- endif -%}
+  {%- if selected_variant == nil and v.available -%}
+    {%- assign selected_variant = v -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if selected_variant == nil -%}
+  {%- assign selected_variant = first_variant -%}
+{%- endif -%}
+{%- liquid
+  assign product_resource = product
+  assign price = selected_variant.price | money
+-%}
+<div class="price">
+  <span class="price">{{ price }}</span>
+</div>

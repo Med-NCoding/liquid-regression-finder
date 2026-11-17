@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "repository": "https://github.com/Shopify/dawn",
+  "candidates": [
+    {
+      "url": "https://github.com/Shopify/dawn/issues/3581",
+      "title": "Sale badge does not appear if there is a variant with a 0 compare_at_price",
+      "status": "closed_not_planned",
+      "reason": "No merged fix PR or commit pair exists in Shopify/dawn; HEAD snippets/card-product.liquid lines 139 and 563 retain 'card_product.compare_at_price > card_product.price and card_product.available'.",
+      "notes": "Investigated from Section 6 lead #1. Because product.compare_at_price equals compare_at_price_min across non-nil variants (including explicit 0), a zero compare_at_price on one variant masks higher compare_at_price values on sibling variants, but Shopify closed the issue as not_planned without an upstream patch."
+    },
+    {
+      "url": "https://github.com/Shopify/dawn/issues/871",
+      "title": "Compare-at price doesn't show if varied across multiple variants",
+      "status": "closed_not_planned",
+      "reason": "Closed as intentional Dawn design without a fix commit in Shopify/dawn; HEAD snippets/price.liquid preserves 'unless product.price_varies == false and product.compare_at_price_varies'.",
+      "notes": "Investigated from Section 6 lead #2. While #871 itself has no merged fix, the upstream origin of that exact Liquid guard was traced to merged PR #662 (057e8fcea41b13eb5458bcdcc94a4c6d44e78b8d -> 37c1c64857c60c5e2e40b345981adb2dc937e776), which moved the check from CSS (.price--no-compare) into Liquid."
+    },
+    {
+      "url": "https://github.com/Shopify/dawn/issues/3231",
+      "title": "Strange compare at price logic in price component",
+      "status": "closed_not_planned",
+      "reason": "Duplicate report of #871 regarding 'unless product.price_varies == false and product.compare_at_price_varies'; closed as not_planned without a code change.",
+      "notes": "Confirmed via GitHub API and HEAD snippets/price.liquid."
+    },
+    {
+      "url": "https://github.com/Shopify/dawn/issues/3924",
+      "title": "[Bug] price.liquid renders both sale and sold-out badge text into HTML regardless of product availability",
+      "status": "closed_inactive_without_fix",
+      "reason": "Closed after going stale without any merged fix PR; HEAD snippets/price.liquid still emits both .price__badge-sale and .price__badge-sold-out inside {% if show_badges %} gated by CSS (.price--on-sale / .price--sold-out).",
+      "notes": "Investigated from Section 6 lead #3. Related unmerged fix PR #3925 (fork commit da0c8c097eddb306708a11968f4fd5ad99c3fe12) was never merged into Shopify/dawn due to missing CLA."
+    },
+    {
+      "url": "https://github.com/Shopify/dawn/pull/3925",
+      "title": "fix(price): render only contextually correct badge in HTML source",
+      "status": "closed_unmerged_cla_needed",
+      "reason": "PR closed unmerged with label cla-needed; commit da0c8c097eddb306708a11968f4fd5ad99c3fe12 does not exist in Shopify/dawn git history.",
+      "notes": "Proposed Liquid conditionals for .price__badge-sale and .price__badge-sold-out from issue #3924, excluded from verified corpus because it never landed upstream."
+    },
+    {
+      "url": "https://github.com/Shopify/dawn/issues/3616",
+      "title": "card__heading is repeated in card-product snippet",
+      "status": "closed_not_planned",
+      "reason": "Closed as not_planned; duplicate .card__badge and .card__heading blocks in card-product.liquid depend on external component-card.css card_style/featured_media layout rules.",
+      "notes": "Inspected alongside PR #897 (62a5606b) and component-card.css; no standalone regression commit pair landed for #3616."
+    },
+    {
+      "url": "https://github.com/Shopify/dawn/pull/3573",
+      "title": "Fix issue with quantity break price (release/15.0.1 cherry-pick twin of PR #3574)",
+      "status": "merged_excluded_duplicate",
+      "reason": "Represents the exact same price_min/price_max bug fix on release/15.0.1 (28b21ab2f50b949d34229db14a990adbcdc04f27) that landed on main via PR #3574 (ce670c575b972768a61c75ed714f8f522f7d1e90).",
+      "notes": "Explicitly excluded from verified corpus to prevent duplicating one underlying bug into multiple benchmark entries."
+    }
+  ]
+}

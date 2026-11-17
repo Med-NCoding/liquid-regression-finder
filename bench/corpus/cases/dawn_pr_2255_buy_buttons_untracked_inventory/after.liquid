@@ -1,0 +1,40 @@
+{%- assign selected_variant = nil -%}
+{%- assign first_variant = nil -%}
+{%- for v in product.variants -%}
+  {%- if first_variant == nil -%}
+    {%- assign first_variant = v -%}
+  {%- endif -%}
+  {%- if selected_variant == nil and v.available -%}
+    {%- assign selected_variant = v -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if selected_variant == nil -%}
+  {%- assign selected_variant = first_variant -%}
+{%- endif -%}
+{%- liquid
+  assign check_against_inventory = true
+  if variant_meta.inventory_management != 'shopify' or variant_meta.inventory_policy == 'continue'
+    assign check_against_inventory = false
+  endif
+  if variant_meta.quantity_rule.min > variant_meta.inventory_quantity and check_against_inventory
+    assign quantity_rule_soldout = true
+  endif
+-%}
+<div class="product-form__buttons">
+  <button
+    type="submit"
+    name="add"
+    class="product-form__submit button button--full-width button--primary"
+    {% if selected_variant.available == false or quantity_rule_soldout %}
+      disabled
+    {% endif %}
+  >
+    <span>
+      {%- if selected_variant.available == false or quantity_rule_soldout -%}
+        <span data-regression-badge="sold_out">{{ 'products.product.sold_out' | t }}</span>
+      {%- else -%}
+        {{ 'products.product.add_to_cart' | t }}
+      {%- endif -%}
+    </span>
+  </button>
+</div>

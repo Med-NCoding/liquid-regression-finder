@@ -1,0 +1,32 @@
+{%- assign selected_variant = nil -%}
+{%- assign first_variant = nil -%}
+{%- for v in product.variants -%}
+  {%- if first_variant == nil -%}
+    {%- assign first_variant = v -%}
+  {%- endif -%}
+  {%- if selected_variant == nil and v.available -%}
+    {%- assign selected_variant = v -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if selected_variant == nil -%}
+  {%- assign selected_variant = first_variant -%}
+{%- endif -%}
+{%- assign card_product = product -%}
+<div class="quick-add no-js-hidden{% unless quick_add == 'standard' %} hidden{% endunless %}">
+  {%- if card_product.variants.size > 1 -%}
+    <button type="submit" name="add" class="quick-add__submit button">{{ 'products.product.choose_options' | t }}</button>
+  {%- else -%}
+    <button type="submit" name="add" class="quick-add__submit button" data-sold-out-message="true" {% if selected_variant.available == false %}disabled data-regression-badge="sold_out"{% endif %}>
+      <span>
+        {%- if selected_variant.available -%}
+          {{ 'products.product.add_to_cart' | t }}
+        {%- else -%}
+          {{ 'products.product.sold_out' | t }}
+        {%- endif -%}
+      </span>
+    </button>
+  {%- endif -%}
+</div>
+<quick-add-bulk class="quick-add-bulk{% unless card_product.variants.size == 1 and quick_add == 'bulk' %} hidden{% endunless %}">
+  <div class="quantity-input-stub">Quantity</div>
+</quick-add-bulk>

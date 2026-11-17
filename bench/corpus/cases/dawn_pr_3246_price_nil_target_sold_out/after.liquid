@@ -1,0 +1,26 @@
+{%- liquid
+  if use_variant
+    assign target = selected_variant
+  else
+    assign target = product
+  endif
+  assign compare_at_price = target.compare_at_price
+  assign price = target.price | default: 1999
+  assign available = target.available | default: false
+  assign money_price = price | money
+-%}
+{%- unless target == nil -%}
+<div class="price
+  {%- if price_class != '' %} {{ price_class }}{% endif -%}
+  {%- if available == false %} price--sold-out{% endif -%}
+  {%- if compare_at_price > price and quantity_price_breaks_configured != true %} price--on-sale{% endif -%}
+  {%- if show_badges %} price--show-badge{% endif -%}">
+  <div class="price__container">
+    <div class="price__regular"><span class="price-item price-item--regular">{{ money_price }}</span></div>
+  </div>
+  {%- if show_badges -%}
+    <span class="badge price__badge-sale color-{{ settings.sale_badge_color_scheme }}">{{ 'products.product.on_sale' | t }}</span>
+    <span class="badge price__badge-sold-out color-{{ settings.sold_out_badge_color_scheme }}" data-regression-badge="sold_out">{{ 'products.product.sold_out' | t }}</span>
+  {%- endif -%}
+</div>
+{%- endunless -%}

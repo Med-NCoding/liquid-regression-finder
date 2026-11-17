@@ -1,0 +1,14 @@
+{%- assign card_product = product -%}
+<div class="card-wrapper product-card-wrapper">
+  <div class="card card--{{ settings.card_style }} color-{{ settings.card_color_scheme }} gradient">
+    <div class="card__content">
+      <div class="card__badge {{ settings.badge_position }}">
+        {%- if card_product.available == false -%}
+          <span class="badge badge--bottom-left color-{{ settings.sold_out_badge_color_scheme }}">{{ 'products.product.sold_out' | t }}</span>
+        {%- elsif card_product.compare_at_price > card_product.price and card_product.available -%}
+          <span class="badge badge--bottom-left color-{{ settings.sale_badge_color_scheme }}" data-regression-badge="sale">{{ 'products.product.on_sale' | t }}</span>
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,30 @@
+{%- assign selected_variant = nil -%}
+{%- assign first_variant = nil -%}
+{%- for v in product.variants -%}
+  {%- if first_variant == nil -%}
+    {%- assign first_variant = v -%}
+  {%- endif -%}
+  {%- if selected_variant == nil and v.available -%}
+    {%- assign selected_variant = v -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if selected_variant == nil -%}
+  {%- assign selected_variant = first_variant -%}
+{%- endif -%}
+{%- if use_variant -%}
+  {%- assign target = selected_variant -%}
+{%- else -%}
+  {%- assign target = product -%}
+{%- endif -%}
+{%- assign price = target.price -%}
+{%- assign price_min = product.price_min -%}
+{%- assign price_max = product.price_max -%}
+<div class="price">
+  <div class="price__regular">
+    {%- if quantity_price_breaks_configured -%}
+      <span class="price-item price-item--regular"{% if price_min != nil and price_max != nil %} data-regression-price-range{% endif %}>{{ price_min }} - {{ price_max }}</span>
+    {%- else -%}
+      <span class="price-item price-item--regular">{{ price }}</span>
+    {%- endif -%}
+  </div>
+</div>

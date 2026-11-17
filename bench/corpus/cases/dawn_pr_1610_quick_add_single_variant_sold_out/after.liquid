@@ -1,0 +1,33 @@
+{%- assign selected_variant = nil -%}
+{%- assign first_variant = nil -%}
+{%- for v in product.variants -%}
+  {%- if first_variant == nil -%}
+    {%- assign first_variant = v -%}
+  {%- endif -%}
+  {%- if selected_variant == nil and v.available -%}
+    {%- assign selected_variant = v -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if selected_variant == nil -%}
+  {%- assign selected_variant = first_variant -%}
+{%- endif -%}
+{%- assign card_product = product -%}
+{%- if show_quick_add -%}
+  <div class="quick-add">
+    {%- if card_product.variants.size == 1 -%}
+      <button type="submit" name="add" class="quick-add__submit button" {% if selected_variant.available == false %}disabled data-regression-badge="sold_out"{% endif %}>
+        <span>
+          {%- if selected_variant.available -%}
+            {{ 'products.product.add_to_cart' | t }}
+          {%- else -%}
+            {{ 'products.product.sold_out' | t }}
+          {%- endif -%}
+        </span>
+      </button>
+    {%- else -%}
+      <button type="submit" name="add" class="quick-add__submit button">
+        {{ 'products.product.choose_options' | t }}
+      </button>
+    {%- endif -%}
+  </div>
+{%- endif -%}

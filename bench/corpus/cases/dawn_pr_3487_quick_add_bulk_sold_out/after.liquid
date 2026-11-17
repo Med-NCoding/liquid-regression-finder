@@ -1,0 +1,34 @@
+{%- assign selected_variant = nil -%}
+{%- assign first_variant = nil -%}
+{%- for v in product.variants -%}
+  {%- if first_variant == nil -%}
+    {%- assign first_variant = v -%}
+  {%- endif -%}
+  {%- if selected_variant == nil and v.available -%}
+    {%- assign selected_variant = v -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if selected_variant == nil -%}
+  {%- assign selected_variant = first_variant -%}
+{%- endif -%}
+{%- assign variant_count = 0 -%}
+{%- for v in product.variants -%}
+  {%- if variant_count == 0 -%}
+    {%- assign variant_count = 1 -%}
+  {%- else -%}
+    {%- assign variant_count = 2 -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if quick_add == 'bulk' -%}
+  {%- if variant_count == 1 -%}
+    <quick-add-bulk class="quick-add-bulk">
+      {%- if selected_variant.available == false -%}
+        <button type="submit" name="add" class="quick-add__submit button button--full-width button--secondary" data-sold-out-message="true" data-regression-badge="sold_out" disabled>
+          <span>Sold out</span>
+        </button>
+      {%- else -%}
+        <div class="quantity-input-stub">Quantity</div>
+      {%- endif -%}
+    </quick-add-bulk>
+  {%- endif -%}
+{%- endif -%}
