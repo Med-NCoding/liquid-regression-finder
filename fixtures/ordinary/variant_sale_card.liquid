@@ -1,0 +1,10 @@
+{%- assign on_sale = false -%}
+{%- for v in product.variants -%}
+  {%- if v.compare_at_price != nil and v.compare_at_price > v.price -%}
+    {%- assign on_sale = true -%}
+  {%- endif -%}
+{%- endfor -%}
+<div class="product-card" data-available="{{ product.available }}">
+  {%- if on_sale -%}<span data-regression-badge="sale">Sale</span>{%- endif -%}
+  <span class="price">{{ product.price }}</span>
+</div>

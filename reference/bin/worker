@@ -1,0 +1,12 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+
+repo_root = File.expand_path("../..", __dir__)
+$LOAD_PATH.unshift(File.join(repo_root, "interpreter/lib"))
+$LOAD_PATH.unshift(File.join(repo_root, "reference/lib"))
+
+require "liquid_reference"
+
+exit(LiquidReference::Worker.new.run)

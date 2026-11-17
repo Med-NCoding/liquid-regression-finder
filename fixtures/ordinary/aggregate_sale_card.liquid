@@ -1,0 +1,4 @@
+<div class="product-card" data-available="{{ product.available }}">
+  {%- if product.compare_at_price != nil and product.compare_at_price > product.price -%}<span data-regression-badge="sale">Sale</span>{%- endif -%}
+  <span class="price">{{ product.price }}</span>
+</div>

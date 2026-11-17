@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "currency": "USD",
+  "variants": [
+    {
+      "id": "ord_reg_v1",
+      "price": 2500,
+      "compare_at_price": null,
+      "available": true
+    },
+    {
+      "id": "ord_reg_v2",
+      "price": 2900,
+      "compare_at_price": null,
+      "available": true
+    }
+  ]
+}

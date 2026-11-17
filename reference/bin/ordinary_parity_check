@@ -1,0 +1,157 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+require "fileutils"
+require "json"
+require "json_schemer"
+require "open3"
+
+repo_root = File.expand_path("../..", __dir__)
+schemas_dir = File.join(repo_root, "contracts/schemas")
+worker_bin = File.join(repo_root, "reference/bin/worker")
+ordinary_dir = File.join(repo_root, "fixtures/ordinary")
+out_path = File.join(repo_root, "artifacts/stage-3/ordinary-parity.json")
+
+ref_resolver = lambda do |uri|
+  JSON.parse(File.read(File.join(schemas_dir, File.basename(uri.path)), encoding: Encoding::UTF_8))
+end
+
+req_schema = JSONSchemer.schema(
+  JSON.parse(File.read(File.join(schemas_dir, "jsonl_request.schema.json"), encoding: Encoding::UTF_8)),
+  ref_resolver: ref_resolver,
+)
+resp_schema = JSONSchemer.schema(
+  JSON.parse(File.read(File.join(schemas_dir, "jsonl_response.schema.json"), encoding: Encoding::UTF_8)),
+  ref_resolver: ref_resolver,
+)
+
+before_src = File.read(File.join(ordinary_dir, "variant_sale_card.liquid"), encoding: Encoding::UTF_8)
+after_src = File.read(File.join(ordinary_dir, "aggregate_sale_card.liquid"), encoding: Encoding::UTF_8)
+sale_fixture = JSON.parse(File.read(File.join(ordinary_dir, "sale_product.json"), encoding: Encoding::UTF_8))
+regular_fixture = JSON.parse(File.read(File.join(ordinary_dir, "regular_product.json"), encoding: Encoding::UTF_8))
+
+def send_jsonl(stdin, stdout, req_schema, resp_schema, payload)
+  req_errors = req_schema.validate(payload).to_a
+  raise "Invalid JSONL request #{payload['id']}: #{req_errors.map { |e| e['error'] }}" unless req_errors.empty?
+
+  stdin.write(JSON.generate(payload) + "\n")
+  stdin.flush
+
+  line = stdout.gets
+  raise "Unexpected EOF from worker for request #{payload['id']}" if line.nil?
+
+  resp = JSON.parse(line)
+  resp_errors = resp_schema.validate(resp).to_a
+  raise "Invalid JSONL response for #{payload['id']}: #{resp_errors.map { |e| e['error'] }}" unless resp_errors.empty?
+  raise "Response id mismatch: expected #{payload['id']}, got #{resp['id']}" unless resp["id"] == payload["id"]
+  raise "Worker returned error for #{payload['id']}: #{resp['error']}" if resp.key?("error")
+
+  resp.fetch("result")
+end
+
+summary = {
+  "schema_version" => 1,
+  "projection_version" => "1.0.0",
+  "before_template" => "fixtures/ordinary/variant_sale_card.liquid",
+  "after_template" => "fixtures/ordinary/aggregate_sale_card.liquid",
+  "cases" => [],
+}
+
+Open3.popen3(RbConfig.ruby, worker_bin, chdir: repo_root) do |stdin, stdout, stderr, wait_thr|
+  stdin.set_encoding(Encoding::UTF_8)
+  stdout.set_encoding(Encoding::UTF_8)
+
+  compile_res = send_jsonl(stdin, stdout, req_schema, resp_schema, {
+    "id" => "ord-compile",
+    "op" => "compile",
+    "before" => before_src,
+    "after" => after_src,
+    "observer" => "sale_badge",
+  })
+  summary["compile"] = compile_res
+
+  cases = [
+    ["sale_product", "fixtures/ordinary/sale_product.json", sale_fixture, true],
+    ["regular_product", "fixtures/ordinary/regular_product.json", regular_fixture, false],
+  ]
+
+  cases.each_with_index do |(name, path, fixture, expected_observed), idx|
+    custom_no_trace = send_jsonl(stdin, stdout, req_schema, resp_schema, {
+      "id" => "ord-custom-notrace-#{idx}",
+      "op" => "render_pair",
+      "fixture" => fixture,
+      "engine" => "custom",
+      "trace" => false,
+    })
+    custom_traced = send_jsonl(stdin, stdout, req_schema, resp_schema, {
+      "id" => "ord-custom-trace-#{idx}",
+      "op" => "render_pair",
+      "fixture" => fixture,
+      "engine" => "custom",
+      "trace" => true,
+    })
+    reference_res = send_jsonl(stdin, stdout, req_schema, resp_schema, {
+      "id" => "ord-reference-#{idx}",
+      "op" => "render_pair",
+      "fixture" => fixture,
+      "engine" => "reference",
+      "trace" => true,
+    })
+
+    unless custom_no_trace["product"] == custom_traced["product"] && custom_traced["product"] == reference_res["product"]
+      raise "Product projection mismatch across renders for #{name}"
+    end
+
+    %w[before after].each do |side|
+      c0 = custom_no_trace[side]
+      c1 = custom_traced[side]
+      ref = reference_res[side]
+
+      raise "#{name}.#{side} custom(trace=false) status != ok" unless c0["status"] == "ok"
+      raise "#{name}.#{side} custom(trace=true) status != ok" unless c1["status"] == "ok"
+      raise "#{name}.#{side} reference status != ok" unless ref["status"] == "ok"
+      raise "#{name}.#{side} trace changed HTML" unless c0["html"] == c1["html"]
+      raise "#{name}.#{side} custom vs reference HTML mismatch" unless c1["html"] == ref["html"]
+      raise "#{name}.#{side} expected observed=#{expected_observed}, got custom=#{c1['observed']}, ref=#{ref['observed']}" unless c1["observed"] == expected_observed && ref["observed"] == expected_observed
+      raise "#{name}.#{side} custom(trace=false) emitted events" unless c0["events"].empty?
+      raise "#{name}.#{side} custom(trace=true) emitted no events" if c1["events"].empty?
+      raise "#{name}.#{side} reference emitted events" unless ref["events"].empty?
+    end
+
+    summary["cases"] << {
+      "name" => name,
+      "fixture_path" => path,
+      "expected_observed" => expected_observed,
+      "product" => reference_res["product"],
+      "custom_before_observed" => custom_traced["before"]["observed"],
+      "custom_after_observed" => custom_traced["after"]["observed"],
+      "reference_before_observed" => reference_res["before"]["observed"],
+      "reference_after_observed" => reference_res["after"]["observed"],
+      "before_html" => reference_res["before"]["html"],
+      "after_html" => reference_res["after"]["html"],
+      "before_trace_events" => custom_traced["before"]["events"].size,
+      "after_trace_events" => custom_traced["after"]["events"].size,
+    }
+  end
+
+  quit_res = send_jsonl(stdin, stdout, req_schema, resp_schema, {
+    "id" => "ord-quit",
+    "op" => "quit",
+  })
+  raise "Unexpected quit result: #{quit_res.inspect}" unless quit_res == { "ok" => true }
+
+  stdin.close
+  err_text = stderr.read
+  status = wait_thr.value
+  raise "Worker exited with #{status.exitstatus}; stderr=#{err_text}" unless status.success?
+  raise "Worker emitted unexpected stderr: #{err_text}" unless err_text.empty?
+end
+
+FileUtils.mkdir_p(File.dirname(out_path))
+File.write(out_path, JSON.pretty_generate(summary) + "\n", encoding: Encoding::UTF_8)
+
+puts "Wrote #{out_path}"
+summary["cases"].each do |c|
+  puts "  #{c['name']}: custom=(#{c['custom_before_observed']}, #{c['custom_after_observed']}) reference=(#{c['reference_before_observed']}, #{c['reference_after_observed']}) events=(#{c['before_trace_events']}, #{c['after_trace_events']})"
+end

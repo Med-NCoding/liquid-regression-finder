@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "projection_version": "1.0.0",
+  "status": "storefront_unverified",
+  "storefront_date": null,
+  "currency_market": null,
+  "explicit_zero_retained": null,
+  "notes": "Live Shopify storefront probe has not been run yet; local_projection values reflect versioned local model 1.0.0.",
+  "cases": [
+    {
+      "case_id": "all_null",
+      "description": "All variants have compare_at_price = null and differing prices.",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "probe_all_null_1",
+            "price": 2000,
+            "compare_at_price": null,
+            "available": true
+          },
+          {
+            "id": "probe_all_null_2",
+            "price": 2500,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      },
+      "local_projection": {
+        "price": 2000,
+        "price_min": 2000,
+        "price_max": 2500,
+        "price_varies": true,
+        "compare_at_price": null,
+        "compare_at_price_min": null,
+        "compare_at_price_max": null,
+        "compare_at_price_varies": false,
+        "available": true
+      },
+      "observed_storefront": null
+    },
+    {
+      "case_id": "null_plus_positive",
+      "description": "One variant has compare_at_price = null and another has a positive integer compare_at_price.",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "probe_null_pos_1",
+            "price": 2000,
+            "compare_at_price": null,
+            "available": true
+          },
+          {
+            "id": "probe_null_pos_2",
+            "price": 2000,
+            "compare_at_price": 3000,
+            "available": true
+          }
+        ]
+      },
+      "local_projection": {
+        "price": 2000,
+        "price_min": 2000,
+        "price_max": 2000,
+        "price_varies": false,
+        "compare_at_price": 3000,
+        "compare_at_price_min": 3000,
+        "compare_at_price_max": 3000,
+        "compare_at_price_varies": false,
+        "available": true
+      },
+      "observed_storefront": null
+    },
+    {
+      "case_id": "explicit_zero_plus_positive",
+      "description": "One variant has explicit compare_at_price = 0 and another has positive compare_at_price = 2500.",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "probe_zero_pos_1",
+            "price": 1500,
+            "compare_at_price": 0,
+            "available": true
+          },
+          {
+            "id": "probe_zero_pos_2",
+            "price": 1500,
+            "compare_at_price": 2500,
+            "available": true
+          }
+        ]
+      },
+      "local_projection": {
+        "price": 1500,
+        "price_min": 1500,
+        "price_max": 1500,
+        "price_varies": false,
+        "compare_at_price": 0,
+        "compare_at_price_min": 0,
+        "compare_at_price_max": 2500,
+        "compare_at_price_varies": true,
+        "available": true
+      },
+      "observed_storefront": null
+    },
+    {
+      "case_id": "equal_numeric",
+      "description": "Variants have distinct prices but identical numeric compare_at_price values.",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "probe_eq_1",
+            "price": 1800,
+            "compare_at_price": 2400,
+            "available": true
+          },
+          {
+            "id": "probe_eq_2",
+            "price": 2200,
+            "compare_at_price": 2400,
+            "available": true
+          }
+        ]
+      },
+      "local_projection": {
+        "price": 1800,
+        "price_min": 1800,
+        "price_max": 2200,
+        "price_varies": true,
+        "compare_at_price": 2400,
+        "compare_at_price_min": 2400,
+        "compare_at_price_max": 2400,
+        "compare_at_price_varies": false,
+        "available": true
+      },
+      "observed_storefront": null
+    },
+    {
+      "case_id": "varied_numeric",
+      "description": "Variants have distinct prices and distinct positive compare_at_price values.",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "probe_var_1",
+            "price": 1500,
+            "compare_at_price": 2000,
+            "available": true
+          },
+          {
+            "id": "probe_var_2",
+            "price": 2200,
+            "compare_at_price": 3000,
+            "available": true
+          }
+        ]
+      },
+      "local_projection": {
+        "price": 1500,
+        "price_min": 1500,
+        "price_max": 2200,
+        "price_varies": true,
+        "compare_at_price": 2000,
+        "compare_at_price_min": 2000,
+        "compare_at_price_max": 3000,
+        "compare_at_price_varies": true,
+        "available": true
+      },
+      "observed_storefront": null
+    },
+    {
+      "case_id": "mixed_availability",
+      "description": "First variant is unavailable (available = false) and second is available (available = true).",
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "probe_avail_1",
+            "price": 1800,
+            "compare_at_price": 2200,
+            "available": false
+          },
+          {
+            "id": "probe_avail_2",
+            "price": 2100,
+            "compare_at_price": null,
+            "available": true
+          }
+        ]
+      },
+      "local_projection": {
+        "price": 1800,
+        "price_min": 1800,
+        "price_max": 2100,
+        "price_varies": true,
+        "compare_at_price": 2200,
+        "compare_at_price_min": 2200,
+        "compare_at_price_max": 2200,
+        "compare_at_price_varies": false,
+        "available": true
+      },
+      "observed_storefront": null
+    }
+  ]
+}

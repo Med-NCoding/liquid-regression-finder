@@ -1,7 +1,7 @@
 # Implementation Progress — Shopify Liquid Regression Finder
 
-- **Current Stage**: Stage 2 (`passed`)
-- **Last Completed Stage**: Stage 2 — Liquid engine
+- **Current Stage**: Stage 3 (`passed`)
+- **Last Completed Stage**: Stage 3 — Shopify projection and reference
 - **Repository**: https://github.com/Med-NCoding/liquid-regression-finder
 
 ## Stage Tracker
@@ -10,7 +10,7 @@
 |---|---|---|---|---|---|
 | 1 | Bootstrap and conformance adapter | passed | `bin/check stage-1` | 0 | `artifacts/stage-1/liquid-spec-pilot.txt`, `contracts/conformance-manifest.json`, `docs/toolchain-versions.md` |
 | 2 | Liquid engine | passed | `bin/check stage-2` | 0 | `artifacts/stage-2/conformance-report.txt`, `artifacts/stage-2/nested-loop-trace.json`, `interpreter/test/` |
-| 3 | Shopify projection and reference | pending | `bin/check stage-3` | — | — |
+| 3 | Shopify projection and reference | passed | `bin/check stage-3` | 0 | `artifacts/stage-3/ordinary-parity.json`, `fixtures/storefront_probe_matrix.json`, `docs/storefront-probe.md`, `reference/test/` |
 | 4 | Counterexample search | pending | `bin/check stage-4` | — | — |
 | 5 | Shrink, explanation and replay | pending | `bin/check stage-5` | — | — |
 | 6 | Dawn corpus | pending | `bin/check stage-6` | — | — |
@@ -84,3 +84,20 @@
 - **Gate Command & Exit Status**: `./bin/check stage-2` -> exit `0` (`./bin/check stage-1` -> exit `0`).
 - **Remaining Tasks**: Stage 3 through Stage 10.
 - **Next Command**: Start Stage 3 worker (`bin/check stage-3`).
+
+### Stage 3 — Shopify Projection and Reference
+- **Status**: `passed`
+- **Completed Tasks**:
+  - **Fixture Validation & Product Projection (`reference/lib/liquid_reference/fixture_validator.rb`, `projection.rb`, `version.rb`)**: Implemented strict `Fixture` validation against `contracts/schemas/fixture.schema.json` plus semantic invariants (unique variant IDs `1..32` chars, integer USD cents `0..10_000_000`, `compare_at_price` `nil` or integer, strict booleans, no extra/symbol keys). Implemented `LiquidReference::Projection` (`PROJECTION_VERSION = "1.0.0"`) computing `price`/`price_min`/`price_max`/`price_varies`, `available`, and numeric `compare_at_price*` aggregates retaining explicit `0` while excluding `nil`, returning `Projection.project_for_render` validated against `projection.schema.json` with independent `deep_copy` assigns per engine render.
+  - **HTML Observer (`reference/lib/liquid_reference/observer.rb`)**: Implemented `LiquidReference::Observer.observe("sale_badge", html)` using `Nokogiri::HTML5.fragment(html)` (with graceful `HTML4.fragment` fallback) querying `[data-regression-badge="sale"]`, rejecting decoy plain text, HTML comments, escaped HTML, `<script>`/`<textarea>`/`<style>` raw text, `sold_out` badges, and unsupported observer names.
+  - **Official Reference & Custom Wrapper (`reference/lib/liquid_reference/renderer.rb`)**: Configured a restricted `Liquid::Environment` (`liquid 5.14.0`, `error_mode: :strict2`, `DisabledFileSystem` blocking `include`/`render`, standard tags/filters only, `strict_variables: false`), enforcing `MAX_SNIPPET_BYTES = 16_384`, `MAX_DEPTH = 32`, `MAX_STEPS = 50_000` (`Liquid::ResourceLimits` + `Timeout` backstop), and `MAX_OUTPUT_BYTES = 131_072` (`render_length_limit` + post-render byte check), returning contract `RenderResult`s (`events: []` for `reference`, traced `events` for `custom`).
+  - **Persistent JSONL Worker (`reference/lib/liquid_reference/worker.rb`, `reference/bin/worker`)**: Implemented UTF-8 JSONL protocol handling `compile`, `render_pair`, and `quit` over `STDIN`/`STDOUT` (with `STDERR` reserved for unexpected diagnostics and `16 MiB` response frame limit), returning schema-valid `compile_result`, `render_pair_result`, `quit_result`, or `Diagnostic` `error_response` on invalid JSON/protocol/fixture/compile errors without crashing the loop.
+  - **Ordinary Controls & Storefront Probe Deliverables**: Added ordinary control fixtures and snippets (`fixtures/ordinary/sale_product.json`, `regular_product.json`, `variant_sale_card.liquid`, `aggregate_sale_card.liquid`), draft probe template (`reference/probe/product-projection-probe.liquid`), instructions (`docs/storefront-probe.md`), and 6-case matrix (`fixtures/storefront_probe_matrix.json`) explicitly marked `status: "storefront_unverified"` and scoped to `PROJECTION_VERSION = "1.0.0"`.
+  - **Stage 3 Unit & Protocol Suites (`reference/test/`)**:
+    - `reference/test/test_projection.rb`: `5 runs, 126 assertions, 0 failures, 0 errors, 0 skips`
+    - `reference/test/test_observer_and_reference.rb`: `4 runs, 131 assertions, 0 failures, 0 errors, 0 skips`
+    - `reference/test/test_jsonl_worker.rb`: `3 runs, 149 assertions, 0 failures, 0 errors, 0 skips`
+  - **Ordinary Parity Verification (`reference/bin/ordinary_parity_check`)**: Verified via real `reference/bin/worker` subprocess pipes over `sale_product.json` (`observed=true` across both engines) and `regular_product.json` (`observed=false` across both engines), saved to `artifacts/stage-3/ordinary-parity.json`.
+- **Gate Command & Exit Status**: `./bin/check stage-3` -> exit `0` (includes `./bin/check stage-1` -> exit `0` and `./bin/check stage-2` -> exit `0`).
+- **Remaining Tasks**: Stage 4 through Stage 10 (plus optional live Shopify storefront probe recorded as `storefront_unverified`).
+- **Next Command**: Start Stage 4 worker (`bin/check stage-4`).

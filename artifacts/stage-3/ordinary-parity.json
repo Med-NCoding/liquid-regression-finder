@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "projection_version": "1.0.0",
+  "before_template": "fixtures/ordinary/variant_sale_card.liquid",
+  "after_template": "fixtures/ordinary/aggregate_sale_card.liquid",
+  "cases": [
+    {
+      "name": "sale_product",
+      "fixture_path": "fixtures/ordinary/sale_product.json",
+      "expected_observed": true,
+      "product": {
+        "price": 1999,
+        "price_min": 1999,
+        "price_max": 2499,
+        "price_varies": true,
+        "compare_at_price": 2499,
+        "compare_at_price_min": 2499,
+        "compare_at_price_max": 2999,
+        "compare_at_price_varies": true,
+        "available": true
+      },
+      "custom_before_observed": true,
+      "custom_after_observed": true,
+      "reference_before_observed": true,
+      "reference_after_observed": true,
+      "before_html": "<div class=\"product-card\" data-available=\"true\"><span data-regression-badge=\"sale\">Sale</span><span class=\"price\">1999</span>\n</div>\n",
+      "after_html": "<div class=\"product-card\" data-available=\"true\"><span data-regression-badge=\"sale\">Sale</span><span class=\"price\">1999</span>\n</div>\n",
+      "before_trace_events": 27,
+      "after_trace_events": 15
+    },
+    {
+      "name": "regular_product",
+      "fixture_path": "fixtures/ordinary/regular_product.json",
+      "expected_observed": false,
+      "product": {
+        "price": 2500,
+        "price_min": 2500,
+        "price_max": 2900,
+        "price_varies": true,
+        "compare_at_price": null,
+        "compare_at_price_min": null,
+        "compare_at_price_max": null,
+        "compare_at_price_varies": false,
+        "available": true
+      },
+      "custom_before_observed": false,
+      "custom_after_observed": false,
+      "reference_before_observed": false,
+      "reference_after_observed": false,
+      "before_html": "<div class=\"product-card\" data-available=\"true\"><span class=\"price\">2500</span>\n</div>\n",
+      "after_html": "<div class=\"product-card\" data-available=\"true\"><span class=\"price\">2500</span>\n</div>\n",
+      "before_trace_events": 18,
+      "after_trace_events": 11
+    }
+  ],
+  "compile": {
+    "before_sha256": "ea40320d4ef7b064a50edc92c090eb11cc55aa40bd1bbb260c8f6e55147a1961",
+    "after_sha256": "02037795a7d4a106e3cbab488f8b11142379af67ed3e66269cfd130d8c386b4d"
+  }
+}
