@@ -26,11 +26,37 @@ resolve_bundle() {
   fi
 }
 
+resolve_node() {
+  if command -v node >/dev/null 2>&1; then
+    echo "node"
+  elif [ -x "/usr/local/bin/node" ]; then
+    echo "/usr/local/bin/node"
+  else
+    echo "ERROR: node not found" >&2
+    exit 1
+  fi
+}
+
+resolve_npm() {
+  if command -v npm >/dev/null 2>&1; then
+    echo "npm"
+  elif [ -x "/usr/local/bin/npm" ]; then
+    echo "/usr/local/bin/npm"
+  else
+    echo "ERROR: npm not found" >&2
+    exit 1
+  fi
+}
+
 RUBY_BIN="$(resolve_ruby)"
 BUNDLE_BIN="$(resolve_bundle)"
+NODE_BIN="$(resolve_node)"
+NPM_BIN="$(resolve_npm)"
 
 echo "Using Ruby: $("$RUBY_BIN" -v)"
 echo "Using Bundler: $("$BUNDLE_BIN" -v)"
+echo "Using Node: $("$NODE_BIN" -v)"
+echo "Using npm: $("$NPM_BIN" -v)"
 
 echo "Installing root gems from Gemfile.lock into vendor/bundle..."
 "$BUNDLE_BIN" config set --local path vendor/bundle
@@ -43,6 +69,17 @@ echo "Installing api/ gems from api/Gemfile.lock into api/vendor/bundle..."
   BUNDLE_FROZEN=true "$BUNDLE_BIN" install
   RAILS_ENV=development "$BUNDLE_BIN" exec bin/rails db:prepare
   RAILS_ENV=test "$BUNDLE_BIN" exec bin/rails db:prepare
+)
+
+echo "Installing web/ npm packages..."
+(
+  export PATH="$(dirname "$NODE_BIN"):$PATH"
+  cd "$ROOT_DIR/web"
+  if [ -f "$ROOT_DIR/web/package-lock.json" ]; then
+    "$NPM_BIN" ci
+  else
+    "$NPM_BIN" install
+  fi
 )
 
 echo "Setup complete."

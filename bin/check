@@ -17,7 +17,8 @@ Targets:
   stage-6   Run Stage 1-5 regression checks, Stage 6 Dawn corpus witness verification, and corpus unit tests
   stage-7   Run Stage 1-6 regression checks, Stage 7 interpreter extensions, benchmark runner/reports, reproducibility & accounting tests
   stage-8   Run Stage 1-7 regression checks, Stage 8 Rails API & Solid Queue tests, migrations, and end-to-end HTTP + worker smoke check
-  stage-9..stage-10   Future stage gates (not yet implemented)
+  stage-9   Run Stage 1-8 regression checks, Stage 9 React typecheck, Vitest UI tests, Vite build, and headless Chrome API-to-browser E2E
+  stage-10  Future stage gate (not yet implemented)
   all       Run all stage gates (fails until all stages are implemented)
 USAGE
 }
@@ -64,6 +65,17 @@ resolve_node() {
     echo "/usr/local/bin/node"
   else
     echo "ERROR: node executable not found" >&2
+    exit 1
+  fi
+}
+
+resolve_npm() {
+  if command -v npm >/dev/null 2>&1; then
+    echo "npm"
+  elif [ -x "/usr/local/bin/npm" ]; then
+    echo "/usr/local/bin/npm"
+  else
+    echo "ERROR: npm executable not found" >&2
     exit 1
   fi
 }
@@ -483,6 +495,54 @@ run_stage_8() {
   echo "PASS: bin/check stage-8 succeeded."
 }
 
+ensure_web_modules() {
+  local node_bin npm_bin
+  node_bin="$(resolve_node)"
+  npm_bin="$(resolve_npm)"
+  if [ ! -d "$ROOT_DIR/web/node_modules" ]; then
+    echo "[web/npm] Installing locked npm packages from web/package-lock.json..."
+    (
+      export PATH="$(dirname "$node_bin"):$PATH"
+      cd "$ROOT_DIR/web"
+      if [ -f "$ROOT_DIR/web/package-lock.json" ]; then
+        "$npm_bin" ci
+      else
+        "$npm_bin" install
+      fi
+    )
+  fi
+}
+
+run_stage_9() {
+  run_stage_8
+
+  local node_bin npm_bin
+  node_bin="$(resolve_node)"
+  npm_bin="$(resolve_npm)"
+
+  echo "==> Stage 9 Gate: Ensure web/ Locked npm Packages"
+  ensure_web_modules
+
+  echo "==> Stage 9 Gate: TypeScript Typecheck, Vitest UI Suite, & Vite Production Build"
+  (
+    export PATH="$(dirname "$node_bin"):$PATH"
+    cd "$ROOT_DIR/web"
+    "$npm_bin" run typecheck
+    "$npm_bin" test
+    "$npm_bin" run build
+  )
+
+  echo "==> Stage 9 Gate: Real Rails + Solid Queue + Vite + Headless Chrome E2E Verification"
+  mkdir -p "$ROOT_DIR/artifacts/stage-9"
+  (
+    export PATH="$(dirname "$node_bin"):$PATH"
+    cd "$ROOT_DIR/web"
+    "$node_bin" "$ROOT_DIR/web/tests/e2e_browser.mjs"
+  )
+
+  echo "PASS: bin/check stage-9 succeeded."
+}
+
 if [ $# -ne 1 ]; then
   usage
   exit 2
@@ -513,13 +573,16 @@ case "$1" in
   stage-8)
     run_stage_8
     ;;
-  stage-9|stage-10)
-    echo "ERROR: $1 gate is not implemented yet (highest implemented stage: stage-8)." >&2
+  stage-9)
+    run_stage_9
+    ;;
+  stage-10)
+    echo "ERROR: $1 gate is not implemented yet (highest implemented stage: stage-9)." >&2
     exit 2
     ;;
   all)
-    run_stage_8
-    echo "ERROR: bin/check all cannot pass yet: stage-9 and stage-10 are not implemented." >&2
+    run_stage_9
+    echo "ERROR: bin/check all cannot pass yet: stage-10 is not implemented." >&2
     exit 2
     ;;
   -h|--help)

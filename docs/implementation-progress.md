@@ -1,7 +1,7 @@
 # Implementation Progress — Shopify Liquid Regression Finder
 
-- **Current Stage**: Stage 8 (`passed`)
-- **Last Completed Stage**: Stage 8 — Rails API and asynchronous persistence
+- **Current Stage**: Stage 9 (`passed`)
+- **Last Completed Stage**: Stage 9 — React results UI
 - **Repository**: https://github.com/Med-NCoding/liquid-regression-finder
 
 ## Stage Tracker
@@ -16,7 +16,7 @@
 | 6 | Dawn corpus | passed | `bin/check stage-6` | 0 | `bench/corpus/manifest.json`, `fixtures/witnesses/`, `artifacts/stage-6/corpus-verification.json`, `artifacts/stage-6/corpus-summary.md`, `bench/tests/test_dawn_corpus.rb` |
 | 7 | Benchmark and engine extensions | passed | `bin/check stage-7` | 0 | `bench/reports/benchmark.md`, `bench/reports/benchmark.csv`, `bench/reports/benchmark_details.json`, `bench/sample_baseline/PROVENANCE.md`, `artifacts/stage-7/conformance-report.txt` |
 | 8 | Rails API and jobs | passed | `bin/check stage-8` | 0 | `api/`, `api/bin/e2e_smoke_check`, `artifacts/stage-8/e2e-smoke-report.json`, `api/test/` |
-| 9 | React results UI | pending | `bin/check stage-9` | — | — |
+| 9 | React results UI | passed | `bin/check stage-9` | 0 | `web/`, `artifacts/stage-9/demo-result-page.png`, `artifacts/stage-9/browser-e2e-report.json` |
 | 10 | PR workflow and release | pending | `bin/check all` | — | — |
 
 ## Stage Details & Checkpoint Log
@@ -190,3 +190,19 @@
 - **Gate Command & Exit Status**: `./bin/check stage-8` -> exit `0` (includes Stage 1–7 regression checks).
 - **Remaining Tasks**: Stage 9 through Stage 10.
 - **Next Command**: Start Stage 9 worker (`bin/check stage-9`).
+
+### Stage 9 — React Results UI
+- **Status**: `passed`
+- **Completed Tasks**:
+  - **React + TypeScript + Vite Frontend (`web/`)**: Added `web/package.json`, locked `web/package-lock.json` (`react 19.3.1`, `react-dom 19.3.1`, `react-router-dom 7.18.5`, `typescript 5.9.3`, `vite 7.3.8`, `@vitejs/plugin-react 4.7.0`, `vitest 3.2.7`, `@testing-library/react 16.3.3`, `@testing-library/jest-dom 6.9.1`, `jsdom 26.1.0`, `playwright-core 1.65.1`), updated root `bin/setup` (`npm ci`) and `docs/toolchain-versions.md`, and configured `web/vite.config.ts` to proxy `/api` to `process.env.VITE_API_ORIGIN || "http://127.0.0.1:3000"` (`changeOrigin: true`).
+  - **Submission Route (`/` — `SubmissionPage.tsx`)**: Implemented accessible `before` / `after` snippet editors (`<textarea>`), `"Load Demo Snippets"` button (`fixtures/demo/{before,after}.liquid`), `seed` (`0..4294967295`), `search_pairs` (`1..5000`), `shrink_pairs` (`0..1000`), optional `Idempotency-Key`, structured `422`/`409` diagnostic alerts preserving form state, and navigation to `/comparisons/:id` on `202`/`200`.
+  - **Results & Polling Route (`/comparisons/:id` — `ComparisonResultPage.tsx`, `StatusPanel.tsx`, `FindingDetails.tsx`)**: Implemented exponential backoff polling (`300ms`, `500ms`, `800ms`, `1200ms`, `2000ms` cap) with clean `AbortController`/timer cancellation on unmount, `95s` client timeout fallback (`pollTimeoutMs` prop) with `"Retry Polling"`, `404` missing-job diagnostics, `failed` state with `error.span` source line highlight and partial `stats`, `no_difference_found` (`"no difference found within this search"` + pair counts & exhaustion reason), and `difference_found` view with summary & official `Liquid v5.14.0` parity banner, explanation card & clickable line anchors, minimized fixture variant table & derived `product` projection, safely escaped `<pre><code>` HTML outputs (no `dangerouslySetInnerHTML`, no iframe), highlighted original source lines with explicit `"Anchor"` markers, key trace events with loop `variant_id`s & typed operands + `<details>` expandable full trace logs, deterministic sorted-key compact UTF-8 `canonicalJson` replay JSON download (`replay.json`), and copyable CLI replay command (`python3.11 -m search replay --bundle replay.json`).
+  - **Vercel Serverless Compatibility (`web/vercel.json`, `web/api/`)**: Added `web/vercel.json` (`/api/(.*)` -> `/api/$1`, `/(.*)` -> `/index.html`) and zero-dependency Node ESM handlers (`web/api/v1/health.mjs`, `web/api/v1/comparisons/index.mjs`, `web/api/v1/comparisons/[id].mjs`, `web/api/_lib/engine.mjs`) persisting jobs under `/tmp/lrf-jobs` while keeping local Vite dev/preview proxied to Rails (`127.0.0.1:3000`).
+  - **Vitest Suite & Real API-to-Browser Playwright Verification (`web/src/__tests__/`, `web/tests/e2e_browser.mjs`)**:
+    - `npm run typecheck` (`tsc --noEmit`) -> exit `0`; `npm run build` (`vite build`) -> exit `0`.
+    - `npm test` (`vitest run`): `4` test files, `15` tests passed (submission `422`/`409`/`202`, backoff polling & `2000ms` cap, unmount `AbortController` cleanup, timeout & Retry, `404`, `failed`, `no_difference_found`, reload reconstruction, canonical sorted-key replay JSON matching `artifacts/stage-5/demo-replay.json`, XSS non-execution, and Vercel handler tests).
+    - `web/tests/e2e_browser.mjs`: boots isolated Rails Puma + Solid Queue `bin/jobs` + Vite + headless Google Chrome (`playwright-core`), verifies full demo UI submission -> polling -> `difference_found` rendering, replay download, fresh second page load reconstruction on `/comparisons/:id`, XSS payload (`<script>` + `<img onerror>`) non-execution through Rails -> Python -> Ruby, and responsive `390x844` viewport (`scrollWidth == 390` on `/` and `/comparisons/:id`), capturing `artifacts/stage-9/demo-result-page.png` and `artifacts/stage-9/browser-e2e-report.json`.
+  - **Stage 9 Gate (`bin/check stage-9`)**: Extended `bin/check` with `run_stage_9` running Stage 1–8 regression checks + `npm run typecheck` + `npm test` + `npm run build` + `web/tests/e2e_browser.mjs`.
+- **Gate Command & Exit Status**: `./bin/check stage-9` -> exit `0` (includes Stage 1–8 regression checks).
+- **Remaining Tasks**: Stage 10 — PR workflow and release.
+- **Next Command**: Start Stage 10 worker (`bin/check all`).

@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "demo_job_id": "509bc693-8aac-4a98-a0ed-b5bfe46d1f18",
+  "demo_result_url": "/comparisons/509bc693-8aac-4a98-a0ed-b5bfe46d1f18",
+  "xss_job_id": "980eb06f-cec3-4ca7-9206-5c2972635e08",
+  "screenshot": "artifacts/stage-9/demo-result-page.png",
+  "second_page_load_reconstructed": true,
+  "xss_non_execution_verified": true,
+  "replay_download_verified": true,
+  "responsive_390x844": {
+    "home_scroll_width": 390,
+    "home_inner_width": 390,
+    "result_scroll_width": 390,
+    "result_inner_width": 390
+  },
+  "uncaught_page_errors": 0
+}
