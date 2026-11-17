@@ -221,7 +221,7 @@
   - **First-Run Documentation (`README.md`)**: Authored `README.md` from generated repo evidence (`399/399` selected conformance `100.00%`, `13.03%` inventoried, `5.40%` all 8 suites; `15` Dawn cases / `10` supported `100.0%` vs `9/10` sample baseline in median `3.5` vs `22` pairs; sub-second search and `< 0.1 ms/pair` JSONL IPC overhead in `bench/reports/benchmark.md`) with explicit external-host verification status:
     - Storefront fixture probe: `storefront_unverified` (local projection model `1.0.0`)
     - Live GitHub PR workflow run: not exercised on hosted GitHub Actions (verified locally via `bin/pr_dry_run` + YAML load)
-    - Shared hosted deployment: not exercised on live Vercel/external Rails host (verified locally via Rails + Chrome E2E and Vitest Vercel handler tests)
+    - Vercel production deployment: **Deployed & Verified** at `https://liquid-regression-finder.vercel.app` (`med-ncodings-projects/liquid-regression-finder`, `prj_zNM7QLa6PYVFY0rVZBZgVkGxITdq`, `rootDirectory: "web"`, `framework: "vite"`, `outputDirectory: "dist"`). Verified `GET /` (`200`), `GET /api/v1/health` (`200`), `POST /api/v1/comparisons` (`202`), and live headless Chrome demo submission + reload reconstruction (`0` page errors) across `web/api/v1/dispatch.mjs` and `web/vercel.json`. (Vercel hosts `web/` + Node serverless `web/api/`; Rails + Solid Queue + Ruby gem backend verified locally via `./bin/check all` and `./bin/verify_clean_checkout`.)
 - **Gate Command & Exit Status**: `./bin/check all` -> exit `0`; `./bin/verify_clean_checkout` -> exit `0`.
-- **Remaining Tasks**: None (all 10 implementation stages complete).
+- **Remaining Tasks**: None (all 10 stages, clean-checkout check, GitHub repository, and Vercel deployment complete).
 - **Next Command**: `./bin/check all`

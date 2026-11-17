@@ -101,7 +101,23 @@ export function SubmissionPage() {
           idempotencyKey: idempotencyKey.length > 0 ? idempotencyKey : undefined,
         },
       );
-      navigate(`/comparisons/${result.job.id}`);
+      const isTerminal =
+        result.job.status === "difference_found" ||
+        result.job.status === "no_difference_found" ||
+        result.job.status === "failed";
+      if (isTerminal) {
+        try {
+          window.sessionStorage.setItem(
+            `lrf_terminal_job:${result.job.id}`,
+            JSON.stringify(result.job),
+          );
+        } catch {
+          // Ignore storage unavailability in restricted browser contexts.
+        }
+      }
+      navigate(`/comparisons/${result.job.id}`, {
+        state: isTerminal ? { terminalJob: result.job } : undefined,
+      });
     } catch (err) {
       if (err instanceof ApiClientError) {
         setErrorState({

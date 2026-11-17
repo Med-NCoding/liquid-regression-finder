@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { FindingDetails } from "../components/FindingDetails";
 import { StatusPanel } from "../components/StatusPanel";
 import {
@@ -15,11 +15,35 @@ export interface ComparisonResultPageProps {
   backoffScheduleMs?: readonly number[];
 }
 
+function readCachedTerminalJob(id: string): ComparisonJob | null {
+  try {
+    const raw = window.sessionStorage.getItem(`lrf_terminal_job:${id}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as ComparisonJob;
+    if (
+      parsed &&
+      parsed.id === id &&
+      (parsed.status === "difference_found" ||
+        parsed.status === "no_difference_found" ||
+        parsed.status === "failed")
+    ) {
+      return parsed;
+    }
+  } catch {
+    // Ignore storage errors.
+  }
+  return null;
+}
+
 export function ComparisonResultPage({
   pollTimeoutMs = DEFAULT_POLL_TIMEOUT_MS,
   backoffScheduleMs = POLL_BACKOFF_MS,
 }: ComparisonResultPageProps) {
   const { id = "" } = useParams<{ id: string }>();
+  const location = useLocation();
+  const stateTerminalJob = (
+    location.state as { terminalJob?: ComparisonJob } | null
+  )?.terminalJob;
 
   const [job, setJob] = useState<ComparisonJob | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -54,6 +78,18 @@ export function ComparisonResultPage({
     setRequestError(null);
     setTimedOut(false);
     setPollAttempt(0);
+
+    if (
+      stateTerminalJob &&
+      stateTerminalJob.id === id &&
+      (stateTerminalJob.status === "difference_found" ||
+        stateTerminalJob.status === "no_difference_found" ||
+        stateTerminalJob.status === "failed")
+    ) {
+      setJob(stateTerminalJob);
+      setLoading(false);
+      return;
+    }
 
     const clearAllTimers = () => {
       if (pollTimerId !== null) {
@@ -119,6 +155,12 @@ export function ComparisonResultPage({
         setLoading(false);
 
         if (err instanceof ApiClientError && err.statusCode === 404) {
+          const cached = readCachedTerminalJob(id);
+          if (cached) {
+            setJob(cached);
+            setNotFoundError(null);
+            return;
+          }
           setNotFoundError(err.diagnostic);
           return;
         }
@@ -150,7 +192,7 @@ export function ComparisonResultPage({
       clearAllTimers();
       activeController?.abort();
     };
-  }, [id, pollTimeoutMs, backoffScheduleMs, retryNonce]);
+  }, [id, pollTimeoutMs, backoffScheduleMs, retryNonce, stateTerminalJob]);
 
   const handleRetry = () => {
     setRetryNonce((n) => n + 1);

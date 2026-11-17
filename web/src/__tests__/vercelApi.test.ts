@@ -117,5 +117,26 @@ describe("Vercel serverless API handlers", () => {
     );
     expect(missingRes.statusCode).toBe(404);
     expect(missingRes.json().error.code).toBe("not_found");
+
+    const { default: dispatchHandler } = await import("../../api/v1/dispatch.mjs");
+    const dispatchHealthRes = makeMockRes();
+    await dispatchHandler(
+      { method: "GET", query: { route: "health" }, url: "/api/v1/dispatch?route=health" },
+      dispatchHealthRes,
+    );
+    expect(dispatchHealthRes.statusCode).toBe(200);
+    expect(dispatchHealthRes.json()).toEqual({ status: "ok" });
+
+    const dispatchShowRes = makeMockRes();
+    await dispatchHandler(
+      {
+        method: "GET",
+        query: { route: "comparison", id: created.id },
+        url: `/api/v1/dispatch?route=comparison&id=${created.id}`,
+      },
+      dispatchShowRes,
+    );
+    expect(dispatchShowRes.statusCode).toBe(200);
+    expect(dispatchShowRes.json().id).toBe(created.id);
   });
 });

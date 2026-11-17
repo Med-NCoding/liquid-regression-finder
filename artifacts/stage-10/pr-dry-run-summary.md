@@ -3,10 +3,10 @@
 
 - **Repository**: `Med-NCoding/liquid-regression-finder`
 - **Snippet**: `snippets/card-product.liquid`
-- **Commits**: `0ffe0ebf3e9e2a95768582d79be76c5ca28121cd` → `c5c5e3a477dd062b63d0f556cca5de4676fb0d89`
+- **Commits**: `75d4ee4f8eb780854a1712aa1be305bed9235ec0` → `5c54ecfb61722fa41a70a2663c0e6bea02ea1cda`
 - **Status**: `no_difference_found`
-- **Idempotency Key**: `6e74dbde379dad25200b429abd4635355918762767caacb5cb2a699c2c529249`
-- **Result URL**: [http://127.0.0.1:60521/comparisons/18b4921c-3c4e-4f85-9b94-381bcd899b40](http://127.0.0.1:60521/comparisons/18b4921c-3c4e-4f85-9b94-381bcd899b40)
+- **Idempotency Key**: `52655b125b51af0630b60c41698fc256522dc7ef5f45254f41842e66cb17b9ff`
+- **Result URL**: [http://127.0.0.1:60712/comparisons/59146a06-697b-4349-a0ef-802128b0665d](http://127.0.0.1:60712/comparisons/59146a06-697b-4349-a0ef-802128b0665d)
 
 ### Run Metrics
 
@@ -17,7 +17,7 @@
 | `shrink_pairs` | `0` |
 | `parity_rejections` | `0` |
 | `exhausted_by` | `pair_limit` |
-| `elapsed_ms` | `320` |
+| `elapsed_ms` | `315` |
 
 Result: **no difference found within this search** (`search_pairs=256`, `shrink_pairs=0`, `parity_rejections=0`).
 ---
@@ -27,10 +27,10 @@ Result: **no difference found within this search** (`search_pairs=256`, `shrink_
 
 - **Repository**: `Med-NCoding/liquid-regression-finder`
 - **Snippet**: `snippets/card-product.liquid`
-- **Commits**: `0ffe0ebf3e9e2a95768582d79be76c5ca28121cd` → `1458b87421730fdc26550c2aa7847e5eb1e135ed`
+- **Commits**: `75d4ee4f8eb780854a1712aa1be305bed9235ec0` → `1196751d7f2ca2875a107f8ab3143ad9d42d9753`
 - **Status**: `difference_found`
-- **Idempotency Key**: `d769e3bd0015471ed6a81a4c79491bd3e7b5fc51184c2d52e10227fce2867316`
-- **Result URL**: [http://127.0.0.1:60521/comparisons/257a5774-b2b3-444b-937e-e68643e67639](http://127.0.0.1:60521/comparisons/257a5774-b2b3-444b-937e-e68643e67639)
+- **Idempotency Key**: `fd02efcd22940d5162a54606f60f2db713059337a7219f1e2a31ed17349e2fad`
+- **Result URL**: [http://127.0.0.1:60712/comparisons/a8b810d7-f690-4ca4-8e72-f174ad6d0840](http://127.0.0.1:60712/comparisons/a8b810d7-f690-4ca4-8e72-f174ad6d0840)
 
 ### Run Metrics
 
@@ -58,9 +58,9 @@ Result: **no difference found within this search** (`search_pairs=256`, `shrink_
 
 - **Repository**: `Med-NCoding/liquid-regression-finder`
 - **Snippet**: `snippets/card-product.liquid`
-- **Commits**: `0ffe0ebf3e9e2a95768582d79be76c5ca28121cd` → `1458b87421730fdc26550c2aa7847e5eb1e135ed`
+- **Commits**: `75d4ee4f8eb780854a1712aa1be305bed9235ec0` → `1196751d7f2ca2875a107f8ab3143ad9d42d9753`
 - **Status**: `skipped_untrusted_fork`
-- **Idempotency Key**: `d769e3bd0015471ed6a81a4c79491bd3e7b5fc51184c2d52e10227fce2867316`
+- **Idempotency Key**: `fd02efcd22940d5162a54606f60f2db713059337a7219f1e2a31ed17349e2fad`
 
 > External API token submission skipped for untrusted fork PR (`--is-fork` / `GITHUB_EVENT_HEAD_FORK=true` suppressed `LIQUID_REGRESSION_API_TOKEN`).
 ---
@@ -70,9 +70,9 @@ Result: **no difference found within this search** (`search_pairs=256`, `shrink_
 
 - **Repository**: `Med-NCoding/liquid-regression-finder`
 - **Snippet**: `snippets/card-product.liquid`
-- **Commits**: `0ffe0ebf3e9e2a95768582d79be76c5ca28121cd` → `4e61aaa9d85e2001c1f3c39537624d85410e233f`
+- **Commits**: `75d4ee4f8eb780854a1712aa1be305bed9235ec0` → `7f7358cbfd5c6952c62cb541ae1921f2dda167bf`
 - **Status**: `error`
-- **Idempotency Key**: `bb16304782f2decb5196727b73bf29cb53e2bd5cd7b4c099f6e018f6b4d3658a`
+- **Idempotency Key**: `2197e03ea843a20ebbcd52f3e2c3a217781a0c9ccd98f6059f493563478a4bf3`
 
 ### Run Metrics
 
@@ -83,7 +83,7 @@ Result: **no difference found within this search** (`search_pairs=256`, `shrink_
 ### Diagnostic
 
 - **Code**: `renamed_blob`
-- **Message**: Watched snippet 'snippets/card-product.liquid' was renamed between 0ffe0ebf3e9e2a95768582d79be76c5ca28121cd and 4e61aaa9d85e2001c1f3c39537624d85410e233f (snippets/card-product.liquid -> snippets/card-product-renamed.liquid, status=R100); update comparison-manifest.json or restore path.
+- **Message**: Watched snippet 'snippets/card-product.liquid' was renamed between 75d4ee4f8eb780854a1712aa1be305bed9235ec0 and 7f7358cbfd5c6952c62cb541ae1921f2dda167bf (snippets/card-product.liquid -> snippets/card-product-renamed.liquid, status=R100); update comparison-manifest.json or restore path.
 ---
 
 <!-- Case 5: Missing Snippet Diagnostic -->
@@ -91,9 +91,9 @@ Result: **no difference found within this search** (`search_pairs=256`, `shrink_
 
 - **Repository**: `Med-NCoding/liquid-regression-finder`
 - **Snippet**: `snippets/card-product.liquid`
-- **Commits**: `0ffe0ebf3e9e2a95768582d79be76c5ca28121cd` → `fa87bc7b03b036a4f53cbe191f2e10786379b9a0`
+- **Commits**: `75d4ee4f8eb780854a1712aa1be305bed9235ec0` → `37dc41fa6ed12255dc17752a6c23515f49096cc8`
 - **Status**: `error`
-- **Idempotency Key**: `82934b1f6baef936aa0fb946a7d701a4c2afb21a846dc469b98d219d4f2d67fa`
+- **Idempotency Key**: `de6661ef51ffb4e3e4bb573532f82e6f35489e1bbbc1e99a0b01cf388f0475be`
 
 ### Run Metrics
 
@@ -104,4 +104,4 @@ Result: **no difference found within this search** (`search_pairs=256`, `shrink_
 ### Diagnostic
 
 - **Code**: `missing_blob`
-- **Message**: Watched snippet 'snippets/card-product.liquid' is missing on head (fa87bc7b03b036a4f53cbe191f2e10786379b9a0) (diff status: D).
+- **Message**: Watched snippet 'snippets/card-product.liquid' is missing on head (37dc41fa6ed12255dc17752a6c23515f49096cc8) (diff status: D).
