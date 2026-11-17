@@ -16,7 +16,8 @@ Targets:
   stage-5   Run Stage 1-4 regression checks, Stage 5 shrink/explanation/replay acceptance checks, and contract schema validation
   stage-6   Run Stage 1-5 regression checks, Stage 6 Dawn corpus witness verification, and corpus unit tests
   stage-7   Run Stage 1-6 regression checks, Stage 7 interpreter extensions, benchmark runner/reports, reproducibility & accounting tests
-  stage-8..stage-10   Future stage gates (not yet implemented)
+  stage-8   Run Stage 1-7 regression checks, Stage 8 Rails API & Solid Queue tests, migrations, and end-to-end HTTP + worker smoke check
+  stage-9..stage-10   Future stage gates (not yet implemented)
   all       Run all stage gates (fails until all stages are implemented)
 USAGE
 }
@@ -434,6 +435,54 @@ run_stage_7() {
   echo "PASS: bin/check stage-7 succeeded."
 }
 
+ensure_api_bundle() {
+  local bundle_bin
+  bundle_bin="$(resolve_bundle)"
+  (
+    cd "$ROOT_DIR/api"
+    "$bundle_bin" config set --local path vendor/bundle >/dev/null
+    if ! "$bundle_bin" check >/dev/null 2>&1; then
+      echo "[api/bundle] Installing locked gems into api/vendor/bundle..."
+      BUNDLE_FROZEN=true "$bundle_bin" install
+    fi
+    "$bundle_bin" check
+  )
+}
+
+run_stage_8() {
+  run_stage_7
+
+  local bundle_bin
+  bundle_bin="$(resolve_bundle)"
+
+  echo "==> Stage 8 Gate: Ensure api/ Locked Gems"
+  ensure_api_bundle
+
+  echo "==> Stage 8 Gate: Verify api/ Migrations & Solid Queue Configuration"
+  (
+    cd "$ROOT_DIR/api"
+    RAILS_ENV=test "$bundle_bin" exec bin/rails db:migrate
+    RAILS_ENV=production "$bundle_bin" exec bin/rails solid_queue:check
+    RAILS_ENV=test "$bundle_bin" exec bin/rails runner "ComparisonReconciler.reconcile!"
+  )
+
+  echo "==> Stage 8 Gate: Run Rails API, Job, Reconciliation, Subprocess & Log Redaction Tests"
+  (
+    cd "$ROOT_DIR/api"
+    "$bundle_bin" exec bin/rails test -v
+  )
+
+  echo "==> Stage 8 Gate: End-to-End Rails Server + Solid Queue Worker Smoke Check"
+  mkdir -p "$ROOT_DIR/artifacts/stage-8"
+  (
+    cd "$ROOT_DIR/api"
+    "$bundle_bin" exec ruby "$ROOT_DIR/api/bin/e2e_smoke_check" \
+      --report-out "$ROOT_DIR/artifacts/stage-8/e2e-smoke-report.json"
+  )
+
+  echo "PASS: bin/check stage-8 succeeded."
+}
+
 if [ $# -ne 1 ]; then
   usage
   exit 2
@@ -461,13 +510,16 @@ case "$1" in
   stage-7)
     run_stage_7
     ;;
-  stage-8|stage-9|stage-10)
-    echo "ERROR: $1 gate is not implemented yet (highest implemented stage: stage-7)." >&2
+  stage-8)
+    run_stage_8
+    ;;
+  stage-9|stage-10)
+    echo "ERROR: $1 gate is not implemented yet (highest implemented stage: stage-8)." >&2
     exit 2
     ;;
   all)
-    run_stage_7
-    echo "ERROR: bin/check all cannot pass yet: stage-8 through stage-10 are not implemented." >&2
+    run_stage_8
+    echo "ERROR: bin/check all cannot pass yet: stage-9 and stage-10 are not implemented." >&2
     exit 2
     ;;
   -h|--help)

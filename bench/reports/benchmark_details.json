@@ -52,46 +52,46 @@
           "engine": "custom",
           "case_id": "dawn_pr_794_price_badge_sale_aria_hidden",
           "iterations": 256,
-          "compile_ms": 2.54,
-          "total_ms": 57.129,
-          "mean_ms": 0.2232,
+          "compile_ms": 2.67,
+          "total_ms": 56.648,
+          "mean_ms": 0.2213,
           "median_ms": 0.198,
-          "p95_ms": 0.307
+          "p95_ms": 0.304
         },
         "ipc": {
-          "startup_plus_compile_ms": 255.377,
-          "total_ms": 68.251,
-          "mean_ms": 0.2666,
-          "median_ms": 0.2494,
-          "p95_ms": 0.3457
+          "startup_plus_compile_ms": 254.622,
+          "total_ms": 71.453,
+          "mean_ms": 0.2791,
+          "median_ms": 0.2467,
+          "p95_ms": 0.3919
         },
-        "overhead_total_ms": 11.122,
-        "overhead_per_pair_ms": 0.0434,
-        "overhead_pct": 16.3,
-        "slowdown_factor": 1.19
+        "overhead_total_ms": 14.805,
+        "overhead_per_pair_ms": 0.0578,
+        "overhead_pct": 20.7,
+        "slowdown_factor": 1.26
       },
       "reference": {
         "in_process": {
           "engine": "reference",
           "case_id": "dawn_pr_794_price_badge_sale_aria_hidden",
           "iterations": 256,
-          "compile_ms": 2.472,
-          "total_ms": 64.343,
-          "mean_ms": 0.2513,
-          "median_ms": 0.221,
-          "p95_ms": 0.388
+          "compile_ms": 2.453,
+          "total_ms": 65.453,
+          "mean_ms": 0.2557,
+          "median_ms": 0.222,
+          "p95_ms": 0.409
         },
         "ipc": {
-          "startup_plus_compile_ms": 258.56,
-          "total_ms": 75.199,
-          "mean_ms": 0.2937,
-          "median_ms": 0.2737,
-          "p95_ms": 0.407
+          "startup_plus_compile_ms": 257.049,
+          "total_ms": 78.685,
+          "mean_ms": 0.3074,
+          "median_ms": 0.2726,
+          "p95_ms": 0.4497
         },
-        "overhead_total_ms": 10.856,
-        "overhead_per_pair_ms": 0.0424,
-        "overhead_pct": 14.4,
-        "slowdown_factor": 1.17
+        "overhead_total_ms": 13.232,
+        "overhead_per_pair_ms": 0.0517,
+        "overhead_pct": 16.8,
+        "slowdown_factor": 1.2
       }
     }
   },
@@ -115,9 +115,9 @@
       "rate_supported_cases_pct": 90.0,
       "median_evaluated_pairs_detected": 22.0,
       "median_shrink_pairs_detected": 2.0,
-      "median_first_difference_ms": 271.0,
+      "median_first_difference_ms": 262.0,
       "median_shrink_ms": 1.0,
-      "median_elapsed_ms_detected": 275.0,
+      "median_elapsed_ms_detected": 267.0,
       "median_pre_shrink_variants": 1.0,
       "median_pre_shrink_bytes": 116.0,
       "median_post_shrink_variants": 1.0,
@@ -175,9 +175,9 @@
       "rate_supported_cases_pct": 100.0,
       "median_evaluated_pairs_detected": 3.5,
       "median_shrink_pairs_detected": 1.0,
-      "median_first_difference_ms": 269.5,
+      "median_first_difference_ms": 261.0,
       "median_shrink_ms": 0.0,
-      "median_elapsed_ms_detected": 271.0,
+      "median_elapsed_ms_detected": 262.5,
       "median_pre_shrink_variants": 1.0,
       "median_pre_shrink_bytes": 113.5,
       "median_post_shrink_variants": 1.0,
@@ -272,9 +272,9 @@
       "direction": "after_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 262,
+      "first_difference_ms": 263,
       "shrink_ms": 0,
-      "elapsed_ms": 263,
+      "elapsed_ms": 265,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -308,9 +308,9 @@
       "direction": "after_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 295,
+      "first_difference_ms": 258,
       "shrink_ms": 1,
-      "elapsed_ms": 298,
+      "elapsed_ms": 260,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -344,9 +344,9 @@
       "direction": "after_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 272,
-      "shrink_ms": 1,
-      "elapsed_ms": 274,
+      "first_difference_ms": 282,
+      "shrink_ms": 0,
+      "elapsed_ms": 284,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -380,9 +380,9 @@
       "direction": "after_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 254,
+      "first_difference_ms": 258,
       "shrink_ms": 0,
-      "elapsed_ms": 256,
+      "elapsed_ms": 259,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -416,9 +416,9 @@
       "direction": "after_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 264,
+      "first_difference_ms": 272,
       "shrink_ms": 0,
-      "elapsed_ms": 266,
+      "elapsed_ms": 273,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -452,9 +452,9 @@
       "direction": "after_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 267,
+      "first_difference_ms": 266,
       "shrink_ms": 6,
-      "elapsed_ms": 275,
+      "elapsed_ms": 274,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -488,9 +488,9 @@
       "direction": "after_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 261,
-      "shrink_ms": 1,
-      "elapsed_ms": 264,
+      "first_difference_ms": 259,
+      "shrink_ms": 2,
+      "elapsed_ms": 262,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -524,9 +524,9 @@
       "direction": "after_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 267,
-      "shrink_ms": 1,
-      "elapsed_ms": 270,
+      "first_difference_ms": 265,
+      "shrink_ms": 2,
+      "elapsed_ms": 269,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -560,9 +560,9 @@
       "direction": "after_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 267,
-      "shrink_ms": 1,
-      "elapsed_ms": 270,
+      "first_difference_ms": 264,
+      "shrink_ms": 5,
+      "elapsed_ms": 271,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -596,9 +596,9 @@
       "direction": "after_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 264,
-      "shrink_ms": 1,
-      "elapsed_ms": 267,
+      "first_difference_ms": 267,
+      "shrink_ms": 2,
+      "elapsed_ms": 270,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -632,9 +632,9 @@
       "direction": "after_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 257,
-      "shrink_ms": 5,
-      "elapsed_ms": 264,
+      "first_difference_ms": 267,
+      "shrink_ms": 2,
+      "elapsed_ms": 271,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -963,6 +963,114 @@
       "shrink_pairs": 1,
       "pre_shrink_variants": 1,
       "pre_shrink_bytes": 118,
+      "post_shrink_variants": 1,
+      "post_shrink_bytes": 114,
+      "direction": "after_only",
+      "explanation_kind": "undetermined",
+      "parity_rejections": 0,
+      "first_difference_ms": 272,
+      "shrink_ms": 0,
+      "elapsed_ms": 273,
+      "error_code": null,
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 0,
+            "compare_at_price": null,
+            "available": false
+          }
+        ]
+      },
+      "unsupported_reason": null
+    },
+    {
+      "case_id": "dawn_pr_3487_quick_add_bulk_sold_out",
+      "observable": "sold_out_badge",
+      "corpus_direction": "bug_fixed",
+      "supported_for_benchmark": true,
+      "method": "generated_search",
+      "seed": 0,
+      "status": "detected",
+      "detected": true,
+      "evaluated_pairs": 4,
+      "shrink_pairs": 0,
+      "pre_shrink_variants": 1,
+      "pre_shrink_bytes": 114,
+      "post_shrink_variants": 1,
+      "post_shrink_bytes": 114,
+      "direction": "after_only",
+      "explanation_kind": "undetermined",
+      "parity_rejections": 0,
+      "first_difference_ms": 263,
+      "shrink_ms": 0,
+      "elapsed_ms": 264,
+      "error_code": null,
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 0,
+            "compare_at_price": null,
+            "available": false
+          }
+        ]
+      },
+      "unsupported_reason": null
+    },
+    {
+      "case_id": "dawn_pr_3487_quick_add_bulk_sold_out",
+      "observable": "sold_out_badge",
+      "corpus_direction": "bug_fixed",
+      "supported_for_benchmark": true,
+      "method": "generated_search",
+      "seed": 1,
+      "status": "detected",
+      "detected": true,
+      "evaluated_pairs": 4,
+      "shrink_pairs": 0,
+      "pre_shrink_variants": 1,
+      "pre_shrink_bytes": 114,
+      "post_shrink_variants": 1,
+      "post_shrink_bytes": 114,
+      "direction": "after_only",
+      "explanation_kind": "undetermined",
+      "parity_rejections": 0,
+      "first_difference_ms": 266,
+      "shrink_ms": 0,
+      "elapsed_ms": 267,
+      "error_code": null,
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 0,
+            "compare_at_price": null,
+            "available": false
+          }
+        ]
+      },
+      "unsupported_reason": null
+    },
+    {
+      "case_id": "dawn_pr_3487_quick_add_bulk_sold_out",
+      "observable": "sold_out_badge",
+      "corpus_direction": "bug_fixed",
+      "supported_for_benchmark": true,
+      "method": "generated_search",
+      "seed": 2,
+      "status": "detected",
+      "detected": true,
+      "evaluated_pairs": 4,
+      "shrink_pairs": 0,
+      "pre_shrink_variants": 1,
+      "pre_shrink_bytes": 114,
       "post_shrink_variants": 1,
       "post_shrink_bytes": 114,
       "direction": "after_only",
@@ -992,114 +1100,6 @@
       "corpus_direction": "bug_fixed",
       "supported_for_benchmark": true,
       "method": "generated_search",
-      "seed": 0,
-      "status": "detected",
-      "detected": true,
-      "evaluated_pairs": 4,
-      "shrink_pairs": 0,
-      "pre_shrink_variants": 1,
-      "pre_shrink_bytes": 114,
-      "post_shrink_variants": 1,
-      "post_shrink_bytes": 114,
-      "direction": "after_only",
-      "explanation_kind": "undetermined",
-      "parity_rejections": 0,
-      "first_difference_ms": 259,
-      "shrink_ms": 0,
-      "elapsed_ms": 260,
-      "error_code": null,
-      "fixture": {
-        "schema_version": 1,
-        "currency": "USD",
-        "variants": [
-          {
-            "id": "v1",
-            "price": 0,
-            "compare_at_price": null,
-            "available": false
-          }
-        ]
-      },
-      "unsupported_reason": null
-    },
-    {
-      "case_id": "dawn_pr_3487_quick_add_bulk_sold_out",
-      "observable": "sold_out_badge",
-      "corpus_direction": "bug_fixed",
-      "supported_for_benchmark": true,
-      "method": "generated_search",
-      "seed": 1,
-      "status": "detected",
-      "detected": true,
-      "evaluated_pairs": 4,
-      "shrink_pairs": 0,
-      "pre_shrink_variants": 1,
-      "pre_shrink_bytes": 114,
-      "post_shrink_variants": 1,
-      "post_shrink_bytes": 114,
-      "direction": "after_only",
-      "explanation_kind": "undetermined",
-      "parity_rejections": 0,
-      "first_difference_ms": 254,
-      "shrink_ms": 0,
-      "elapsed_ms": 255,
-      "error_code": null,
-      "fixture": {
-        "schema_version": 1,
-        "currency": "USD",
-        "variants": [
-          {
-            "id": "v1",
-            "price": 0,
-            "compare_at_price": null,
-            "available": false
-          }
-        ]
-      },
-      "unsupported_reason": null
-    },
-    {
-      "case_id": "dawn_pr_3487_quick_add_bulk_sold_out",
-      "observable": "sold_out_badge",
-      "corpus_direction": "bug_fixed",
-      "supported_for_benchmark": true,
-      "method": "generated_search",
-      "seed": 2,
-      "status": "detected",
-      "detected": true,
-      "evaluated_pairs": 4,
-      "shrink_pairs": 0,
-      "pre_shrink_variants": 1,
-      "pre_shrink_bytes": 114,
-      "post_shrink_variants": 1,
-      "post_shrink_bytes": 114,
-      "direction": "after_only",
-      "explanation_kind": "undetermined",
-      "parity_rejections": 0,
-      "first_difference_ms": 255,
-      "shrink_ms": 0,
-      "elapsed_ms": 256,
-      "error_code": null,
-      "fixture": {
-        "schema_version": 1,
-        "currency": "USD",
-        "variants": [
-          {
-            "id": "v1",
-            "price": 0,
-            "compare_at_price": null,
-            "available": false
-          }
-        ]
-      },
-      "unsupported_reason": null
-    },
-    {
-      "case_id": "dawn_pr_3487_quick_add_bulk_sold_out",
-      "observable": "sold_out_badge",
-      "corpus_direction": "bug_fixed",
-      "supported_for_benchmark": true,
-      "method": "generated_search",
       "seed": 3,
       "status": "detected",
       "detected": true,
@@ -1112,9 +1112,9 @@
       "direction": "after_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 262,
+      "first_difference_ms": 265,
       "shrink_ms": 0,
-      "elapsed_ms": 263,
+      "elapsed_ms": 266,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -1148,9 +1148,9 @@
       "direction": "after_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 270,
+      "first_difference_ms": 263,
       "shrink_ms": 0,
-      "elapsed_ms": 272,
+      "elapsed_ms": 264,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -1184,9 +1184,9 @@
       "direction": "after_only",
       "explanation_kind": "structural_change",
       "parity_rejections": 0,
-      "first_difference_ms": 285,
+      "first_difference_ms": 269,
       "shrink_ms": 0,
-      "elapsed_ms": 287,
+      "elapsed_ms": 271,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -1220,9 +1220,9 @@
       "direction": "after_only",
       "explanation_kind": "structural_change",
       "parity_rejections": 0,
-      "first_difference_ms": 274,
+      "first_difference_ms": 262,
       "shrink_ms": 0,
-      "elapsed_ms": 275,
+      "elapsed_ms": 263,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -1256,9 +1256,9 @@
       "direction": "after_only",
       "explanation_kind": "structural_change",
       "parity_rejections": 0,
-      "first_difference_ms": 277,
+      "first_difference_ms": 258,
       "shrink_ms": 0,
-      "elapsed_ms": 278,
+      "elapsed_ms": 259,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -1292,9 +1292,9 @@
       "direction": "after_only",
       "explanation_kind": "structural_change",
       "parity_rejections": 0,
-      "first_difference_ms": 282,
+      "first_difference_ms": 259,
       "shrink_ms": 0,
-      "elapsed_ms": 284,
+      "elapsed_ms": 260,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -1317,6 +1317,42 @@
       "supported_for_benchmark": true,
       "method": "generated_search",
       "seed": 3,
+      "status": "detected",
+      "detected": true,
+      "evaluated_pairs": 4,
+      "shrink_pairs": 0,
+      "pre_shrink_variants": 1,
+      "pre_shrink_bytes": 114,
+      "post_shrink_variants": 1,
+      "post_shrink_bytes": 114,
+      "direction": "after_only",
+      "explanation_kind": "structural_change",
+      "parity_rejections": 0,
+      "first_difference_ms": 260,
+      "shrink_ms": 0,
+      "elapsed_ms": 261,
+      "error_code": null,
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 0,
+            "compare_at_price": null,
+            "available": false
+          }
+        ]
+      },
+      "unsupported_reason": null
+    },
+    {
+      "case_id": "dawn_pr_1610_quick_add_single_variant_sold_out",
+      "observable": "sold_out_badge",
+      "corpus_direction": "bug_fixed",
+      "supported_for_benchmark": true,
+      "method": "generated_search",
+      "seed": 4,
       "status": "detected",
       "detected": true,
       "evaluated_pairs": 4,
@@ -1347,42 +1383,6 @@
       "unsupported_reason": null
     },
     {
-      "case_id": "dawn_pr_1610_quick_add_single_variant_sold_out",
-      "observable": "sold_out_badge",
-      "corpus_direction": "bug_fixed",
-      "supported_for_benchmark": true,
-      "method": "generated_search",
-      "seed": 4,
-      "status": "detected",
-      "detected": true,
-      "evaluated_pairs": 4,
-      "shrink_pairs": 0,
-      "pre_shrink_variants": 1,
-      "pre_shrink_bytes": 114,
-      "post_shrink_variants": 1,
-      "post_shrink_bytes": 114,
-      "direction": "after_only",
-      "explanation_kind": "structural_change",
-      "parity_rejections": 0,
-      "first_difference_ms": 270,
-      "shrink_ms": 0,
-      "elapsed_ms": 271,
-      "error_code": null,
-      "fixture": {
-        "schema_version": 1,
-        "currency": "USD",
-        "variants": [
-          {
-            "id": "v1",
-            "price": 0,
-            "compare_at_price": null,
-            "available": false
-          }
-        ]
-      },
-      "unsupported_reason": null
-    },
-    {
       "case_id": "dawn_pr_3293_quick_add_bulk_ghost_sold_out",
       "observable": "sold_out_badge",
       "corpus_direction": "bug_fixed",
@@ -1400,153 +1400,153 @@
       "direction": "before_only",
       "explanation_kind": "structural_change",
       "parity_rejections": 0,
-      "first_difference_ms": 273,
-      "shrink_ms": 0,
-      "elapsed_ms": 275,
-      "error_code": null,
-      "fixture": {
-        "schema_version": 1,
-        "currency": "USD",
-        "variants": [
-          {
-            "id": "v1",
-            "price": 0,
-            "compare_at_price": null,
-            "available": false
-          }
-        ]
-      },
-      "unsupported_reason": null
-    },
-    {
-      "case_id": "dawn_pr_3293_quick_add_bulk_ghost_sold_out",
-      "observable": "sold_out_badge",
-      "corpus_direction": "bug_fixed",
-      "supported_for_benchmark": true,
-      "method": "generated_search",
-      "seed": 0,
-      "status": "detected",
-      "detected": true,
-      "evaluated_pairs": 4,
-      "shrink_pairs": 0,
-      "pre_shrink_variants": 1,
-      "pre_shrink_bytes": 114,
-      "post_shrink_variants": 1,
-      "post_shrink_bytes": 114,
-      "direction": "before_only",
-      "explanation_kind": "structural_change",
-      "parity_rejections": 0,
-      "first_difference_ms": 276,
-      "shrink_ms": 0,
-      "elapsed_ms": 280,
-      "error_code": null,
-      "fixture": {
-        "schema_version": 1,
-        "currency": "USD",
-        "variants": [
-          {
-            "id": "v1",
-            "price": 0,
-            "compare_at_price": null,
-            "available": false
-          }
-        ]
-      },
-      "unsupported_reason": null
-    },
-    {
-      "case_id": "dawn_pr_3293_quick_add_bulk_ghost_sold_out",
-      "observable": "sold_out_badge",
-      "corpus_direction": "bug_fixed",
-      "supported_for_benchmark": true,
-      "method": "generated_search",
-      "seed": 1,
-      "status": "detected",
-      "detected": true,
-      "evaluated_pairs": 4,
-      "shrink_pairs": 0,
-      "pre_shrink_variants": 1,
-      "pre_shrink_bytes": 114,
-      "post_shrink_variants": 1,
-      "post_shrink_bytes": 114,
-      "direction": "before_only",
-      "explanation_kind": "structural_change",
-      "parity_rejections": 0,
-      "first_difference_ms": 279,
-      "shrink_ms": 0,
-      "elapsed_ms": 280,
-      "error_code": null,
-      "fixture": {
-        "schema_version": 1,
-        "currency": "USD",
-        "variants": [
-          {
-            "id": "v1",
-            "price": 0,
-            "compare_at_price": null,
-            "available": false
-          }
-        ]
-      },
-      "unsupported_reason": null
-    },
-    {
-      "case_id": "dawn_pr_3293_quick_add_bulk_ghost_sold_out",
-      "observable": "sold_out_badge",
-      "corpus_direction": "bug_fixed",
-      "supported_for_benchmark": true,
-      "method": "generated_search",
-      "seed": 2,
-      "status": "detected",
-      "detected": true,
-      "evaluated_pairs": 4,
-      "shrink_pairs": 0,
-      "pre_shrink_variants": 1,
-      "pre_shrink_bytes": 114,
-      "post_shrink_variants": 1,
-      "post_shrink_bytes": 114,
-      "direction": "before_only",
-      "explanation_kind": "structural_change",
-      "parity_rejections": 0,
-      "first_difference_ms": 302,
-      "shrink_ms": 0,
-      "elapsed_ms": 304,
-      "error_code": null,
-      "fixture": {
-        "schema_version": 1,
-        "currency": "USD",
-        "variants": [
-          {
-            "id": "v1",
-            "price": 0,
-            "compare_at_price": null,
-            "available": false
-          }
-        ]
-      },
-      "unsupported_reason": null
-    },
-    {
-      "case_id": "dawn_pr_3293_quick_add_bulk_ghost_sold_out",
-      "observable": "sold_out_badge",
-      "corpus_direction": "bug_fixed",
-      "supported_for_benchmark": true,
-      "method": "generated_search",
-      "seed": 3,
-      "status": "detected",
-      "detected": true,
-      "evaluated_pairs": 4,
-      "shrink_pairs": 0,
-      "pre_shrink_variants": 1,
-      "pre_shrink_bytes": 114,
-      "post_shrink_variants": 1,
-      "post_shrink_bytes": 114,
-      "direction": "before_only",
-      "explanation_kind": "structural_change",
-      "parity_rejections": 0,
       "first_difference_ms": 264,
       "shrink_ms": 0,
-      "elapsed_ms": 265,
+      "elapsed_ms": 266,
+      "error_code": null,
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 0,
+            "compare_at_price": null,
+            "available": false
+          }
+        ]
+      },
+      "unsupported_reason": null
+    },
+    {
+      "case_id": "dawn_pr_3293_quick_add_bulk_ghost_sold_out",
+      "observable": "sold_out_badge",
+      "corpus_direction": "bug_fixed",
+      "supported_for_benchmark": true,
+      "method": "generated_search",
+      "seed": 0,
+      "status": "detected",
+      "detected": true,
+      "evaluated_pairs": 4,
+      "shrink_pairs": 0,
+      "pre_shrink_variants": 1,
+      "pre_shrink_bytes": 114,
+      "post_shrink_variants": 1,
+      "post_shrink_bytes": 114,
+      "direction": "before_only",
+      "explanation_kind": "structural_change",
+      "parity_rejections": 0,
+      "first_difference_ms": 261,
+      "shrink_ms": 0,
+      "elapsed_ms": 262,
+      "error_code": null,
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 0,
+            "compare_at_price": null,
+            "available": false
+          }
+        ]
+      },
+      "unsupported_reason": null
+    },
+    {
+      "case_id": "dawn_pr_3293_quick_add_bulk_ghost_sold_out",
+      "observable": "sold_out_badge",
+      "corpus_direction": "bug_fixed",
+      "supported_for_benchmark": true,
+      "method": "generated_search",
+      "seed": 1,
+      "status": "detected",
+      "detected": true,
+      "evaluated_pairs": 4,
+      "shrink_pairs": 0,
+      "pre_shrink_variants": 1,
+      "pre_shrink_bytes": 114,
+      "post_shrink_variants": 1,
+      "post_shrink_bytes": 114,
+      "direction": "before_only",
+      "explanation_kind": "structural_change",
+      "parity_rejections": 0,
+      "first_difference_ms": 260,
+      "shrink_ms": 0,
+      "elapsed_ms": 261,
+      "error_code": null,
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 0,
+            "compare_at_price": null,
+            "available": false
+          }
+        ]
+      },
+      "unsupported_reason": null
+    },
+    {
+      "case_id": "dawn_pr_3293_quick_add_bulk_ghost_sold_out",
+      "observable": "sold_out_badge",
+      "corpus_direction": "bug_fixed",
+      "supported_for_benchmark": true,
+      "method": "generated_search",
+      "seed": 2,
+      "status": "detected",
+      "detected": true,
+      "evaluated_pairs": 4,
+      "shrink_pairs": 0,
+      "pre_shrink_variants": 1,
+      "pre_shrink_bytes": 114,
+      "post_shrink_variants": 1,
+      "post_shrink_bytes": 114,
+      "direction": "before_only",
+      "explanation_kind": "structural_change",
+      "parity_rejections": 0,
+      "first_difference_ms": 251,
+      "shrink_ms": 0,
+      "elapsed_ms": 255,
+      "error_code": null,
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 0,
+            "compare_at_price": null,
+            "available": false
+          }
+        ]
+      },
+      "unsupported_reason": null
+    },
+    {
+      "case_id": "dawn_pr_3293_quick_add_bulk_ghost_sold_out",
+      "observable": "sold_out_badge",
+      "corpus_direction": "bug_fixed",
+      "supported_for_benchmark": true,
+      "method": "generated_search",
+      "seed": 3,
+      "status": "detected",
+      "detected": true,
+      "evaluated_pairs": 4,
+      "shrink_pairs": 0,
+      "pre_shrink_variants": 1,
+      "pre_shrink_bytes": 114,
+      "post_shrink_variants": 1,
+      "post_shrink_bytes": 114,
+      "direction": "before_only",
+      "explanation_kind": "structural_change",
+      "parity_rejections": 0,
+      "first_difference_ms": 252,
+      "shrink_ms": 0,
+      "elapsed_ms": 253,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -1580,9 +1580,9 @@
       "direction": "before_only",
       "explanation_kind": "structural_change",
       "parity_rejections": 0,
-      "first_difference_ms": 267,
+      "first_difference_ms": 258,
       "shrink_ms": 0,
-      "elapsed_ms": 271,
+      "elapsed_ms": 260,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -1916,9 +1916,9 @@
       "direction": "after_only",
       "explanation_kind": "structural_change",
       "parity_rejections": 0,
-      "first_difference_ms": 282,
-      "shrink_ms": 1,
-      "elapsed_ms": 284,
+      "first_difference_ms": 261,
+      "shrink_ms": 4,
+      "elapsed_ms": 269,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -1952,80 +1952,8 @@
       "direction": "after_only",
       "explanation_kind": "structural_change",
       "parity_rejections": 0,
-      "first_difference_ms": 307,
-      "shrink_ms": 0,
-      "elapsed_ms": 308,
-      "error_code": null,
-      "fixture": {
-        "schema_version": 1,
-        "currency": "USD",
-        "variants": [
-          {
-            "id": "v1",
-            "price": 0,
-            "compare_at_price": null,
-            "available": false
-          }
-        ]
-      },
-      "unsupported_reason": null
-    },
-    {
-      "case_id": "dawn_pr_3574_use_variant_volume_price_range",
-      "observable": "price_range",
-      "corpus_direction": "bug_fixed",
-      "supported_for_benchmark": true,
-      "method": "generated_search",
-      "seed": 1,
-      "status": "detected",
-      "detected": true,
-      "evaluated_pairs": 1,
-      "shrink_pairs": 1,
-      "pre_shrink_variants": 1,
-      "pre_shrink_bytes": 113,
-      "post_shrink_variants": 1,
-      "post_shrink_bytes": 114,
-      "direction": "after_only",
-      "explanation_kind": "structural_change",
-      "parity_rejections": 0,
-      "first_difference_ms": 274,
-      "shrink_ms": 0,
-      "elapsed_ms": 276,
-      "error_code": null,
-      "fixture": {
-        "schema_version": 1,
-        "currency": "USD",
-        "variants": [
-          {
-            "id": "v1",
-            "price": 0,
-            "compare_at_price": null,
-            "available": false
-          }
-        ]
-      },
-      "unsupported_reason": null
-    },
-    {
-      "case_id": "dawn_pr_3574_use_variant_volume_price_range",
-      "observable": "price_range",
-      "corpus_direction": "bug_fixed",
-      "supported_for_benchmark": true,
-      "method": "generated_search",
-      "seed": 2,
-      "status": "detected",
-      "detected": true,
-      "evaluated_pairs": 1,
-      "shrink_pairs": 1,
-      "pre_shrink_variants": 1,
-      "pre_shrink_bytes": 113,
-      "post_shrink_variants": 1,
-      "post_shrink_bytes": 114,
-      "direction": "after_only",
-      "explanation_kind": "structural_change",
-      "parity_rejections": 0,
-      "first_difference_ms": 273,
-      "shrink_ms": 0,
+      "first_difference_ms": 269,
+      "shrink_ms": 1,
       "elapsed_ms": 275,
       "error_code": null,
       "fixture": {
@@ -2048,6 +1976,78 @@
       "corpus_direction": "bug_fixed",
       "supported_for_benchmark": true,
       "method": "generated_search",
+      "seed": 1,
+      "status": "detected",
+      "detected": true,
+      "evaluated_pairs": 1,
+      "shrink_pairs": 1,
+      "pre_shrink_variants": 1,
+      "pre_shrink_bytes": 113,
+      "post_shrink_variants": 1,
+      "post_shrink_bytes": 114,
+      "direction": "after_only",
+      "explanation_kind": "structural_change",
+      "parity_rejections": 0,
+      "first_difference_ms": 257,
+      "shrink_ms": 1,
+      "elapsed_ms": 263,
+      "error_code": null,
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 0,
+            "compare_at_price": null,
+            "available": false
+          }
+        ]
+      },
+      "unsupported_reason": null
+    },
+    {
+      "case_id": "dawn_pr_3574_use_variant_volume_price_range",
+      "observable": "price_range",
+      "corpus_direction": "bug_fixed",
+      "supported_for_benchmark": true,
+      "method": "generated_search",
+      "seed": 2,
+      "status": "detected",
+      "detected": true,
+      "evaluated_pairs": 1,
+      "shrink_pairs": 1,
+      "pre_shrink_variants": 1,
+      "pre_shrink_bytes": 113,
+      "post_shrink_variants": 1,
+      "post_shrink_bytes": 114,
+      "direction": "after_only",
+      "explanation_kind": "structural_change",
+      "parity_rejections": 0,
+      "first_difference_ms": 257,
+      "shrink_ms": 1,
+      "elapsed_ms": 262,
+      "error_code": null,
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 0,
+            "compare_at_price": null,
+            "available": false
+          }
+        ]
+      },
+      "unsupported_reason": null
+    },
+    {
+      "case_id": "dawn_pr_3574_use_variant_volume_price_range",
+      "observable": "price_range",
+      "corpus_direction": "bug_fixed",
+      "supported_for_benchmark": true,
+      "method": "generated_search",
       "seed": 3,
       "status": "detected",
       "detected": true,
@@ -2060,9 +2060,9 @@
       "direction": "after_only",
       "explanation_kind": "structural_change",
       "parity_rejections": 0,
-      "first_difference_ms": 280,
+      "first_difference_ms": 258,
       "shrink_ms": 0,
-      "elapsed_ms": 282,
+      "elapsed_ms": 260,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -2096,9 +2096,9 @@
       "direction": "after_only",
       "explanation_kind": "structural_change",
       "parity_rejections": 0,
-      "first_difference_ms": 266,
+      "first_difference_ms": 259,
       "shrink_ms": 0,
-      "elapsed_ms": 271,
+      "elapsed_ms": 260,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -2132,9 +2132,9 @@
       "direction": "after_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 277,
+      "first_difference_ms": 260,
       "shrink_ms": 1,
-      "elapsed_ms": 279,
+      "elapsed_ms": 262,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -2168,9 +2168,9 @@
       "direction": "after_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 269,
+      "first_difference_ms": 258,
       "shrink_ms": 0,
-      "elapsed_ms": 271,
+      "elapsed_ms": 260,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -2204,9 +2204,9 @@
       "direction": "after_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 263,
+      "first_difference_ms": 255,
       "shrink_ms": 0,
-      "elapsed_ms": 264,
+      "elapsed_ms": 257,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -2242,7 +2242,7 @@
       "parity_rejections": 0,
       "first_difference_ms": 259,
       "shrink_ms": 0,
-      "elapsed_ms": 261,
+      "elapsed_ms": 260,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -2276,9 +2276,9 @@
       "direction": "after_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 268,
+      "first_difference_ms": 254,
       "shrink_ms": 0,
-      "elapsed_ms": 270,
+      "elapsed_ms": 256,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -2312,9 +2312,9 @@
       "direction": "after_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 253,
+      "first_difference_ms": 258,
       "shrink_ms": 0,
-      "elapsed_ms": 254,
+      "elapsed_ms": 260,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -2350,7 +2350,7 @@
       "parity_rejections": 0,
       "first_difference_ms": null,
       "shrink_ms": null,
-      "elapsed_ms": 286,
+      "elapsed_ms": 274,
       "error_code": null,
       "fixture": null,
       "unsupported_reason": null
@@ -2362,6 +2362,48 @@
       "supported_for_benchmark": true,
       "method": "generated_search",
       "seed": 0,
+      "status": "detected",
+      "detected": true,
+      "evaluated_pairs": 54,
+      "shrink_pairs": 63,
+      "pre_shrink_variants": 2,
+      "pre_shrink_bytes": 178,
+      "post_shrink_variants": 2,
+      "post_shrink_bytes": 178,
+      "direction": "before_only",
+      "explanation_kind": "undetermined",
+      "parity_rejections": 0,
+      "first_difference_ms": 275,
+      "shrink_ms": 18,
+      "elapsed_ms": 294,
+      "error_code": null,
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 1000,
+            "compare_at_price": 0,
+            "available": false
+          },
+          {
+            "id": "v2",
+            "price": 1000,
+            "compare_at_price": 1,
+            "available": false
+          }
+        ]
+      },
+      "unsupported_reason": null
+    },
+    {
+      "case_id": "dawn_pr_662_compare_at_price_varies",
+      "observable": "price_range",
+      "corpus_direction": "bug_fixed",
+      "supported_for_benchmark": true,
+      "method": "generated_search",
+      "seed": 1,
       "status": "detected",
       "detected": true,
       "evaluated_pairs": 54,
@@ -2403,48 +2445,6 @@
       "corpus_direction": "bug_fixed",
       "supported_for_benchmark": true,
       "method": "generated_search",
-      "seed": 1,
-      "status": "detected",
-      "detected": true,
-      "evaluated_pairs": 54,
-      "shrink_pairs": 63,
-      "pre_shrink_variants": 2,
-      "pre_shrink_bytes": 178,
-      "post_shrink_variants": 2,
-      "post_shrink_bytes": 178,
-      "direction": "before_only",
-      "explanation_kind": "undetermined",
-      "parity_rejections": 0,
-      "first_difference_ms": 276,
-      "shrink_ms": 19,
-      "elapsed_ms": 296,
-      "error_code": null,
-      "fixture": {
-        "schema_version": 1,
-        "currency": "USD",
-        "variants": [
-          {
-            "id": "v1",
-            "price": 1000,
-            "compare_at_price": 0,
-            "available": false
-          },
-          {
-            "id": "v2",
-            "price": 1000,
-            "compare_at_price": 1,
-            "available": false
-          }
-        ]
-      },
-      "unsupported_reason": null
-    },
-    {
-      "case_id": "dawn_pr_662_compare_at_price_varies",
-      "observable": "price_range",
-      "corpus_direction": "bug_fixed",
-      "supported_for_benchmark": true,
-      "method": "generated_search",
       "seed": 2,
       "status": "detected",
       "detected": true,
@@ -2457,9 +2457,9 @@
       "direction": "before_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 285,
-      "shrink_ms": 19,
-      "elapsed_ms": 305,
+      "first_difference_ms": 275,
+      "shrink_ms": 18,
+      "elapsed_ms": 294,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -2499,9 +2499,9 @@
       "direction": "before_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 284,
+      "first_difference_ms": 279,
       "shrink_ms": 18,
-      "elapsed_ms": 303,
+      "elapsed_ms": 298,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -2541,9 +2541,9 @@
       "direction": "before_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 308,
-      "shrink_ms": 19,
-      "elapsed_ms": 328,
+      "first_difference_ms": 273,
+      "shrink_ms": 18,
+      "elapsed_ms": 292,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -2733,9 +2733,9 @@
       "direction": "before_only",
       "explanation_kind": "structural_change",
       "parity_rejections": 0,
-      "first_difference_ms": 267,
+      "first_difference_ms": 252,
       "shrink_ms": 1,
-      "elapsed_ms": 270,
+      "elapsed_ms": 255,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -2769,9 +2769,9 @@
       "direction": "before_only",
       "explanation_kind": "structural_change",
       "parity_rejections": 0,
-      "first_difference_ms": 266,
+      "first_difference_ms": 248,
       "shrink_ms": 0,
-      "elapsed_ms": 268,
+      "elapsed_ms": 250,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -2794,6 +2794,78 @@
       "supported_for_benchmark": true,
       "method": "generated_search",
       "seed": 1,
+      "status": "detected",
+      "detected": true,
+      "evaluated_pairs": 1,
+      "shrink_pairs": 1,
+      "pre_shrink_variants": 1,
+      "pre_shrink_bytes": 113,
+      "post_shrink_variants": 1,
+      "post_shrink_bytes": 114,
+      "direction": "before_only",
+      "explanation_kind": "structural_change",
+      "parity_rejections": 0,
+      "first_difference_ms": 258,
+      "shrink_ms": 0,
+      "elapsed_ms": 259,
+      "error_code": null,
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 0,
+            "compare_at_price": null,
+            "available": false
+          }
+        ]
+      },
+      "unsupported_reason": null
+    },
+    {
+      "case_id": "dawn_pr_3000_volume_pricing_empty_compare_at",
+      "observable": "price_range",
+      "corpus_direction": "bug_fixed",
+      "supported_for_benchmark": true,
+      "method": "generated_search",
+      "seed": 2,
+      "status": "detected",
+      "detected": true,
+      "evaluated_pairs": 1,
+      "shrink_pairs": 1,
+      "pre_shrink_variants": 1,
+      "pre_shrink_bytes": 113,
+      "post_shrink_variants": 1,
+      "post_shrink_bytes": 114,
+      "direction": "before_only",
+      "explanation_kind": "structural_change",
+      "parity_rejections": 0,
+      "first_difference_ms": 260,
+      "shrink_ms": 0,
+      "elapsed_ms": 261,
+      "error_code": null,
+      "fixture": {
+        "schema_version": 1,
+        "currency": "USD",
+        "variants": [
+          {
+            "id": "v1",
+            "price": 0,
+            "compare_at_price": null,
+            "available": false
+          }
+        ]
+      },
+      "unsupported_reason": null
+    },
+    {
+      "case_id": "dawn_pr_3000_volume_pricing_empty_compare_at",
+      "observable": "price_range",
+      "corpus_direction": "bug_fixed",
+      "supported_for_benchmark": true,
+      "method": "generated_search",
+      "seed": 3,
       "status": "detected",
       "detected": true,
       "evaluated_pairs": 1,
@@ -2829,78 +2901,6 @@
       "corpus_direction": "bug_fixed",
       "supported_for_benchmark": true,
       "method": "generated_search",
-      "seed": 2,
-      "status": "detected",
-      "detected": true,
-      "evaluated_pairs": 1,
-      "shrink_pairs": 1,
-      "pre_shrink_variants": 1,
-      "pre_shrink_bytes": 113,
-      "post_shrink_variants": 1,
-      "post_shrink_bytes": 114,
-      "direction": "before_only",
-      "explanation_kind": "structural_change",
-      "parity_rejections": 0,
-      "first_difference_ms": 309,
-      "shrink_ms": 0,
-      "elapsed_ms": 311,
-      "error_code": null,
-      "fixture": {
-        "schema_version": 1,
-        "currency": "USD",
-        "variants": [
-          {
-            "id": "v1",
-            "price": 0,
-            "compare_at_price": null,
-            "available": false
-          }
-        ]
-      },
-      "unsupported_reason": null
-    },
-    {
-      "case_id": "dawn_pr_3000_volume_pricing_empty_compare_at",
-      "observable": "price_range",
-      "corpus_direction": "bug_fixed",
-      "supported_for_benchmark": true,
-      "method": "generated_search",
-      "seed": 3,
-      "status": "detected",
-      "detected": true,
-      "evaluated_pairs": 1,
-      "shrink_pairs": 1,
-      "pre_shrink_variants": 1,
-      "pre_shrink_bytes": 113,
-      "post_shrink_variants": 1,
-      "post_shrink_bytes": 114,
-      "direction": "before_only",
-      "explanation_kind": "structural_change",
-      "parity_rejections": 0,
-      "first_difference_ms": 265,
-      "shrink_ms": 0,
-      "elapsed_ms": 267,
-      "error_code": null,
-      "fixture": {
-        "schema_version": 1,
-        "currency": "USD",
-        "variants": [
-          {
-            "id": "v1",
-            "price": 0,
-            "compare_at_price": null,
-            "available": false
-          }
-        ]
-      },
-      "unsupported_reason": null
-    },
-    {
-      "case_id": "dawn_pr_3000_volume_pricing_empty_compare_at",
-      "observable": "price_range",
-      "corpus_direction": "bug_fixed",
-      "supported_for_benchmark": true,
-      "method": "generated_search",
       "seed": 4,
       "status": "detected",
       "detected": true,
@@ -2913,9 +2913,9 @@
       "direction": "before_only",
       "explanation_kind": "structural_change",
       "parity_rejections": 0,
-      "first_difference_ms": 262,
+      "first_difference_ms": 260,
       "shrink_ms": 0,
-      "elapsed_ms": 264,
+      "elapsed_ms": 262,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -2949,9 +2949,9 @@
       "direction": "before_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 271,
+      "first_difference_ms": 262,
       "shrink_ms": 4,
-      "elapsed_ms": 277,
+      "elapsed_ms": 267,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -2991,9 +2991,9 @@
       "direction": "before_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 295,
-      "shrink_ms": 4,
-      "elapsed_ms": 300,
+      "first_difference_ms": 279,
+      "shrink_ms": 3,
+      "elapsed_ms": 284,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -3033,9 +3033,9 @@
       "direction": "before_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 293,
-      "shrink_ms": 4,
-      "elapsed_ms": 298,
+      "first_difference_ms": 276,
+      "shrink_ms": 3,
+      "elapsed_ms": 281,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -3075,9 +3075,9 @@
       "direction": "before_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 293,
+      "first_difference_ms": 277,
       "shrink_ms": 3,
-      "elapsed_ms": 297,
+      "elapsed_ms": 282,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -3117,9 +3117,9 @@
       "direction": "before_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 310,
+      "first_difference_ms": 278,
       "shrink_ms": 3,
-      "elapsed_ms": 315,
+      "elapsed_ms": 282,
       "error_code": null,
       "fixture": {
         "schema_version": 1,
@@ -3159,9 +3159,9 @@
       "direction": "before_only",
       "explanation_kind": "undetermined",
       "parity_rejections": 0,
-      "first_difference_ms": 293,
+      "first_difference_ms": 277,
       "shrink_ms": 3,
-      "elapsed_ms": 298,
+      "elapsed_ms": 282,
       "error_code": null,
       "fixture": {
         "schema_version": 1,

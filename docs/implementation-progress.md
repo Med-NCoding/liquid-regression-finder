@@ -1,7 +1,7 @@
 # Implementation Progress — Shopify Liquid Regression Finder
 
-- **Current Stage**: Stage 7 (`passed`)
-- **Last Completed Stage**: Stage 7 — Benchmark and engine extensions
+- **Current Stage**: Stage 8 (`passed`)
+- **Last Completed Stage**: Stage 8 — Rails API and asynchronous persistence
 - **Repository**: https://github.com/Med-NCoding/liquid-regression-finder
 
 ## Stage Tracker
@@ -15,7 +15,7 @@
 | 5 | Shrink, explanation and replay | passed | `bin/check stage-5` | 0 | `artifacts/stage-5/demo-compare.json`, `artifacts/stage-5/demo-replay.json`, `artifacts/stage-5/demo-replay-result.json`, `artifacts/stage-5/identical-compare.json`, `search/tests/` |
 | 6 | Dawn corpus | passed | `bin/check stage-6` | 0 | `bench/corpus/manifest.json`, `fixtures/witnesses/`, `artifacts/stage-6/corpus-verification.json`, `artifacts/stage-6/corpus-summary.md`, `bench/tests/test_dawn_corpus.rb` |
 | 7 | Benchmark and engine extensions | passed | `bin/check stage-7` | 0 | `bench/reports/benchmark.md`, `bench/reports/benchmark.csv`, `bench/reports/benchmark_details.json`, `bench/sample_baseline/PROVENANCE.md`, `artifacts/stage-7/conformance-report.txt` |
-| 8 | Rails API and jobs | pending | `bin/check stage-8` | — | — |
+| 8 | Rails API and jobs | passed | `bin/check stage-8` | 0 | `api/`, `api/bin/e2e_smoke_check`, `artifacts/stage-8/e2e-smoke-report.json`, `api/test/` |
 | 9 | React results UI | pending | `bin/check stage-9` | — | — |
 | 10 | PR workflow and release | pending | `bin/check all` | — | — |
 
@@ -175,3 +175,18 @@
 - **Gate Command & Exit Status**: `./bin/check stage-7` -> exit `0` (includes Stage 1–6 regression checks).
 - **Remaining Tasks**: Stage 8 through Stage 10.
 - **Next Command**: Start Stage 8 worker (`bin/check stage-8`).
+
+### Stage 8 — Rails API and Asynchronous Persistence
+- **Status**: `passed`
+- **Completed Tasks**:
+  - **Rails 8 API Application & Lockfiles (`api/`)**: Created Rails `8.1.4.1` API-mode application (`--api --database=sqlite3`) using `sqlite3 2.10.2`, `solid_queue 1.7.2`, `puma 8.1.2`, `minitest 5.27.0`, `json_schemer 2.5.0`, and `regexp_parser 2.12.0` (`api/Gemfile` + `api/Gemfile.lock`, locally bundled in `api/vendor/bundle`); updated root `bin/setup`, `.gitignore`, and `docs/toolchain-versions.md` so clean checkouts install both root and `api/` bundles from lockfiles and prepare SQLite databases cleanly.
+  - **SQLite, Solid Queue & Log Redaction (`api/config/`, `api/db/migrate/`)**: Configured single-worker database-backed Solid Queue (`processes: 1`, `threads: 1`) with Solid Queue tables and `comparisons` schema in `api/db/migrate/` so `db:migrate` and `db:prepare` work cleanly across `test`, `development`, and `production` environments without manual intervention; configured `config.filter_parameters`, `Comparison.filter_attributes`, `ComparisonRunJob.log_arguments = false`, and SQL/parse-error redaction filters so snippet `source`, `before`, `after`, `fixture`, and `html` never appear in Rails server or SQL logs.
+  - **Comparison Model & Contracts (`api/app/models/comparison.rb`, `api/app/services/contract_schemas.rb`)**: Implemented UUID primary key (`SecureRandom.uuid`), whitespace-sensitive SHA-256 `request_digest` over canonical UTF-8 JSON, partial unique `idempotency_key` index (`WHERE idempotency_key IS NOT NULL`), atomic claim (`claim_queued!`), guarded transactional completion/retry release (`complete_with_token!`, `release_for_retry_with_token!`), and `as_comparison_job` conforming to `contracts/schemas/comparison_job.schema.json`.
+  - **API Endpoints & Request Validation (`api/app/controllers/api/v1/`, `api/app/services/compare_request_validator.rb`, `api/config/routes.rb`)**: Implemented `POST /api/v1/comparisons`, `GET /api/v1/comparisons/:id`, and `GET /api/v1/health` with strict raw-body JSON validation (rejecting malformed JSON, non-UTF-8, extra keys, filesystem path keys, >16 KiB snippets, non-`sale_badge` observers, and out-of-range `seed`/`budget`), `Idempotency-Key` reuse (`202`/`200`) and whitespace-sensitive `409 Conflict` (`idempotency_conflict`), `RecordNotUnique` race recovery, SQLite row persistence before `ComparisonRunJob.perform_later`, and optional scoped `Authorization: Bearer` auth via `ENV["LIQUID_REGRESSION_API_TOKEN"]`.
+  - **Worker Job, Reconciliation & Safe Subprocess Runner (`api/app/jobs/comparison_run_job.rb`, `api/app/services/comparison_reconciler.rb`, `api/app/services/comparison_runner.rb`, `api/lib/tasks/comparisons.rake`)**: Implemented atomic `WHERE status = 'queued'` claim with `110s` lease, isolated `Dir.mktmpdir` argv `Process.spawn(..., unsetenv_others: true, pgroup: true)` with `90s` hard watchdog (`TERM` -> `KILL` + `waitpid2`) and strict `JSONSchemer` validation of `search` output, immediate terminal `failed` on engine/syntax/validation/`reference_mismatch` vs single-retry bound (`attempts < 2`) on infrastructure failures, and `ComparisonReconciler.reconcile!` (plus `bin/rails runner ComparisonReconciler.reconcile!` and `rake comparisons:reconcile`) recovering missed `queued` rows and expired `running` claims.
+  - **Tests, Real Server/Worker E2E Smoke Check & Gate (`api/test/`, `api/bin/e2e_smoke_check`, `bin/check stage-8`)**:
+    - `api/test/` Minitest suite: `28 runs, 319 assertions, 0 failures, 0 errors, 0 skips` covering request validation, idempotency & whitespace conflict, `RecordNotUnique` race recovery, scoped bearer auth, duplicate delivery, stale `attempt_token` write rejection, lease expiry recovery (`attempts == 1` vs `2`), missed-enqueue reconciliation, SQLite reload persistence, terminal vs infrastructure retry bounds, real `ComparisonRunner` subprocess execution + watchdog reaping, log redaction, and `SolidQueue::Job` SQLite persistence.
+    - `api/bin/e2e_smoke_check` (`artifacts/stage-8/e2e-smoke-report.json`): boots real Puma `rails server` + single `bin/jobs` Solid Queue worker on an isolated SQLite DB, runs `fixtures/demo/` end-to-end (`status="difference_found"`, `search_pairs=56`, `shrink_pairs=28`), validates responses with `JSONSchemer`, verifies idempotency replay (`200`) and whitespace conflict (`409`), restarts Puma against the same SQLite DB and confirms identical persisted `ComparisonJob`, and verifies clean redacted logs.
+- **Gate Command & Exit Status**: `./bin/check stage-8` -> exit `0` (includes Stage 1–7 regression checks).
+- **Remaining Tasks**: Stage 9 through Stage 10.
+- **Next Command**: Start Stage 9 worker (`bin/check stage-9`).

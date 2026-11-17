@@ -1,0 +1,2 @@
+#!/opt/homebrew/opt/ruby@3.3/bin/ruby
+exec "./bin/rails", "server", *ARGV

@@ -18,7 +18,7 @@
 | **Parity Rejections** | `0` | `0` |
 | **Median Evaluated Pairs (Detected)** | `3.5` | `22` |
 | **Median Shrink Pairs (Detected)** | `1` | `2` |
-| **Median Time to First Difference (`first_difference_ms`, incl. startup + parity)** | `269.5 ms` | `271 ms` |
+| **Median Time to First Difference (`first_difference_ms`, incl. startup + parity)** | `261 ms` | `262 ms` |
 | **Median Shrink Time (`shrink_ms`)** | `0 ms` | `1 ms` |
 | **Median Pre-Shrink Size (Variants / Bytes)** | `1` vars / `113.5` B | `1` vars / `116` B |
 | **Median Post-Shrink Size (Variants / Bytes)** | `1` vars / `114` B | `1` vars / `114` B |
@@ -72,7 +72,7 @@ Measured over `256` `render_pair(trace=false)` evaluations on `dawn_pr_794_price
 
 | Engine | In-Process Ruby Total / Mean | Python->Ruby JSONL IPC Total / Mean | IPC Median / p95 | Measured IPC Overhead | Slowdown |
 | --- | --- | --- | --- | --- | ---: |
-| `custom` | `57.129 ms` (`0.2232 ms/pair`) | `68.251 ms` (`0.2666 ms/pair`, startup+compile `255.377 ms`) | `0.2494 ms` / `0.3457 ms` | `11.122 ms` (`+0.0434 ms/pair`, `16.3%`) | `1.19x` |
-| `reference` | `64.343 ms` (`0.2513 ms/pair`) | `75.199 ms` (`0.2937 ms/pair`, startup+compile `258.56 ms`) | `0.2737 ms` / `0.407 ms` | `10.856 ms` (`+0.0424 ms/pair`, `14.4%`) | `1.17x` |
+| `custom` | `56.648 ms` (`0.2213 ms/pair`) | `71.453 ms` (`0.2791 ms/pair`, startup+compile `254.622 ms`) | `0.2467 ms` / `0.3919 ms` | `14.805 ms` (`+0.0578 ms/pair`, `20.7%`) | `1.26x` |
+| `reference` | `65.453 ms` (`0.2557 ms/pair`) | `78.685 ms` (`0.3074 ms/pair`, startup+compile `257.049 ms`) | `0.2726 ms` / `0.4497 ms` | `13.232 ms` (`+0.0517 ms/pair`, `16.8%`) | `1.2x` |
 
-> **Section 7 Decision Note**: Across `256` `custom` pair evaluations, JSONL pipe IPC + JSON ser/de adds `0.0434 ms/pair` (`16.3%` of total IPC render-loop time), while total 256-pair search remains sub-second (`median first_difference_ms = 269.5 ms`). Keeping Ruby as the single Liquid ownership boundary remains practical at 256/128 budgets; moving search into Ruby would be warranted only if budgets scale by 10x+.
+> **Section 7 Decision Note**: Across `256` `custom` pair evaluations, JSONL pipe IPC + JSON ser/de adds `0.0578 ms/pair` (`20.7%` of total IPC render-loop time), while total 256-pair search remains sub-second (`median first_difference_ms = 261 ms`). Keeping Ruby as the single Liquid ownership boundary remains practical at 256/128 budgets; moving search into Ruby would be warranted only if budgets scale by 10x+.

@@ -1,6 +1,6 @@
 # Pinned Toolchain & Dependency Versions
 
-Recorded during Stage 1 bootstrap and verified via `bin/check stage-1`.
+Recorded during Stage 1 bootstrap and extended in Stage 8; verified via `bin/check`.
 
 ## Language Runtimes
 
@@ -12,7 +12,7 @@ Recorded during Stage 1 bootstrap and verified via `bin/check stage-1`.
 | Node.js | `24.15.0` | `.node-version` | `/usr/local/bin/node` |
 | npm | `11.12.1` | — | `/usr/local/bin/npm` |
 
-## Ruby Gems (`Gemfile` / `Gemfile.lock`)
+## Root Ruby Gems (`Gemfile` / `Gemfile.lock`)
 
 | Gem | Pinned / Locked Version | Notes |
 |---|---|---|
@@ -25,11 +25,23 @@ Recorded during Stage 1 bootstrap and verified via `bin/check stage-1`.
 | `activesupport` | `8.1.4.1` | Transitive dependency of `liquid-spec` |
 | `super_diff` | `0.19.0` | Transitive dependency of `liquid-spec` |
 
+## Rails API Gems (`api/Gemfile` / `api/Gemfile.lock`)
+
+| Gem | Pinned / Locked Version | Notes |
+|---|---|---|
+| `rails` | `8.1.4.1` | API-mode Rails 8 application (`config.load_defaults 8.1`, `api_only = true`) |
+| `sqlite3` | `2.10.2` | SQLite3 Active Record adapter |
+| `solid_queue` | `1.7.2` | Database-backed Active Job adapter (single-worker configuration) |
+| `puma` | `8.1.2` | HTTP web server |
+| `minitest` | `5.27.0` | API unit and integration test suite |
+| `json_schemer` | `2.5.0` | Contract schema validation for `Finding`, `Stats`, `Diagnostic`, and `ComparisonJob` |
+| `regexp_parser` | `2.12.0` | Pinned `~> 2.12.0` (`< 2.13` required by `json_schemer 2.5.0`) |
+
 ## Clean Checkout Install
 
 ```sh
 ./bin/setup
-./bin/check stage-1
+./bin/check stage-8
 ```
 
-Both `bin/setup` and `bin/check` configure Bundler locally (`vendor/bundle`, git-ignored) and install strictly from `Gemfile.lock` (`BUNDLE_FROZEN=true bundle install`).
+`bin/setup` configures Bundler locally (`vendor/bundle` and `api/vendor/bundle`, git-ignored) and installs strictly from `Gemfile.lock` and `api/Gemfile.lock` (`BUNDLE_FROZEN=true bundle install`), then prepares the SQLite databases in `api/`.

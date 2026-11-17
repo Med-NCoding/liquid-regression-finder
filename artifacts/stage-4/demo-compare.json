@@ -653,8 +653,8 @@
     "shrink_pairs": 28,
     "parity_rejections": 0,
     "exhausted_by": null,
-    "first_difference_ms": 268,
-    "elapsed_ms": 276
+    "first_difference_ms": 270,
+    "elapsed_ms": 278
   },
   "error": null
 }

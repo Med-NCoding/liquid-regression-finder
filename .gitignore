@@ -11,6 +11,7 @@ __pycache__/
 
 # Ruby / Bundler / Rails
 vendor/bundle/
+api/vendor/bundle/
 .bundle/
 api/tmp/
 api/log/

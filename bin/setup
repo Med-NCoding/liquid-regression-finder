@@ -32,6 +32,17 @@ BUNDLE_BIN="$(resolve_bundle)"
 echo "Using Ruby: $("$RUBY_BIN" -v)"
 echo "Using Bundler: $("$BUNDLE_BIN" -v)"
 
+echo "Installing root gems from Gemfile.lock into vendor/bundle..."
 "$BUNDLE_BIN" config set --local path vendor/bundle
 BUNDLE_FROZEN=true "$BUNDLE_BIN" install
+
+echo "Installing api/ gems from api/Gemfile.lock into api/vendor/bundle..."
+(
+  cd "$ROOT_DIR/api"
+  "$BUNDLE_BIN" config set --local path vendor/bundle
+  BUNDLE_FROZEN=true "$BUNDLE_BIN" install
+  RAILS_ENV=development "$BUNDLE_BIN" exec bin/rails db:prepare
+  RAILS_ENV=test "$BUNDLE_BIN" exec bin/rails db:prepare
+)
+
 echo "Setup complete."

@@ -1,0 +1,373 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+ENV["BUNDLE_GEMFILE"] = File.expand_path("../Gemfile", __dir__)
+require "bundler/setup"
+
+require "fileutils"
+require "json"
+require "json_schemer"
+require "net/http"
+require "optparse"
+require "pathname"
+require "securerandom"
+require "socket"
+require "tmpdir"
+require "uri"
+
+API_ROOT = File.expand_path("..", __dir__)
+REPO_ROOT = File.expand_path("../..", __dir__)
+SCHEMAS_DIR = File.join(REPO_ROOT, "contracts", "schemas")
+
+options = {
+  env: ENV.fetch("RAILS_ENV", "production"),
+  timeout_s: 45.0,
+  report_out: nil
+}
+
+OptionParser.new do |opts|
+  opts.on("--env ENV", "Rails environment for E2E smoke test (default: production)") { |v| options[:env] = v }
+  opts.on("--timeout SECONDS", Float, "Timeout waiting for job completion (default: 45)") { |v| options[:timeout_s] = v }
+  opts.on("--report-out PATH", "Optional path to write JSON smoke verification summary") { |v| options[:report_out] = v }
+end.parse!
+
+def resolve_bundle_bin
+  homebrew = "/opt/homebrew/opt/ruby@3.3/bin/bundle"
+  return homebrew if File.executable?(homebrew)
+
+  "bundle"
+end
+
+def free_port
+  server = TCPServer.new("127.0.0.1", 0)
+  port = server.addr[1]
+  server.close
+  port
+end
+
+def load_job_schemer
+  ref_resolver = lambda do |uri|
+    JSON.parse(File.read(File.join(SCHEMAS_DIR, File.basename(uri.path)), encoding: Encoding::UTF_8))
+  end
+  raw = JSON.parse(File.read(File.join(SCHEMAS_DIR, "comparison_job.schema.json"), encoding: Encoding::UTF_8))
+  JSONSchemer.schema(raw, ref_resolver: ref_resolver)
+end
+
+def validate_schema!(schemer, payload, label)
+  errors = schemer.validate(payload).to_a
+  return if errors.empty?
+
+  details = errors.map { |e| "#{e['data_pointer']}: #{e['error']}" }.join("; ")
+  abort("Schema validation failed for #{label}: #{details}")
+end
+
+def monotonic_now
+  Process.clock_gettime(Process::CLOCK_MONOTONIC)
+end
+
+def stop_process_group(pid, label:, grace_s: 4.0)
+  return unless pid
+
+  begin
+    Process.kill("TERM", -pid)
+  rescue Errno::ESRCH, Errno::EPERM
+    begin
+      Process.waitpid2(pid, Process::WNOHANG)
+    rescue Errno::ECHILD
+      nil
+    end
+    return
+  end
+
+  deadline = monotonic_now + grace_s
+  loop do
+    waited, = Process.waitpid2(pid, Process::WNOHANG)
+    return if waited
+    break if monotonic_now >= deadline
+
+    sleep(0.05)
+  rescue Errno::ECHILD
+    return
+  end
+
+  begin
+    Process.kill("KILL", -pid)
+  rescue Errno::ESRCH, Errno::EPERM
+    nil
+  end
+
+  begin
+    Process.waitpid2(pid)
+  rescue Errno::ECHILD
+    nil
+  end
+  warn("[e2e_smoke_check] Force-killed #{label} (pid=#{pid})")
+end
+
+def http_request(method, url, body: nil, headers: {})
+  uri = URI.parse(url)
+  http = Net::HTTP.new(uri.host, uri.port)
+  http.open_timeout = 5
+  http.read_timeout = 10
+
+  req = case method
+        when :get then Net::HTTP::Get.new(uri.request_uri)
+        when :post then Net::HTTP::Post.new(uri.request_uri)
+        else raise ArgumentError, "Unsupported method #{method}"
+        end
+
+  headers.each { |k, v| req[k] = v }
+  if body
+    req["Content-Type"] ||= "application/json"
+    req.body = body
+  end
+
+  http.request(req)
+end
+
+def wait_for_health!(port, server_pid, server_log, timeout_s: 20.0)
+  deadline = monotonic_now + timeout_s
+  url = "http://127.0.0.1:#{port}/api/v1/health"
+  loop do
+    waited, status = Process.waitpid2(server_pid, Process::WNOHANG)
+    if waited
+      log_tail = File.exist?(server_log) ? File.read(server_log)[-2000..] : ""
+      abort("Rails server exited early (status=#{status.exitstatus}):\n#{log_tail}")
+    end
+
+    begin
+      res = http_request(:get, url)
+      if res.code == "200" && JSON.parse(res.body) == { "status" => "ok" }
+        return
+      end
+    rescue Errno::ECONNREFUSED, Errno::EADDRNOTAVAIL, Net::OpenTimeout, Net::ReadTimeout, EOFError, JSON::ParserError
+      nil
+    end
+
+    if monotonic_now >= deadline
+      log_tail = File.exist?(server_log) ? File.read(server_log)[-2000..] : ""
+      abort("Timed out waiting for Rails server health on port #{port}:\n#{log_tail}")
+    end
+
+    sleep(0.1)
+  end
+end
+
+def run_command!(env, *cmd, chdir:)
+  ok = system(env, *cmd, unsetenv_others: true, chdir: chdir)
+  abort("Command failed (exit=#{$?.exitstatus}): #{cmd.join(' ')}") unless ok
+end
+
+bundle_bin = resolve_bundle_bin
+job_schemer = load_job_schemer
+rails_env = options[:env]
+
+Dir.mktmpdir("lrf-api-e2e-") do |tmpdir|
+  db_path = File.join(tmpdir, "e2e_#{rails_env}.sqlite3")
+  server_log_1 = File.join(tmpdir, "server_1.log")
+  server_log_2 = File.join(tmpdir, "server_2.log")
+  worker_log = File.join(tmpdir, "worker.log")
+  pidfile_1 = File.join(tmpdir, "server_1.pid")
+  pidfile_2 = File.join(tmpdir, "server_2.pid")
+
+  child_env = Bundler.unbundled_env.merge(
+    "RAILS_ENV" => rails_env,
+    "LIQUID_REGRESSION_DB_PATH" => db_path,
+    "LIQUID_REGRESSION_REPO_ROOT" => REPO_ROOT,
+    "RAILS_FORCE_SSL" => "false",
+    "SOLID_QUEUE_SKIP_RECURRING" => "true",
+    "JOB_CONCURRENCY" => "1"
+  )
+  ruby_bin_dir = "/opt/homebrew/opt/ruby@3.3/bin"
+  if File.directory?(ruby_bin_dir)
+    path_entries = child_env.fetch("PATH", "").split(File::PATH_SEPARATOR)
+    unless path_entries.include?(ruby_bin_dir)
+      child_env["PATH"] = ([ ruby_bin_dir ] + path_entries).join(File::PATH_SEPARATOR)
+    end
+  end
+
+  server_pid = nil
+  worker_pid = nil
+
+  begin
+    puts "[e2e] Migrating isolated SQLite DB at #{db_path} (RAILS_ENV=#{rails_env})..."
+    run_command!(child_env, bundle_bin, "exec", "bin/rails", "db:migrate", chdir: API_ROOT)
+
+    puts "[e2e] Verifying ComparisonReconciler runner entrypoint..."
+    run_command!(child_env, bundle_bin, "exec", "bin/rails", "runner", "ComparisonReconciler.reconcile!", chdir: API_ROOT)
+
+    port_1 = free_port
+    puts "[e2e] Starting Solid Queue single worker and Puma server on 127.0.0.1:#{port_1}..."
+    worker_pid = Process.spawn(
+      child_env,
+      bundle_bin, "exec", "bin/jobs",
+      unsetenv_others: true,
+      chdir: API_ROOT,
+      pgroup: true,
+      in: :close,
+      out: [ worker_log, "w" ],
+      err: [ :child, :out ]
+    )
+
+    server_pid = Process.spawn(
+      child_env,
+      bundle_bin, "exec", "bin/rails", "server", "-b", "127.0.0.1", "-p", port_1.to_s, "-P", pidfile_1,
+      unsetenv_others: true,
+      chdir: API_ROOT,
+      pgroup: true,
+      in: :close,
+      out: [ server_log_1, "w" ],
+      err: [ :child, :out ]
+    )
+
+    wait_for_health!(port_1, server_pid, server_log_1)
+
+    before_src = File.read(File.join(REPO_ROOT, "fixtures/demo/before.liquid"), encoding: Encoding::UTF_8)
+    after_src = File.read(File.join(REPO_ROOT, "fixtures/demo/after.liquid"), encoding: Encoding::UTF_8)
+    request_payload = {
+      "schema_version" => 1,
+      "before" => { "source" => before_src },
+      "after" => { "source" => after_src },
+      "observer" => "sale_badge",
+      "seed" => 0,
+      "budget" => {
+        "search_pairs" => 256,
+        "shrink_pairs" => 128
+      }
+    }
+    idempotency_key = "e2e-demo-#{SecureRandom.hex(6)}"
+
+    puts "[e2e] Submitting POST /api/v1/comparisons..."
+    post_res = http_request(
+      :post,
+      "http://127.0.0.1:#{port_1}/api/v1/comparisons",
+      body: JSON.generate(request_payload),
+      headers: { "Idempotency-Key" => idempotency_key }
+    )
+    abort("Expected 202 from POST, got #{post_res.code}: #{post_res.body}") unless post_res.code == "202"
+
+    queued_job = JSON.parse(post_res.body)
+    validate_schema!(job_schemer, queued_job, "queued POST response")
+    job_id = queued_job.fetch("id")
+    abort("Unexpected Location header: #{post_res['Location'].inspect}") unless post_res["Location"] == "/api/v1/comparisons/#{job_id}"
+
+    puts "[e2e] Polling GET /api/v1/comparisons/#{job_id} until terminal..."
+    poll_deadline = monotonic_now + options[:timeout_s]
+    terminal_job = nil
+
+    loop do
+      waited, w_status = Process.waitpid2(worker_pid, Process::WNOHANG)
+      if waited
+        log_tail = File.exist?(worker_log) ? File.read(worker_log)[-2000..] : ""
+        abort("Solid Queue worker exited unexpectedly (status=#{w_status.exitstatus}):\n#{log_tail}")
+      end
+
+      get_res = http_request(:get, "http://127.0.0.1:#{port_1}/api/v1/comparisons/#{job_id}")
+      abort("Expected 200 from GET, got #{get_res.code}: #{get_res.body}") unless get_res.code == "200"
+
+      current = JSON.parse(get_res.body)
+      validate_schema!(job_schemer, current, "polled GET response")
+
+      if %w[difference_found no_difference_found failed].include?(current["status"])
+        terminal_job = current
+        break
+      end
+
+      if monotonic_now >= poll_deadline
+        abort("Timed out after #{options[:timeout_s]}s waiting for #{job_id}; last status=#{current['status']}")
+      end
+
+      sleep(0.2)
+    end
+
+    unless terminal_job["status"] == "difference_found"
+      abort("Expected status 'difference_found', got #{terminal_job['status'].inspect}: #{terminal_job['error'].inspect}")
+    end
+
+    finding = terminal_job.fetch("finding")
+    unless finding.dig("explanation", "kind") == "structural_change" &&
+           finding.dig("before", "observed") != finding.dig("after", "observed") &&
+           finding.dig("reference", "before", "observed") == finding.dig("before", "observed") &&
+           finding.dig("reference", "after", "observed") == finding.dig("after", "observed")
+      abort("Unexpected finding invariants: #{finding.inspect}")
+    end
+
+    replay_post = http_request(
+      :post,
+      "http://127.0.0.1:#{port_1}/api/v1/comparisons",
+      body: JSON.generate(request_payload),
+      headers: { "Idempotency-Key" => idempotency_key }
+    )
+    abort("Expected 200 on terminal idempotency replay, got #{replay_post.code}") unless replay_post.code == "200"
+    abort("Idempotency replay returned different ID") unless JSON.parse(replay_post.body)["id"] == job_id
+
+    ws_payload = JSON.parse(JSON.generate(request_payload))
+    ws_payload["before"]["source"] = "#{before_src} "
+    conflict_post = http_request(
+      :post,
+      "http://127.0.0.1:#{port_1}/api/v1/comparisons",
+      body: JSON.generate(ws_payload),
+      headers: { "Idempotency-Key" => idempotency_key }
+    )
+    abort("Expected 409 on whitespace-different idempotency conflict, got #{conflict_post.code}") unless conflict_post.code == "409"
+    abort("Expected idempotency_conflict code") unless JSON.parse(conflict_post.body).dig("error", "code") == "idempotency_conflict"
+
+    puts "[e2e] Restarting Rails server against same SQLite DB to verify persistence..."
+    stop_process_group(server_pid, label: "rails server 1")
+    server_pid = nil
+
+    port_2 = free_port
+    server_pid = Process.spawn(
+      child_env,
+      bundle_bin, "exec", "bin/rails", "server", "-b", "127.0.0.1", "-p", port_2.to_s, "-P", pidfile_2,
+      unsetenv_others: true,
+      chdir: API_ROOT,
+      pgroup: true,
+      in: :close,
+      out: [ server_log_2, "w" ],
+      err: [ :child, :out ]
+    )
+    wait_for_health!(port_2, server_pid, server_log_2)
+
+    persisted_res = http_request(:get, "http://127.0.0.1:#{port_2}/api/v1/comparisons/#{job_id}")
+    abort("Expected 200 from restarted server GET, got #{persisted_res.code}") unless persisted_res.code == "200"
+    persisted_job = JSON.parse(persisted_res.body)
+    validate_schema!(job_schemer, persisted_job, "restarted server GET response")
+    abort("Persisted ComparisonJob mismatch after restart") unless persisted_job == terminal_job
+
+    [ server_log_1, server_log_2, worker_log ].each do |log_path|
+      next unless File.exist?(log_path)
+
+      text = File.read(log_path, encoding: Encoding::UTF_8)
+      if text.include?("for variant in product.variants") || text.include?("data-regression-badge")
+        abort("Log file #{log_path} leaked Liquid snippet or rendered HTML!")
+      end
+    end
+
+    summary = {
+      "status" => "passed",
+      "rails_env" => rails_env,
+      "comparison_id" => job_id,
+      "result_url" => terminal_job["result_url"],
+      "final_status" => terminal_job["status"],
+      "stats" => terminal_job["stats"],
+      "explanation_kind" => finding.dig("explanation", "kind"),
+      "variants_after_shrink" => finding.dig("replay", "fixture", "variants").size,
+      "idempotency_replay_status" => 200,
+      "idempotency_whitespace_conflict_status" => 409,
+      "persisted_across_restart" => true,
+      "logs_redacted" => true
+    }
+
+    if options[:report_out]
+      out_path = Pathname.new(options[:report_out])
+      FileUtils.mkdir_p(out_path.dirname)
+      out_path.write(JSON.pretty_generate(summary) + "\n")
+    end
+
+    puts "[e2e] PASS: id=#{job_id} status=#{terminal_job['status']} search_pairs=#{terminal_job.dig('stats', 'search_pairs')} shrink_pairs=#{terminal_job.dig('stats', 'shrink_pairs')} persisted_after_restart=true"
+  ensure
+    stop_process_group(server_pid, label: "rails server")
+    stop_process_group(worker_pid, label: "solid_queue worker")
+  end
+end
