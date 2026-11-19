@@ -1,0 +1,9 @@
+{
+  "snippet_path": "snippets/card-product.liquid",
+  "observer": "sale_badge",
+  "seed": 0,
+  "budget": {
+    "search_pairs": 256,
+    "shrink_pairs": 128
+  }
+}

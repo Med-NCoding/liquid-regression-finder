@@ -111,12 +111,29 @@ class WorkerCompileError(WorkerError):
 
 
 def default_repo_root() -> Path:
-    """Return the repository root inferred from search/worker_client.py."""
+    """Return the engine/repository root from LRF_ENGINE_ROOT or inferred from search/worker_client.py."""
+    env_root = os.environ.get("LRF_ENGINE_ROOT", "").strip()
+    if env_root:
+        candidate = Path(env_root)
+        if candidate.is_dir():
+            return candidate.resolve()
     return Path(__file__).resolve().parent.parent
 
 
 def resolve_bundle_executable() -> str:
-    """Resolve `bundle` from PATH (ignoring macOS /usr/bin/bundle stub when Homebrew Ruby 3.3 exists)."""
+    """Resolve `bundle` from LRF_RUBY_BUNDLE or PATH (ignoring macOS /usr/bin/bundle stub when Homebrew Ruby 3.3 exists)."""
+    env_bundle = os.environ.get("LRF_RUBY_BUNDLE", "").strip()
+    if env_bundle:
+        if os.path.isfile(env_bundle) and os.access(env_bundle, os.X_OK):
+            return env_bundle
+        found_override = shutil.which(env_bundle)
+        if found_override:
+            return found_override
+        raise WorkerProtocolError(
+            f"LRF_RUBY_BUNDLE={env_bundle!r} is not an executable file or command on PATH",
+            code="worker_launch_error",
+        )
+
     homebrew_bundle = "/opt/homebrew/opt/ruby@3.3/bin/bundle"
     found = shutil.which("bundle")
     if found:
@@ -279,17 +296,44 @@ class WorkerClient:
             cmd = list(self._command)
         else:
             bundle_exe = resolve_bundle_executable()
-            cmd = [bundle_exe, "exec", "ruby", "reference/bin/worker"]
+            worker_path = self._cwd / "reference" / "bin" / "worker"
+            if not worker_path.is_file() and (self._cwd.parent / "reference" / "bin" / "worker").is_file():
+                worker_arg = str((self._cwd.parent / "reference" / "bin" / "worker").resolve())
+            else:
+                worker_arg = "reference/bin/worker"
+            cmd = [bundle_exe, "exec", "ruby", worker_arg]
             if self._benchmark:
                 cmd.append("--benchmark")
+
+            base_env = dict(os.environ) if child_env is None else child_env
             bundle_dir = os.path.dirname(bundle_exe)
             if bundle_dir:
-                base_env = dict(os.environ) if child_env is None else child_env
                 existing_path = base_env.get("PATH", "")
                 path_parts = existing_path.split(os.pathsep) if existing_path else []
                 if bundle_dir not in path_parts:
                     base_env["PATH"] = f"{bundle_dir}{os.pathsep}{existing_path}" if existing_path else bundle_dir
-                    child_env = base_env
+
+            if not base_env.get("BUNDLE_GEMFILE"):
+                engine_gemfile = self._cwd / "engine" / "Gemfile"
+                engine_vendor = self._cwd / "engine" / "vendor" / "bundle"
+                cwd_gemfile = self._cwd / "Gemfile"
+                cwd_vendor = self._cwd / "vendor" / "bundle"
+                if engine_gemfile.is_file() and engine_vendor.is_dir():
+                    base_env["BUNDLE_GEMFILE"] = str(engine_gemfile)
+                    if not base_env.get("BUNDLE_PATH"):
+                        base_env["BUNDLE_PATH"] = str(engine_vendor)
+                    engine_bundle_cfg = self._cwd / "engine" / ".bundle"
+                    if not base_env.get("BUNDLE_APP_CONFIG") and engine_bundle_cfg.is_dir():
+                        base_env["BUNDLE_APP_CONFIG"] = str(engine_bundle_cfg)
+                elif cwd_gemfile.is_file():
+                    base_env["BUNDLE_GEMFILE"] = str(cwd_gemfile)
+                    if not base_env.get("BUNDLE_PATH") and cwd_vendor.is_dir():
+                        base_env["BUNDLE_PATH"] = str(cwd_vendor)
+                    cwd_bundle_cfg = self._cwd / ".bundle"
+                    if not base_env.get("BUNDLE_APP_CONFIG") and cwd_bundle_cfg.is_dir():
+                        base_env["BUNDLE_APP_CONFIG"] = str(cwd_bundle_cfg)
+
+            child_env = base_env
 
         try:
             proc = subprocess.Popen(

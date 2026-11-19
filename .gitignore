@@ -12,11 +12,16 @@ __pycache__/
 # Ruby / Bundler / Rails
 vendor/bundle/
 api/vendor/bundle/
+engine/vendor/bundle/
 .bundle/
+engine/.bundle/
 api/tmp/
 api/log/
 api/storage/*.sqlite3*
 api/storage/*.db*
+
+# CLI local outputs
+.liquid-regression/
 
 # Node / React
 node_modules/

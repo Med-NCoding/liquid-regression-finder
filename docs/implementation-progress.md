@@ -18,6 +18,7 @@
 | 8 | Rails API and jobs | passed | `bin/check stage-8` | 0 | `api/`, `api/bin/e2e_smoke_check`, `artifacts/stage-8/e2e-smoke-report.json`, `api/test/` |
 | 9 | React results UI | passed | `bin/check stage-9` | 0 | `web/`, `artifacts/stage-9/demo-result-page.png`, `artifacts/stage-9/browser-e2e-report.json` |
 | 10 | PR workflow and release | passed | `bin/check all` | 0 | `comparison-manifest.json`, `snippets/card-product.liquid`, `bin/pr-check`, `.github/workflows/liquid-regression.yml`, `artifacts/stage-10/` |
+| CLI-1 | Connect one-off checks to existing engine | passed | `bin/check cli-stage-1` | 0 | `engine/Gemfile`, `engine/Gemfile.lock`, `liquid-regression.json`, `cli/`, `cli/tests/test_stage1_check_and_replay.mjs` |
 
 ## Stage Details & Checkpoint Log
 
@@ -225,3 +226,16 @@
 - **Gate Command & Exit Status**: `./bin/check all` -> exit `0`; `./bin/verify_clean_checkout` -> exit `0`.
 - **Remaining Tasks**: None (all 10 stages, clean-checkout check, GitHub repository, and Vercel deployment complete).
 - **Next Command**: `./bin/check all`
+
+### Migration Stage 1 — Connect One-Off Checks to the Existing Engine
+- **Status**: `passed`
+- **Completed Tasks**:
+  - **Dedicated Engine Runtime Bundle (`engine/Gemfile`, `engine/Gemfile.lock`, `.gitignore`)**: Created `engine/Gemfile` with only the 4 runtime gems required by `reference/bin/worker` and `interpreter/` (`liquid = 5.14.0`, `nokogiri ~> 1.19.7`, `json_schemer ~> 2.5`, `regexp_parser ~> 2.12.0`), locked `engine/Gemfile.lock` across Darwin/Linux platforms via `/opt/homebrew/opt/ruby@3.3/bin/bundle`, installed into `engine/vendor/bundle/`, and added `engine/vendor/bundle/`, `engine/.bundle/`, and `.liquid-regression/` to `.gitignore`.
+  - **Engine & Bundler Hooks (`search/worker_client.py`, `search/engine.py`)**: Updated `default_repo_root()` to honor `LRF_ENGINE_ROOT` when pointing to a valid directory, updated `resolve_bundle_executable()` and `WorkerClient.start()` to honor `LRF_RUBY_BUNDLE`, preserve `BUNDLE_GEMFILE`/`BUNDLE_PATH`/`BUNDLE_APP_CONFIG`, and boot seamlessly from `engine/Gemfile` + `engine/vendor/bundle` or root `Gemfile`; updated `resolve_runtime_versions()` to fall back to `engine/Gemfile.lock` when root `Gemfile.lock` is absent.
+  - **Repo Config (`liquid-regression.json`, `liquid-regression.example.json`, `cli/lib/config.mjs`, `cli/lib/paths.mjs`)**: Added copyable root configs (`snippets/card-product.liquid`, `sale_badge`, `seed: 0`, `budget: {search_pairs: 256, shrink_pairs: 128}`) and strict config validation rejecting unknown keys, missing configs, invalid UTF-8/JSON, absolute paths, `..` traversal, directories, and symlinks escaping the Git root (normalized with `fs.realpathSync` for macOS `/private/var` vs `/var`), while preserving spaces in repo and snippet paths.
+  - **Git Blob Reader & Engine Runner (`cli/lib/git.mjs`, `cli/lib/engine_runner.mjs`)**: Implemented argv-only `git` / `python` / `bundle` invocations (`shell: false`), `--base-ref` / `--head-ref` resolution (`rev-parse --verify <ref>^{commit}` + `cat-file`), exact raw byte `Buffer` reads from commits and working tree, Python (`LRF_PYTHON` -> `python3.11` -> `python3 >= 3.10`) and Bundler (`LRF_RUBY_BUNDLE` -> `bundle` avoiding `/usr/bin/bundle`) resolution, raw byte temp-file passing, and process-group reaping on signals/timeouts.
+  - **4-Line Formatter, Atomic Replay Writer & CLI (`cli/lib/format.mjs`, `cli/lib/cli.mjs`, `cli/bin/liquid-regression-finder.js`)**: Implemented the 4-line `difference_found` finding formatter extracting real computed operands/subjects (`v2 compared 1c > 0c, true. Badge shown.`, `product compared 0c > 0c, false. Badge absent.`), atomic temp-file + `fs.renameSync` canonical sorted-key UTF-8 `ReplayBundle` writes to `.liquid-regression/result.json` (or `--replay-out`), and `check` / `replay` subcommands (including `--json` and Stage 2/3 stubs for `watch`/`setup`) using 100% Node built-in modules.
+  - **Tests & Gate (`cli/tests/test_stage1_check_and_replay.mjs`, `search/tests/test_engine_fake_worker.py`, `bin/check`)**: Added `cli/tests/test_stage1_check_and_replay.mjs` (`10` `node:test` cases) and `test_engine_root_bundle_env_hooks_and_engine_gemfile_boot` in `search/tests/test_engine_fake_worker.py` (`43` Python tests total), and added `cli-stage-1` (`run_cli_stage_1`, `ensure_engine_bundle`) to `bin/check`.
+- **Verified Commands & Outcomes**:
+  - `./bin/check cli-stage-1` -> exit `0` (`contracts/test_contracts.rb`: `6 runs, 196 assertions, 0 failures`; `search/tests`: `43 tests OK`; `cli/tests/test_stage1_check_and_replay.mjs`: `10/10 tests pass`).
+- **Next Command**: `./bin/check cli-stage-1` (Migration Stage 2: `watch` mode).

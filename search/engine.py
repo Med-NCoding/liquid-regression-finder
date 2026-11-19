@@ -72,7 +72,9 @@ def resolve_runtime_versions(repo_root: Path | None = None) -> RuntimeVersions:
 
     interp_path = root / "interpreter" / "lib" / "liquid_interpreter" / "version.rb"
     ref_path = root / "reference" / "lib" / "liquid_reference" / "version.rb"
-    lock_path = root / "Gemfile.lock"
+    root_lock = root / "Gemfile.lock"
+    engine_lock = root / "engine" / "Gemfile.lock"
+    lock_path = root_lock if root_lock.is_file() else engine_lock
 
     interp_text = interp_path.read_text(encoding="utf-8")
     ref_text = ref_path.read_text(encoding="utf-8")

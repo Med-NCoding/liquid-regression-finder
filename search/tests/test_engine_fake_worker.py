@@ -26,6 +26,8 @@ from search.worker_client import (
     WorkerCompileError,
     WorkerProtocolError,
     WorkerTimeoutError,
+    default_repo_root,
+    resolve_bundle_executable,
 )
 
 
@@ -487,6 +489,42 @@ for line in sys.stdin:
         client.compile(before, before)
         client.close()
         self.assertTrue(_wait_pid_dead(pid), "close() did not reap hung worker process")
+
+    def test_engine_root_bundle_env_hooks_and_engine_gemfile_boot(self) -> None:
+        from unittest import mock
+
+        repo_root = Path(__file__).resolve().parent.parent.parent
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            with mock.patch.dict(os.environ, {"LRF_ENGINE_ROOT": str(tmp_path)}):
+                self.assertEqual(default_repo_root(), tmp_path.resolve())
+            with mock.patch.dict(os.environ, {"LRF_ENGINE_ROOT": str(tmp_path / "does-not-exist")}):
+                self.assertEqual(default_repo_root(), repo_root)
+
+            fake_bundle = tmp_path / "bundle"
+            fake_bundle.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            fake_bundle.chmod(0o755)
+            with mock.patch.dict(os.environ, {"LRF_RUBY_BUNDLE": str(fake_bundle)}):
+                self.assertEqual(resolve_bundle_executable(), str(fake_bundle))
+
+        # Boot real worker from repo root (using engine/Gemfile + engine/vendor/bundle)
+        with WorkerClient(cwd=repo_root) as client_root:
+            res = client_root.compile("ok", "ok", observer="sale_badge")
+            self.assertEqual(res["before_sha256"], hashlib.sha256(b"ok").hexdigest())
+
+        # Boot real worker with cwd=repo_root/engine
+        with WorkerClient(cwd=repo_root / "engine") as client_engine:
+            res = client_engine.compile("ok", "ok", observer="sale_badge")
+            self.assertEqual(res["after_sha256"], hashlib.sha256(b"ok").hexdigest())
+
+        # Preserve explicit BUNDLE_GEMFILE / BUNDLE_PATH / BUNDLE_APP_CONFIG when provided
+        preserved_env = dict(os.environ)
+        preserved_env["BUNDLE_GEMFILE"] = str(repo_root / "Gemfile")
+        preserved_env["BUNDLE_PATH"] = str(repo_root / "vendor" / "bundle")
+        preserved_env["BUNDLE_APP_CONFIG"] = str(repo_root / ".bundle")
+        with WorkerClient(cwd=repo_root, env=preserved_env) as client_preserved:
+            res = client_preserved.compile("ok", "ok", observer="sale_badge")
+            self.assertEqual(res["before_sha256"], hashlib.sha256(b"ok").hexdigest())
 
 
 if __name__ == "__main__":
