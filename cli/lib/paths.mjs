@@ -206,3 +206,22 @@ export function decodeStrictUtf8(buf, label) {
     throw new CliError("invalid_utf8", `${label} is not valid UTF-8: ${err.message}`);
   }
 }
+
+/**
+ * Resolve the replay JSON output target path and display path.
+ */
+export function resolveReplayTarget({ gitRoot, config, cliReplayOut, cwd }) {
+  if (!cliReplayOut) {
+    return {
+      absPath: config.replay_abs_path,
+      displayPath: config.replay_path,
+    };
+  }
+  const absPath = path.resolve(cwd, cliReplayOut);
+  const inspected = resolveRealPathWithAncestors(absPath, "--replay-out");
+  let displayPath = cliReplayOut;
+  if (isPathInside(inspected.realPath, gitRoot)) {
+    displayPath = path.relative(gitRoot, inspected.realPath).split(path.sep).join("/");
+  }
+  return { absPath, displayPath };
+}

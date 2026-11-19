@@ -384,3 +384,17 @@ export function formatReplaySummary(report, { bundleDisplayPath }) {
     `Official Liquid ${liquidVersion} parity confirmed (before: ${refBefore}, after: ${refAfter}).`,
   ].join("\n");
 }
+
+/**
+ * Format an engine failure report into an actionable single-line diagnostic.
+ */
+export function formatEngineFailure(report, snippetPath) {
+  const err = report?.error || {};
+  const code = err.code || "engine_error";
+  const msg = err.message || report?.message || "Comparison engine failed.";
+  const span = err.span;
+  if (span && typeof span.line === "number" && typeof span.column === "number") {
+    return `Error [${code}] (${snippetPath}:${span.line}:${span.column}): ${msg}`;
+  }
+  return `Error [${code}] (${snippetPath}): ${msg}`;
+}

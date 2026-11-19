@@ -20,6 +20,7 @@ Targets:
   stage-9   Run Stage 1-8 regression checks, Stage 9 React typecheck, Vitest UI tests, Vite build, and headless Chrome API-to-browser E2E
   stage-10     Run Stage 1-9 regression checks, PR check unit tests, workflow YAML validation, and Rails+Solid Queue PR dry run
   cli-stage-1  Run Migration Stage 1 checks (engine/Gemfile.lock, contracts, search/tests, and Node CLI Stage 1 check/replay tests)
+  cli-stage-2  Run Migration Stage 1 checks plus Node CLI Stage 2 watch mode tests
   all          Run all stage gates (stage-1 through stage-10)
 USAGE
 }
@@ -606,6 +607,18 @@ run_cli_stage_1() {
   echo "PASS: bin/check cli-stage-1 succeeded."
 }
 
+run_cli_stage_2() {
+  local node_bin
+  node_bin="$(resolve_node)"
+
+  run_cli_stage_1
+
+  echo "==> CLI Stage 2 Gate: Node CLI Stage 2 Tests (watch mode)"
+  "$node_bin" --test "$ROOT_DIR/cli/tests/test_stage2_watch.mjs"
+
+  echo "PASS: bin/check cli-stage-2 succeeded."
+}
+
 if [ $# -ne 1 ]; then
   usage
   exit 2
@@ -644,6 +657,9 @@ case "$1" in
     ;;
   cli-stage-1)
     run_cli_stage_1
+    ;;
+  cli-stage-2)
+    run_cli_stage_2
     ;;
   all)
     run_stage_10

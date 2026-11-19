@@ -177,8 +177,9 @@ export function buildEngineEnv({ engineRoot, bundleBin }) {
   return env;
 }
 
-function terminateChildGroup(child) {
+function terminateChildGroup(child, { graceMs = 600 } = {}) {
   if (!child || child.pid === undefined) return;
+  if (child.exitCode !== null || child.signalCode !== null) return;
   try {
     process.kill(-child.pid, "SIGTERM");
   } catch {
@@ -198,22 +199,38 @@ function terminateChildGroup(child) {
         // Already exited.
       }
     }
-  }, 300);
+  }, graceMs);
   if (typeof killTimer.unref === "function") {
     killTimer.unref();
   }
+  child.once("close", () => {
+    clearTimeout(killTimer);
+  });
 }
 
 /**
- * Execute `[pythonBin, "-m", "search", ...args]` with process-group reaping on timeout/signals.
+ * Execute `[pythonBin, "-m", "search", ...args]` with process-group reaping on timeout/signals/abort.
  */
-export async function runPythonSearch(args, { engineRoot = resolveEngineRoot(), timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
+export async function runPythonSearch(
+  args,
+  {
+    engineRoot = resolveEngineRoot(),
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    signal = null,
+    waitForCloseOnAbort = false,
+  } = {},
+) {
+  if (signal?.aborted) {
+    throw new CliError("aborted", "Search engine run was aborted.");
+  }
+
   const pythonBin = resolvePythonExecutable();
   const bundleBin = resolveBundleExecutable();
   const env = buildEngineEnv({ engineRoot, bundleBin });
 
   return new Promise((resolve, reject) => {
     let settled = false;
+    let aborted = false;
     const stdoutChunks = [];
     const stderrChunks = [];
     let stdoutBytes = 0;
@@ -235,9 +252,13 @@ export async function runPythonSearch(args, { engineRoot = resolveEngineRoot(), 
 
     const cleanupListeners = () => {
       clearTimeout(timeoutId);
-      process.off("SIGINT", onSignal);
-      process.off("SIGTERM", onSignal);
-      process.off("SIGHUP", onSignal);
+      if (signal) {
+        signal.removeEventListener("abort", onAbort);
+      } else {
+        process.off("SIGINT", onSignal);
+        process.off("SIGTERM", onSignal);
+        process.off("SIGHUP", onSignal);
+      }
     };
 
     const failOnce = (cliErr) => {
@@ -252,9 +273,23 @@ export async function runPythonSearch(args, { engineRoot = resolveEngineRoot(), 
       failOnce(new CliError("interrupted", `Interrupted by signal ${sig} while running Liquid engine.`));
     };
 
-    process.on("SIGINT", onSignal);
-    process.on("SIGTERM", onSignal);
-    process.on("SIGHUP", onSignal);
+    const onAbort = () => {
+      if (settled || aborted) return;
+      aborted = true;
+      clearTimeout(timeoutId);
+      terminateChildGroup(child);
+      if (!waitForCloseOnAbort) {
+        failOnce(new CliError("aborted", "Search engine run was aborted."));
+      }
+    };
+
+    if (signal) {
+      signal.addEventListener("abort", onAbort, { once: true });
+    } else {
+      process.on("SIGINT", onSignal);
+      process.on("SIGTERM", onSignal);
+      process.on("SIGHUP", onSignal);
+    }
 
     const timeoutId = setTimeout(() => {
       failOnce(
@@ -266,6 +301,7 @@ export async function runPythonSearch(args, { engineRoot = resolveEngineRoot(), 
     }, timeoutMs);
 
     child.stdout.on("data", (chunk) => {
+      if (aborted) return;
       stdoutBytes += chunk.length;
       if (stdoutBytes > MAX_OUTPUT_BYTES) {
         failOnce(new CliError("response_too_large", "Search engine output exceeded 32 MiB limit."));
@@ -275,6 +311,7 @@ export async function runPythonSearch(args, { engineRoot = resolveEngineRoot(), 
     });
 
     child.stderr.on("data", (chunk) => {
+      if (aborted) return;
       if (stderrBytes < 262_144) {
         const take = Math.min(chunk.length, 262_144 - stderrBytes);
         stderrChunks.push(chunk.subarray(0, take));
@@ -283,22 +320,34 @@ export async function runPythonSearch(args, { engineRoot = resolveEngineRoot(), 
     });
 
     child.on("error", (err) => {
+      if (aborted) {
+        if (settled) return;
+        settled = true;
+        cleanupListeners();
+        reject(new CliError("aborted", "Search engine run was aborted."));
+        return;
+      }
       failOnce(new CliError("engine_launch_error", `Failed executing Python search engine: ${err.message}`));
     });
 
-    child.on("close", (code, signal) => {
+    child.on("close", (code, signalName) => {
       if (settled) return;
       settled = true;
       cleanupListeners();
 
+      if (aborted) {
+        reject(new CliError("aborted", "Search engine run was aborted."));
+        return;
+      }
+
       const stdoutText = Buffer.concat(stdoutChunks).toString("utf8");
       const stderrText = Buffer.concat(stderrChunks).toString("utf8").trim();
 
-      if (signal) {
+      if (signalName) {
         reject(
           new CliError(
             "engine_killed",
-            `Search engine process terminated by signal ${signal}${stderrText ? `: ${stderrText}` : ""}`,
+            `Search engine process terminated by signal ${signalName}${stderrText ? `: ${stderrText}` : ""}`,
           ),
         );
         return;
@@ -337,18 +386,24 @@ export async function runPythonSearch(args, { engineRoot = resolveEngineRoot(), 
 }
 
 /**
- * Run `python -m search compare` passing raw source byte Buffers via secure temp files.
+ * Run `python -m search compare` asynchronously, supporting optional priority fixtures and AbortSignal cancellation.
  */
-export async function runCompare({
+export async function runCompareAsync({
   beforeBytes,
   afterBytes,
   observer = "sale_badge",
   seed = 0,
   searchPairs = 256,
   shrinkPairs = 128,
+  priorityFixtures = [],
   engineRoot = resolveEngineRoot(),
   timeoutMs = DEFAULT_TIMEOUT_MS,
+  signal = null,
 }) {
+  if (signal?.aborted) {
+    throw new CliError("aborted", "Search engine run was aborted.");
+  }
+
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "lrf-compare-"));
   const beforeTmp = path.join(tmpDir, "before.liquid");
   const afterTmp = path.join(tmpDir, "after.liquid");
@@ -357,27 +412,59 @@ export async function runCompare({
     fs.writeFileSync(beforeTmp, beforeBytes);
     fs.writeFileSync(afterTmp, afterBytes);
 
-    return await runPythonSearch(
-      [
-        "compare",
-        "--before",
-        beforeTmp,
-        "--after",
-        afterTmp,
-        "--observer",
-        String(observer),
-        "--seed",
-        String(seed),
-        "--search-pairs",
-        String(searchPairs),
-        "--shrink-pairs",
-        String(shrinkPairs),
-      ],
-      { engineRoot, timeoutMs },
-    );
+    const args = [
+      "compare",
+      "--before",
+      beforeTmp,
+      "--after",
+      afterTmp,
+      "--observer",
+      String(observer),
+      "--seed",
+      String(seed),
+      "--search-pairs",
+      String(searchPairs),
+      "--shrink-pairs",
+      String(shrinkPairs),
+    ];
+
+    for (let idx = 0; idx < priorityFixtures.length; idx += 1) {
+      const pfPath = path.join(tmpDir, `priority-${idx}.json`);
+      fs.writeFileSync(pfPath, JSON.stringify(priorityFixtures[idx]), "utf8");
+      args.push("--priority-fixture", pfPath);
+    }
+
+    return await runPythonSearch(args, {
+      engineRoot,
+      timeoutMs,
+      signal,
+      waitForCloseOnAbort: Boolean(signal),
+    });
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
+}
+
+/**
+ * Start a cancellable `runCompareAsync` task returning `{ promise, cancel }`.
+ */
+export function startCompareTask(options) {
+  const controller = new AbortController();
+  const promise = runCompareAsync({
+    ...options,
+    signal: controller.signal,
+  });
+  return {
+    promise,
+    cancel: () => controller.abort(),
+  };
+}
+
+/**
+ * Run `python -m search compare` passing raw source byte Buffers via secure temp files.
+ */
+export async function runCompare(options) {
+  return runCompareAsync(options);
 }
 
 /**

@@ -9,6 +9,7 @@ import selectors
 import shutil
 import signal
 import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Any, Sequence
@@ -352,14 +353,17 @@ class WorkerClient:
                 code="worker_launch_error",
             ) from exc
 
-        if proc.stdin is None or proc.stdout is None or proc.stderr is None:
+        try:
+            if proc.stdin is None or proc.stdout is None or proc.stderr is None:
+                raise WorkerProtocolError("Worker subprocess pipes were not created", code="worker_launch_error")
+
+            os.set_blocking(proc.stdin.fileno(), False)
+            os.set_blocking(proc.stdout.fileno(), False)
+            os.set_blocking(proc.stderr.fileno(), False)
+        except BaseException:
             self._proc = proc
             self._reap_process_group()
-            raise WorkerProtocolError("Worker subprocess pipes were not created", code="worker_launch_error")
-
-        os.set_blocking(proc.stdin.fileno(), False)
-        os.set_blocking(proc.stdout.fileno(), False)
-        os.set_blocking(proc.stderr.fileno(), False)
+            raise
 
         self._proc = proc
         self._read_buf = bytearray()
@@ -468,12 +472,15 @@ class WorkerClient:
         return payload
 
     def close(self) -> None:
-        """Close the worker cleanly if healthy, or reap its process group on failure."""
+        """Close the worker cleanly if healthy, or reap its process group on failure/signal."""
         if self._closed:
             return
 
+        exc_type = sys.exc_info()[0]
+        unwinding_signal = exc_type is not None and issubclass(exc_type, (KeyboardInterrupt, SystemExit))
+
         try:
-            if self._proc is not None and not self._broken and not self._quit_sent:
+            if not unwinding_signal and self._proc is not None and not self._broken and not self._quit_sent:
                 if self._proc.poll() is None:
                     try:
                         self.quit()

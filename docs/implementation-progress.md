@@ -19,6 +19,7 @@
 | 9 | React results UI | passed | `bin/check stage-9` | 0 | `web/`, `artifacts/stage-9/demo-result-page.png`, `artifacts/stage-9/browser-e2e-report.json` |
 | 10 | PR workflow and release | passed | `bin/check all` | 0 | `comparison-manifest.json`, `snippets/card-product.liquid`, `bin/pr-check`, `.github/workflows/liquid-regression.yml`, `artifacts/stage-10/` |
 | CLI-1 | Connect one-off checks to existing engine | passed | `bin/check cli-stage-1` | 0 | `engine/Gemfile`, `engine/Gemfile.lock`, `liquid-regression.json`, `cli/`, `cli/tests/test_stage1_check_and_replay.mjs` |
+| CLI-2 | Add watch mode | passed | `bin/check cli-stage-2` | 0 | `search/engine.py`, `search/cli.py`, `search/tests/test_priority_fixtures.py`, `cli/lib/watch.mjs`, `cli/tests/test_stage2_watch.mjs` |
 
 ## Stage Details & Checkpoint Log
 
@@ -239,3 +240,23 @@
 - **Verified Commands & Outcomes**:
   - `./bin/check cli-stage-1` -> exit `0` (`contracts/test_contracts.rb`: `6 runs, 196 assertions, 0 failures`; `search/tests`: `43 tests OK`; `cli/tests/test_stage1_check_and_replay.mjs`: `10/10 tests pass`).
 - **Next Command**: `./bin/check cli-stage-1` (Migration Stage 2: `watch` mode).
+
+### Migration Stage 2 — Add Watch Mode
+- **Status**: `passed`
+- **Completed Tasks**:
+  - **Priority Fixture Input & Signal Cleanup (`search/engine.py`, `search/cli.py`, `search/worker_client.py`, `search/tests/test_priority_fixtures.py`)**:
+    - Added optional `priority_fixtures: Sequence[dict[str, Any]] | None = None` to `SearchEngine.compare(...)` and repeatable `--priority-fixture <path>` to `python -m search compare`, validating fixtures via `validate_fixture_dict` (`invalid_fixture` / `input_file_error` exit `2` on malformed JSON, invalid schema, or unreadable files).
+    - Executed valid unique priority fixtures first (up to `budget.search_pairs`), confirming in `custom` (`trace=False`) and `reference` (`trace=False`), passing confirmed hits to `shrink_confirmed_case`, final traced render (`trace=True`), and `build_explanation`, and deduplicating canonical JSON strings across `priority_fixtures` and `CandidateGenerator` (`tested_cache` / `priority_keys`) without double-counting or exceeding `budget.search_pairs`.
+    - Added main-thread `SIGTERM`/`SIGHUP` unwinding in `search/cli.py` + fast `_reap_process_group()` in `WorkerClient.close()` (and `start()` launch guard) so interrupted `python -m search` processes reap their detached Ruby `reference/bin/worker` process groups cleanly before exiting.
+    - Added `5` tests in `search/tests/test_priority_fixtures.py` (`48` Python tests total passing in `search/tests`, 100% Python 3.11 stdlib-only verified).
+  - **Abortable Engine Runner & Shared CLI Helpers (`cli/lib/engine_runner.mjs`, `cli/lib/format.mjs`, `cli/lib/paths.mjs`)**:
+    - Added `runCompareAsync` (with `AbortSignal` support, `--priority-fixture` temp-file passing, and `waitForCloseOnAbort` child reaping) and `startCompareTask`, delegating `runCompare` to `runCompareAsync` and clearing child `SIGKILL` grace timers on close.
+    - Extracted `formatEngineFailure` into `cli/lib/format.mjs` and `resolveReplayTarget` into `cli/lib/paths.mjs` for shared use by `check` and `watch`.
+  - **Watch Mode (`cli/lib/watch.mjs`, `cli/lib/cli.mjs`)**:
+    - Implemented `liquid-regression-finder watch [--base-ref <ref>] [--config <path>] [--seed <n>] [--search-pairs <n>] [--shrink-pairs <n>] [--replay-out <path>]`, resolving `--base-ref` once at startup into memory (`Watching <rel_snippet_path> against <base_ref> (<short_sha>)`) and defaulting to `watch_budget` (`32` / `16`) overridable via `liquid-regression.json` and CLI flags.
+    - Implemented parent-directory `fs.watch` handling editor atomic replacements (`rename`), `250 ms` coalescing debounce, single-flight child execution with `superseded` run termination and complete output/replay/cache suppression, warm `lastConfirmedFixture` priority caching, quiet negative checks resetting `lastPrintedSignature`, atomic `.liquid-regression/result.json` updates with 4-line finding deduplication (emitting updated output on line/operand shifts), resilient exit-`2` error recovery, and clean `SIGINT`/`SIGTERM`/`SIGHUP` shutdown (`exit 0`).
+  - **Migration Stage 2 Note on Migration Stage 1 Regression Test**: Updated section `5g` in `cli/tests/test_stage1_check_and_replay.mjs` from asserting the old `watch` Stage 2 stub to asserting `watch --unknown-flag` (`invalid_args`, exit `2`) alongside the remaining `setup` Stage 3 stub.
+  - **Tests & Gate (`cli/tests/test_stage2_watch.mjs`, `bin/check`)**: Added `cli/tests/test_stage2_watch.mjs` (`7` `node:test` suites covering startup banner & quiet initial check, breaking edit & `.liquid-regression/result.json`, frozen baseline across new commits + warm priority caching + deduplication + line/operand shifts, revert & re-break, `<150 ms` coalescing and mid-flight supersession in both directions, atomic `fs.renameSync` replacement, syntax/missing-file error recovery, `SIGINT`/`SIGTERM` zero-leak `ps` verification, and default/config/CLI budget overrides), and added `cli-stage-2` (`run_cli_stage_2`) to `bin/check`.
+- **Verified Commands & Outcomes**:
+  - `./bin/check cli-stage-2` -> exit `0` (`contracts/test_contracts.rb`: `6 runs, 196 assertions, 0 failures`; `search/tests`: `48 tests OK`; `cli/tests/test_stage1_check_and_replay.mjs`: `10/10 tests pass`; `cli/tests/test_stage2_watch.mjs`: `7/7 tests pass`).
+- **Next Command**: `./bin/check cli-stage-2` (Migration Stage 3: `setup` & `npm pack`).

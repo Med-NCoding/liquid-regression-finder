@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import random
 import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Iterator, Sequence
 
 from .explain import build_explanation
 from .generator import (
@@ -17,7 +18,7 @@ from .generator import (
     CandidateGenerator,
     canonical_json,
 )
-from .shrinker import shrink_confirmed_case
+from .shrinker import shrink_confirmed_case, validate_fixture_dict
 from .worker_client import (
     DEFAULT_JOB_DEADLINE_S,
     DEFAULT_REQUEST_TIMEOUT_S,
@@ -277,6 +278,7 @@ class SearchEngine:
         selector: str | None = None,
         fixed_context: dict[str, Any] | None = None,
         candidate_fixtures: Sequence[dict[str, Any]] | None = None,
+        priority_fixtures: Sequence[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Run deterministic counterexample search for `request` and return a structured report."""
         start_monotonic = time.monotonic()
@@ -298,6 +300,27 @@ class SearchEngine:
                     "selector must be a non-empty string or None",
                 )
             validated = validate_compare_request(request, benchmark=benchmark)
+            validated_priority: list[dict[str, Any]] = []
+            priority_keys: set[str] = set()
+            if priority_fixtures is not None:
+                if isinstance(priority_fixtures, (str, bytes, dict)) or not isinstance(priority_fixtures, Sequence):
+                    raise InvalidCompareRequestError(
+                        "invalid_fixture",
+                        "priority_fixtures must be a sequence of Fixture objects",
+                    )
+                for idx, raw_pf in enumerate(priority_fixtures):
+                    try:
+                        validate_fixture_dict(raw_pf)
+                    except ValueError as exc:
+                        raise InvalidCompareRequestError(
+                            "invalid_fixture",
+                            f"priority_fixtures[{idx}] is invalid: {exc}",
+                        ) from exc
+                    pf_copy = copy.deepcopy(raw_pf)
+                    pf_key = canonical_json(pf_copy)
+                    if pf_key not in priority_keys:
+                        priority_keys.add(pf_key)
+                        validated_priority.append(pf_copy)
         except InvalidCompareRequestError as exc:
             seed_val = request.get("seed") if isinstance(request, dict) and _is_strict_int(request.get("seed")) else None
             return _failed_report(
@@ -368,23 +391,52 @@ class SearchEngine:
             ):
                 raise WorkerProtocolError("Worker compile SHA-256 digest does not match request UTF-8 bytes")
 
-            if candidate_fixtures is not None:
-                bounded_candidates = list(candidate_fixtures[:search_budget])
-                candidate_iter: Any = enumerate(bounded_candidates)
-                generator = None
-                exhausted_by_candidate_space = len(candidate_fixtures) <= search_budget and len(bounded_candidates) < search_budget
-            else:
-                generator = CandidateGenerator(
-                    seed=seed,
-                    max_pairs=search_budget,
-                    max_duplicate_attempts=self._max_duplicate_attempts,
-                    phase1_fixtures=self._phase1_fixtures,
-                    phase2_sampler=self._phase2_sampler,
-                )
-                candidate_iter = enumerate(generator)
-                exhausted_by_candidate_space = False
+            generator: CandidateGenerator | None = None
+            exhausted_by_candidate_space = False
 
-            for candidate_index, fixture in candidate_iter:
+            def _iter_candidates() -> Iterator[tuple[int, dict[str, Any]]]:
+                nonlocal generator, exhausted_by_candidate_space
+                yielded = 0
+
+                for p_fixture in validated_priority:
+                    if yielded >= search_budget:
+                        return
+                    yield yielded, p_fixture
+                    yielded += 1
+
+                if yielded >= search_budget:
+                    return
+
+                if candidate_fixtures is not None:
+                    saw_all_candidates = True
+                    for cand in candidate_fixtures:
+                        if priority_keys and canonical_json(cand) in priority_keys:
+                            continue
+                        if yielded >= search_budget:
+                            saw_all_candidates = False
+                            break
+                        yield yielded, cand
+                        yielded += 1
+                    if saw_all_candidates and yielded < search_budget:
+                        exhausted_by_candidate_space = True
+                else:
+                    generator = CandidateGenerator(
+                        seed=seed,
+                        max_pairs=search_budget,
+                        max_duplicate_attempts=self._max_duplicate_attempts,
+                        phase1_fixtures=self._phase1_fixtures,
+                        phase2_sampler=self._phase2_sampler,
+                    )
+                    for cand in generator:
+                        cand_key = canonical_json(cand)
+                        if cand_key in priority_keys or cand_key in tested_cache:
+                            continue
+                        yield yielded, cand
+                        yielded += 1
+                        if yielded >= search_budget:
+                            break
+
+            for candidate_index, fixture in _iter_candidates():
                 self._check_deadline(deadline_monotonic)
 
                 search_pairs += 1

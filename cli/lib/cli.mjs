@@ -1,9 +1,10 @@
 import path from "node:path";
 import { loadConfig } from "./config.mjs";
 import { runCompare, runReplay } from "./engine_runner.mjs";
-import { formatCompareFinding, formatReplaySummary, writeReplayAtomic } from "./format.mjs";
+import { formatCompareFinding, formatEngineFailure, formatReplaySummary, writeReplayAtomic } from "./format.mjs";
 import { readBlobAtCommit, readWorkingTreeFile, resolveCommitSha, resolveGitRoot } from "./git.mjs";
-import { CliError, isPathInside, resolveEngineRoot, resolveRealPathWithAncestors } from "./paths.mjs";
+import { CliError, resolveEngineRoot, resolveReplayTarget } from "./paths.mjs";
+import { runWatch } from "./watch.mjs";
 
 const CLI_VERSION = "0.1.0";
 const MAX_SEED = 4_294_967_295;
@@ -14,6 +15,7 @@ function usageText() {
   return [
     "Usage:",
     "  liquid-regression-finder check [options]",
+    "  liquid-regression-finder watch [options]",
     "  liquid-regression-finder replay <bundle_path> [--bundle <path>] [--json]",
     "",
     "Check options:",
@@ -21,10 +23,19 @@ function usageText() {
     "  --head-ref <ref>       Optional Git target revision (default: working tree)",
     "  --config <path>        Path to liquid-regression.json (default: <git_root>/liquid-regression.json)",
     "  --seed <n>             Deterministic PRNG seed (0..4294967295)",
-    "  --search-pairs <n>     Search fixture pair budget (1..5000)",
-    "  --shrink-pairs <n>     Shrink candidate pair budget (0..1000)",
+    "  --search-pairs <n>     Search fixture pair budget (1..5000, default: 256)",
+    "  --shrink-pairs <n>     Shrink candidate pair budget (0..1000, default: 128)",
     "  --replay-out <path>    Replay JSON output path (default: .liquid-regression/result.json)",
     "  --json                 Emit structured JSON output",
+    "  -h, --help             Show this help message",
+    "",
+    "Watch options:",
+    "  --base-ref <ref>       Git baseline revision resolved once at startup (default: config base_ref or HEAD)",
+    "  --config <path>        Path to liquid-regression.json (default: <git_root>/liquid-regression.json)",
+    "  --seed <n>             Deterministic PRNG seed (0..4294967295)",
+    "  --search-pairs <n>     Search fixture pair budget (1..5000, default: 32)",
+    "  --shrink-pairs <n>     Shrink candidate pair budget (0..1000, default: 16)",
+    "  --replay-out <path>    Replay JSON output path (default: .liquid-regression/result.json)",
     "  -h, --help             Show this help message",
   ].join("\n");
 }
@@ -40,7 +51,7 @@ function parseStrictIntFlag(rawValue, flagName, min, max) {
   return num;
 }
 
-function parseCheckArgs(args) {
+function parseCompareLikeArgs(args, { commandName, allowHeadRef = false, allowJson = false } = {}) {
   const opts = {
     baseRef: null,
     headRef: null,
@@ -59,7 +70,7 @@ function parseCheckArgs(args) {
       opts.help = true;
       return opts;
     }
-    if (arg === "--json") {
+    if (allowJson && arg === "--json") {
       opts.json = true;
       continue;
     }
@@ -80,6 +91,9 @@ function parseCheckArgs(args) {
         opts.baseRef = takeValue();
         break;
       case "--head-ref":
+        if (!allowHeadRef) {
+          throw new CliError("invalid_args", `Unknown ${commandName} option '${arg}'.`);
+        }
         opts.headRef = takeValue();
         break;
       case "--config":
@@ -101,7 +115,7 @@ function parseCheckArgs(args) {
         }
         break;
       default:
-        throw new CliError("invalid_args", `Unknown check option '${arg}'.`);
+        throw new CliError("invalid_args", `Unknown ${commandName} option '${arg}'.`);
     }
   }
 
@@ -163,33 +177,6 @@ function parseReplayArgs(args) {
   return opts;
 }
 
-function resolveReplayTarget({ gitRoot, config, cliReplayOut, cwd }) {
-  if (!cliReplayOut) {
-    return {
-      absPath: config.replay_abs_path,
-      displayPath: config.replay_path,
-    };
-  }
-  const absPath = path.resolve(cwd, cliReplayOut);
-  const inspected = resolveRealPathWithAncestors(absPath, "--replay-out");
-  let displayPath = cliReplayOut;
-  if (isPathInside(inspected.realPath, gitRoot)) {
-    displayPath = path.relative(gitRoot, inspected.realPath).split(path.sep).join("/");
-  }
-  return { absPath, displayPath };
-}
-
-function formatEngineFailure(report, snippetPath) {
-  const err = report?.error || {};
-  const code = err.code || "engine_error";
-  const msg = err.message || report?.message || "Comparison engine failed.";
-  const span = err.span;
-  if (span && typeof span.line === "number" && typeof span.column === "number") {
-    return `Error [${code}] (${snippetPath}:${span.line}:${span.column}): ${msg}`;
-  }
-  return `Error [${code}] (${snippetPath}): ${msg}`;
-}
-
 function emitErrorOutput(err, { json, stdout, stderr }) {
   const code = err instanceof CliError ? err.code : "cli_error";
   const message = err?.message || String(err);
@@ -214,7 +201,7 @@ function emitErrorOutput(err, { json, stdout, stderr }) {
 async function handleCheck(args, { cwd, stdout, stderr }) {
   let opts;
   try {
-    opts = parseCheckArgs(args);
+    opts = parseCompareLikeArgs(args, { commandName: "check", allowHeadRef: true, allowJson: true });
   } catch (err) {
     return emitErrorOutput(err, { json: args.includes("--json"), stdout, stderr });
   }
@@ -334,6 +321,26 @@ async function handleReplay(args, { cwd, stdout, stderr }) {
   }
 }
 
+async function handleWatch(args, { cwd, stdout, stderr }) {
+  let opts;
+  try {
+    opts = parseCompareLikeArgs(args, { commandName: "watch", allowHeadRef: false, allowJson: false });
+  } catch (err) {
+    return emitErrorOutput(err, { json: false, stdout, stderr });
+  }
+
+  if (opts.help) {
+    stdout.write(usageText() + "\n");
+    return 0;
+  }
+
+  try {
+    return await runWatch(opts, { cwd, stdout, stderr });
+  } catch (err) {
+    return emitErrorOutput(err, { json: false, stdout, stderr });
+  }
+}
+
 /**
  * Main Node CLI entrypoint returning process exit code (0, 1, or 2).
  */
@@ -356,13 +363,10 @@ export async function runCli(
   switch (subcommand) {
     case "check":
       return handleCheck(rest, { cwd, stdout, stderr });
+    case "watch":
+      return handleWatch(rest, { cwd, stdout, stderr });
     case "replay":
       return handleReplay(rest, { cwd, stdout, stderr });
-    case "watch":
-      return emitErrorOutput(
-        new CliError("not_implemented", "'watch' is not implemented until Stage 2."),
-        { json: wantJson, stdout, stderr },
-      );
     case "setup":
       return emitErrorOutput(
         new CliError("not_implemented", "'setup' is not implemented until Stage 3."),
