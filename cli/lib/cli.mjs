@@ -3,10 +3,10 @@ import { loadConfig } from "./config.mjs";
 import { runCompare, runReplay } from "./engine_runner.mjs";
 import { formatCompareFinding, formatEngineFailure, formatReplaySummary, writeReplayAtomic } from "./format.mjs";
 import { readBlobAtCommit, readWorkingTreeFile, resolveCommitSha, resolveGitRoot } from "./git.mjs";
-import { CliError, resolveEngineRoot, resolveReplayTarget } from "./paths.mjs";
+import { CliError, resolveEngineRoot, resolvePackageMetadata, resolveReplayTarget } from "./paths.mjs";
+import { runSetup } from "./setup.mjs";
 import { runWatch } from "./watch.mjs";
 
-const CLI_VERSION = "0.1.0";
 const MAX_SEED = 4_294_967_295;
 const MAX_SEARCH_PAIRS = 5_000;
 const MAX_SHRINK_PAIRS = 1_000;
@@ -14,9 +14,14 @@ const MAX_SHRINK_PAIRS = 1_000;
 function usageText() {
   return [
     "Usage:",
+    "  liquid-regression-finder setup [--json]",
     "  liquid-regression-finder check [options]",
     "  liquid-regression-finder watch [options]",
     "  liquid-regression-finder replay <bundle_path> [--bundle <path>] [--json]",
+    "",
+    "Setup options:",
+    "  --json                 Emit structured JSON output",
+    "  -h, --help             Show this help message",
     "",
     "Check options:",
     "  --base-ref <ref>       Git baseline revision (default: config base_ref or HEAD)",
@@ -177,14 +182,14 @@ function parseReplayArgs(args) {
   return opts;
 }
 
-function emitErrorOutput(err, { json, stdout, stderr }) {
+function emitErrorOutput(err, { json, stdout, stderr, jsonStatus = "failed" }) {
   const code = err instanceof CliError ? err.code : "cli_error";
   const message = err?.message || String(err);
   const span = err instanceof CliError ? err.span : null;
   if (json) {
     const payload = {
       schema_version: 1,
-      status: "failed",
+      status: jsonStatus,
       message,
       error: {
         code,
@@ -196,6 +201,66 @@ function emitErrorOutput(err, { json, stdout, stderr }) {
   }
   stderr.write(`Error [${code}]: ${message}\n`);
   return err instanceof CliError ? err.exitCode : 2;
+}
+
+function parseSetupArgs(args) {
+  const opts = { json: false, help: false };
+  for (const arg of args) {
+    if (arg === "-h" || arg === "--help") {
+      opts.help = true;
+      return opts;
+    }
+    if (arg === "--json") {
+      opts.json = true;
+      continue;
+    }
+    throw new CliError("invalid_args", `Unknown setup option '${arg}'.`);
+  }
+  return opts;
+}
+
+async function handleSetup(args, { stdout, stderr }) {
+  let opts;
+  try {
+    opts = parseSetupArgs(args);
+  } catch (err) {
+    return emitErrorOutput(err, {
+      json: args.includes("--json"),
+      stdout,
+      stderr,
+      jsonStatus: "error",
+    });
+  }
+
+  if (opts.help) {
+    stdout.write(usageText() + "\n");
+    return 0;
+  }
+
+  try {
+    const res = await runSetup();
+    if (res.exitCode === 0) {
+      if (opts.json) {
+        stdout.write(JSON.stringify(res.payload, null, 2) + "\n");
+      } else {
+        stdout.write(res.stdoutText + "\n");
+      }
+      return 0;
+    }
+
+    if (opts.json) {
+      stdout.write(JSON.stringify(res.payload, null, 2) + "\n");
+    }
+    stderr.write(res.stderrText + "\n");
+    return res.exitCode;
+  } catch (err) {
+    return emitErrorOutput(err, {
+      json: opts.json,
+      stdout,
+      stderr,
+      jsonStatus: "error",
+    });
+  }
 }
 
 async function handleCheck(args, { cwd, stdout, stderr }) {
@@ -353,25 +418,22 @@ export async function runCli(
     return 0;
   }
   if (argv[0] === "--version" || argv[0] === "-v") {
-    stdout.write(`liquid-regression-finder ${CLI_VERSION}\n`);
+    const pkgMeta = resolvePackageMetadata(resolveEngineRoot());
+    stdout.write(`liquid-regression-finder ${pkgMeta.version}\n`);
     return 0;
   }
 
   const [subcommand, ...rest] = argv;
-  const wantJson = rest.includes("--json");
 
   switch (subcommand) {
+    case "setup":
+      return handleSetup(rest, { stdout, stderr });
     case "check":
       return handleCheck(rest, { cwd, stdout, stderr });
     case "watch":
       return handleWatch(rest, { cwd, stdout, stderr });
     case "replay":
       return handleReplay(rest, { cwd, stdout, stderr });
-    case "setup":
-      return emitErrorOutput(
-        new CliError("not_implemented", "'setup' is not implemented until Stage 3."),
-        { json: wantJson, stdout, stderr },
-      );
     default:
       stderr.write(`Error [unknown_command]: Unknown subcommand '${subcommand}'.\n\n${usageText()}\n`);
       return 2;

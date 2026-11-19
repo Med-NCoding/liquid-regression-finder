@@ -1,4 +1,6 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -224,4 +226,107 @@ export function resolveReplayTarget({ gitRoot, config, cliReplayOut, cwd }) {
     displayPath = path.relative(gitRoot, inspected.realPath).split(path.sep).join("/");
   }
   return { absPath, displayPath };
+}
+
+function sanitizeCacheSegment(value) {
+  return String(value).replace(/[^A-Za-z0-9._-]/g, "_");
+}
+
+/**
+ * Read package name and version from `<engineRoot>/package.json`.
+ */
+export function resolvePackageMetadata(engineRoot = resolveEngineRoot()) {
+  const pkgPath = path.join(engineRoot, "package.json");
+  try {
+    if (fs.existsSync(pkgPath)) {
+      const parsed = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+      return {
+        name: typeof parsed?.name === "string" && parsed.name ? parsed.name : "liquid-regression-finder",
+        version: typeof parsed?.version === "string" && parsed.version ? parsed.version : "0.1.0",
+      };
+    }
+  } catch {
+    // Fall back to default package metadata.
+  }
+  return { name: "liquid-regression-finder", version: "0.1.0" };
+}
+
+/**
+ * Resolve the base user cache directory (`LRF_CACHE_DIR` or `~/.cache/liquid-regression-finder`).
+ */
+export function resolveCacheBaseDir() {
+  const override = (process.env.LRF_CACHE_DIR || "").trim();
+  if (override) {
+    return path.resolve(override);
+  }
+
+  let homeDir = "";
+  try {
+    homeDir = os.homedir();
+  } catch {
+    homeDir = "";
+  }
+  if (homeDir && homeDir.trim()) {
+    return path.join(homeDir, ".cache", "liquid-regression-finder");
+  }
+
+  const winLocalAppData = (process.env.LOCALAPPDATA || "").trim();
+  if (process.platform === "win32" && winLocalAppData) {
+    return path.join(winLocalAppData, "liquid-regression-finder", "Cache");
+  }
+
+  return path.join(os.tmpdir(), "liquid-regression-finder-cache");
+}
+
+/**
+ * Compute SHA-256 hex digest of `<engineRoot>/engine/Gemfile.lock`.
+ */
+export function computeEngineLockSha256(engineRoot = resolveEngineRoot()) {
+  const lockPath = path.join(engineRoot, "engine", "Gemfile.lock");
+  let bytes;
+  try {
+    bytes = fs.readFileSync(lockPath);
+  } catch (err) {
+    throw new CliError(
+      "missing_engine_lockfile",
+      `Engine lockfile not found at '${lockPath}': ${err.message}`,
+    );
+  }
+  return crypto.createHash("sha256").update(bytes).digest("hex");
+}
+
+/**
+ * Resolve the versioned user gem cache directory and file layout for the active package, Ruby ABI, and lockfile.
+ */
+export function resolveUserGemCacheDir({
+  engineRoot = resolveEngineRoot(),
+  rubyAbi,
+  rubyPlatform = null,
+  cacheBaseDir = resolveCacheBaseDir(),
+} = {}) {
+  const pkgMeta = resolvePackageMetadata(engineRoot);
+  const lockSha256 = computeEngineLockSha256(engineRoot);
+  const lockSha12 = lockSha256.slice(0, 12);
+  const versionToken = sanitizeCacheSegment(pkgMeta.version);
+  const abiToken = sanitizeCacheSegment(rubyAbi || "unknown");
+  const platformToken = rubyPlatform ? `-${sanitizeCacheSegment(rubyPlatform)}` : "";
+  const cacheKey = `v${versionToken}-ruby${abiToken}${platformToken}-${lockSha12}`;
+  const cacheDir = path.join(cacheBaseDir, "gems", cacheKey);
+
+  return {
+    cacheBaseDir,
+    pkgVersion: pkgMeta.version,
+    lockSha256,
+    lockSha12,
+    rubyAbi,
+    rubyPlatform,
+    cacheKey,
+    cacheDir,
+    gemfilePath: path.join(cacheDir, "Gemfile"),
+    lockfilePath: path.join(cacheDir, "Gemfile.lock"),
+    bundlePath: path.join(cacheDir, "vendor", "bundle"),
+    bundleAppConfig: path.join(cacheDir, ".bundle"),
+    vendorCacheDir: path.join(cacheDir, "vendor", "cache"),
+    markerPath: path.join(cacheDir, "env.json"),
+  };
 }

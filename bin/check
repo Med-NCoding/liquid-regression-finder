@@ -21,6 +21,7 @@ Targets:
   stage-10     Run Stage 1-9 regression checks, PR check unit tests, workflow YAML validation, and Rails+Solid Queue PR dry run
   cli-stage-1  Run Migration Stage 1 checks (engine/Gemfile.lock, contracts, search/tests, and Node CLI Stage 1 check/replay tests)
   cli-stage-2  Run Migration Stage 1 checks plus Node CLI Stage 2 watch mode tests
+  cli-stage-3  Run Migration Stage 1-2 checks plus Node CLI Stage 3 npm pack, setup, and external theme tests
   all          Run all stage gates (stage-1 through stage-10)
 USAGE
 }
@@ -619,6 +620,22 @@ run_cli_stage_2() {
   echo "PASS: bin/check cli-stage-2 succeeded."
 }
 
+run_cli_stage_3() {
+  local node_bin npm_bin
+  node_bin="$(resolve_node)"
+  npm_bin="$(resolve_npm)"
+
+  run_cli_stage_2
+
+  echo "==> CLI Stage 3 Gate: Node CLI Stage 3 Tests (npm pack, setup, external theme install)"
+  (
+    export PATH="$(dirname "$node_bin"):$(dirname "$npm_bin"):$PATH"
+    "$node_bin" --test "$ROOT_DIR/cli/tests/test_stage3_npm_package.mjs"
+  )
+
+  echo "PASS: bin/check cli-stage-3 succeeded."
+}
+
 if [ $# -ne 1 ]; then
   usage
   exit 2
@@ -660,6 +677,9 @@ case "$1" in
     ;;
   cli-stage-2)
     run_cli_stage_2
+    ;;
+  cli-stage-3)
+    run_cli_stage_3
     ;;
   all)
     run_stage_10

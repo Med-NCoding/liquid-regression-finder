@@ -1,0 +1,53 @@
+{
+  "name": "liquid-regression-finder",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Check Shopify Liquid product-card snippets on save against a Git baseline and catch sale-badge regressions.",
+  "keywords": [
+    "shopify",
+    "liquid",
+    "regression",
+    "cli",
+    "shopify-theme",
+    "testing"
+  ],
+  "license": "MIT",
+  "author": "Medhansh Negi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Med-NCoding/liquid-regression-finder.git"
+  },
+  "homepage": "https://github.com/Med-NCoding/liquid-regression-finder#readme",
+  "bugs": {
+    "url": "https://github.com/Med-NCoding/liquid-regression-finder/issues"
+  },
+  "bin": {
+    "liquid-regression-finder": "cli/bin/liquid-regression-finder.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "liquid:setup": "liquid-regression-finder setup",
+    "liquid:watch": "liquid-regression-finder watch",
+    "liquid:check": "liquid-regression-finder check --base-ref HEAD",
+    "test": "./bin/check cli-stage-3"
+  },
+  "files": [
+    "LICENSE",
+    "README.md",
+    "docs/setup-guide.md",
+    "cli/bin/liquid-regression-finder.js",
+    "cli/lib/**/*.mjs",
+    "engine/Gemfile",
+    "engine/Gemfile.lock",
+    "interpreter/lib/**/*.rb",
+    "reference/bin/worker",
+    "reference/lib/**/*.rb",
+    "search/*.py",
+    "contracts/schemas/**/*.json",
+    "liquid-regression.example.json",
+    "snippets/card-product.liquid"
+  ]
+}

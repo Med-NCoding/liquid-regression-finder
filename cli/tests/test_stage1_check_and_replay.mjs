@@ -448,15 +448,15 @@ describe("Migration Stage 1: CLI check and replay", () => {
       assert.ok(res.stderr.includes("include"), res.stderr);
     }
 
-    // 5g. Stage 3 stub (`setup`) and invalid `watch` flag return exit 2
+    // 5g. Invalid `watch` and `setup` flags return exit 2 (`invalid_args`)
     {
       const watchErrRes = await runCliBin(["watch", "--unknown-flag"], { cwd: REPO_ROOT });
       assert.equal(watchErrRes.code, 2);
       assert.ok(watchErrRes.stderr.includes("invalid_args"), watchErrRes.stderr);
 
-      const setupRes = await runCliBin(["setup"], { cwd: REPO_ROOT });
-      assert.equal(setupRes.code, 2);
-      assert.ok(setupRes.stderr.includes("Stage 3"), setupRes.stderr);
+      const setupErrRes = await runCliBin(["setup", "--unknown-flag"], { cwd: REPO_ROOT });
+      assert.equal(setupErrRes.code, 2);
+      assert.ok(setupErrRes.stderr.includes("invalid_args"), setupErrRes.stderr);
     }
   });
 

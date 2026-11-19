@@ -20,6 +20,7 @@
 | 10 | PR workflow and release | passed | `bin/check all` | 0 | `comparison-manifest.json`, `snippets/card-product.liquid`, `bin/pr-check`, `.github/workflows/liquid-regression.yml`, `artifacts/stage-10/` |
 | CLI-1 | Connect one-off checks to existing engine | passed | `bin/check cli-stage-1` | 0 | `engine/Gemfile`, `engine/Gemfile.lock`, `liquid-regression.json`, `cli/`, `cli/tests/test_stage1_check_and_replay.mjs` |
 | CLI-2 | Add watch mode | passed | `bin/check cli-stage-2` | 0 | `search/engine.py`, `search/cli.py`, `search/tests/test_priority_fixtures.py`, `cli/lib/watch.mjs`, `cli/tests/test_stage2_watch.mjs` |
+| CLI-3 | Package and install from npm | passed | `bin/check cli-stage-3` | 0 | `package.json`, `LICENSE`, `docs/setup-guide.md`, `cli/lib/setup.mjs`, `cli/tests/test_stage3_npm_package.mjs` |
 
 ## Stage Details & Checkpoint Log
 
@@ -260,3 +261,26 @@
 - **Verified Commands & Outcomes**:
   - `./bin/check cli-stage-2` -> exit `0` (`contracts/test_contracts.rb`: `6 runs, 196 assertions, 0 failures`; `search/tests`: `48 tests OK`; `cli/tests/test_stage1_check_and_replay.mjs`: `10/10 tests pass`; `cli/tests/test_stage2_watch.mjs`: `7/7 tests pass`).
 - **Next Command**: `./bin/check cli-stage-2` (Migration Stage 3: `setup` & `npm pack`).
+
+### Migration Stage 3 — Package and Install from npm
+- **Status**: `passed`
+- **Completed Tasks**:
+  - **Package Manifest, License, & Setup Guide (`package.json`, `LICENSE`, `docs/setup-guide.md`, `.gitignore`)**:
+    - Added root `package.json` (`"name": "liquid-regression-finder"`, `"version": "0.1.0"`, `"type": "module"`, `"private": false`, `"bin": { "liquid-regression-finder": "cli/bin/liquid-regression-finder.js" }`, `"engines": { "node": ">=18.0.0" }`, npm scripts `liquid:setup`/`liquid:watch`/`liquid:check`/`test`, zero external npm `dependencies`) with a strict `"files"` allowlist assembling the tarball directly from `cli/`, `engine/Gemfile*`, `interpreter/lib/**/*.rb`, `reference/bin/worker`, `reference/lib/**/*.rb`, `search/*.py`, `contracts/schemas/**/*.json`, `liquid-regression.example.json`, `snippets/card-product.liquid`, `LICENSE`, `README.md`, and `docs/setup-guide.md`.
+    - Added MIT `LICENSE`, `docs/setup-guide.md`, and `*.tgz` ignore rule in `.gitignore`.
+  - **Installed Package Path Resolution, Versioned User Cache, & Toolchain Checks (`cli/lib/paths.mjs`, `cli/lib/engine_runner.mjs`, `search/worker_client.py`)**:
+    - Resolved bundled engine paths via `import.meta.url` (`cli/lib/paths.mjs`), caller theme paths via `process.cwd()`, and versioned user cache root via `LRF_CACHE_DIR` or `~/.cache/liquid-regression-finder` (`gems/v<pkgVersion>-ruby<abi>-<platform>-<lockSha12>` with `env.json` marker).
+    - Enforced Ruby `>= 3.1` (`RUBY_VERSION` + `RbConfig::CONFIG["ruby_version"]` ABI probe, rejecting macOS `/usr/bin/ruby` `2.6.10` and `/usr/bin/bundle` `1.17.2` while preferring Homebrew Ruby `3.3` + matching `bundle` or `LRF_RUBY`/`LRF_RUBY_BUNDLE` overrides), Python `>= 3.10` (rejecting macOS `/usr/bin/python3` `3.9.6`), Git, Node `>= 18.0.0`, and `LRF_RUBY` forwarding in `search/worker_client.py`.
+    - Updated `buildEngineEnv()` to prefer a verified versioned user cache entry first, fall back to repo-local `engine/vendor/bundle` for checkout development, and otherwise throw `CliError("setup_required", ...)` (exit `2`).
+  - **`setup` Subcommand & Startup Runtime Check (`cli/lib/setup.mjs`, `cli/lib/cli.mjs`, `cli/lib/watch.mjs`)**:
+    - Implemented `liquid-regression-finder setup [--json] [-h|--help]` checking all 5 prerequisites with exact version diagnostics and OS remediation commands (`status: "error"`, exit `2` on failure), copying `engine/Gemfile` + `engine/Gemfile.lock` into the versioned user cache and running `bundle install` (supporting `LRF_GEM_CACHE` offline `--local` frozen install as well as live `rubygems.org` and idempotent cache reuse without mutating `node_modules/`), and executing a two-case end-to-end smoke check (unchanged `no_difference_found` + known `sale_badge` regression confirmed by official `liquid 5.14.0`) before writing `env.json` and exiting `0`.
+    - Updated `cli/lib/watch.mjs` to validate `resolveEngineRuntime()` at startup so missing prerequisites or `setup_required` fail fast with exit `2`.
+  - **Migration Stage 3 Note on Migration Stage 1 Regression Test**: Updated section `5g` in `cli/tests/test_stage1_check_and_replay.mjs` from asserting the old `setup` Stage 3 stub to asserting `setup --unknown-flag` (`invalid_args`, exit `2`).
+  - **Tests & Gate (`cli/tests/test_stage3_npm_package.mjs`, `bin/check`)**:
+    - Added `cli/tests/test_stage3_npm_package.mjs` (`3` `node:test` suites covering `npm pack` + `tar -ztf` allowlist/exclusion verification, isolated external theme repo `npm install --offline`, `setup_required` before `setup`, missing/incompatible prerequisite diagnostics for `python`/`ruby`/`bundler`/`git`, `setup --json` & idempotent reuse into `LRF_CACHE_DIR` with zero `node_modules` mutation, `check`/`replay`/`watch` + `SIGINT` cleanup with zero Rails/React stack, and space-containing repo + `LRF_CACHE_DIR` paths).
+    - Added `cli-stage-3` (`run_cli_stage_3`) to `bin/check`.
+- **Verified Commands & Outcomes**:
+  - `./bin/check cli-stage-1` -> exit `0` (`contracts/test_contracts.rb`: `6 runs, 196 assertions, 0 failures`; `search/tests`: `48 tests OK`; `cli/tests/test_stage1_check_and_replay.mjs`: `10/10 tests pass`).
+  - `./bin/check cli-stage-2` -> exit `0` (includes `cli-stage-1` + `cli/tests/test_stage2_watch.mjs`: `7/7 tests pass`).
+  - `./bin/check cli-stage-3` -> exit `0` (includes `cli-stage-1` + `cli-stage-2` + `cli/tests/test_stage3_npm_package.mjs`: `3/3 tests pass`).
+- **Next Command**: `./bin/check cli-stage-3` (Migration Stage 4: Make the CLI the documented entry point).

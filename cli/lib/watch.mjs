@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { loadConfig } from "./config.mjs";
-import { runCompareAsync } from "./engine_runner.mjs";
+import { resolveEngineRuntime, runCompareAsync } from "./engine_runner.mjs";
 import { formatCompareFinding, formatEngineFailure, writeReplayAtomic } from "./format.mjs";
 import { readBlobAtCommit, readWorkingTreeFile, resolveCommitSha, resolveGitRoot } from "./git.mjs";
 import { CliError, isPathInside, resolveEngineRoot, resolveReplayTarget } from "./paths.mjs";
@@ -33,6 +33,7 @@ export async function runWatch(
     cwd,
   });
   const engineRoot = resolveEngineRoot();
+  const runtime = resolveEngineRuntime({ engineRoot });
 
   const baseSha = resolveCommitSha(gitRoot, baseRef, "base-ref");
   const shortSha = baseSha.slice(0, 7);
@@ -176,6 +177,7 @@ export async function runWatch(
         shrinkPairs,
         priorityFixtures,
         engineRoot,
+        runtime,
         signal: abortController.signal,
       });
       runState.promise = runPromise;

@@ -23,6 +23,9 @@ api/storage/*.db*
 # CLI local outputs
 .liquid-regression/
 
+# npm pack artifacts
+*.tgz
+
 # Node / React
 node_modules/
 web/node_modules/

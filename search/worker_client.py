@@ -302,11 +302,28 @@ class WorkerClient:
                 worker_arg = str((self._cwd.parent / "reference" / "bin" / "worker").resolve())
             else:
                 worker_arg = "reference/bin/worker"
-            cmd = [bundle_exe, "exec", "ruby", worker_arg]
+
+            base_env = dict(os.environ) if child_env is None else child_env
+            env_ruby = base_env.get("LRF_RUBY", "").strip()
+            ruby_arg = "ruby"
+            if env_ruby:
+                ruby_dir = os.path.dirname(env_ruby)
+                if ruby_dir:
+                    existing_path = base_env.get("PATH", "")
+                    path_parts = existing_path.split(os.pathsep) if existing_path else []
+                    if ruby_dir not in path_parts:
+                        base_env["PATH"] = f"{ruby_dir}{os.pathsep}{existing_path}" if existing_path else ruby_dir
+                if os.path.isfile(env_ruby) and os.access(env_ruby, os.X_OK):
+                    ruby_arg = env_ruby
+                else:
+                    found_ruby = shutil.which(env_ruby, path=base_env.get("PATH"))
+                    if found_ruby:
+                        ruby_arg = found_ruby
+
+            cmd = [bundle_exe, "exec", ruby_arg, worker_arg]
             if self._benchmark:
                 cmd.append("--benchmark")
 
-            base_env = dict(os.environ) if child_env is None else child_env
             bundle_dir = os.path.dirname(bundle_exe)
             if bundle_dir:
                 existing_path = base_env.get("PATH", "")
