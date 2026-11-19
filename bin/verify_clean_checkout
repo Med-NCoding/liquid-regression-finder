@@ -53,13 +53,17 @@ run_verification() {
   echo "Temp export: $TMP_CHECKOUT"
   echo ""
 
-  echo "==> Exporting clean source tree (excluding bundles, node_modules, web/dist, SQLite DBs, tmp/logs)..."
+  echo "==> Exporting clean source tree (excluding bundles, node_modules, web/dist, SQLite DBs, CLI cache/tarballs, tmp/logs)..."
   rsync -a \
     --exclude='.git/' \
     --exclude='vendor/bundle/' \
     --exclude='api/vendor/bundle/' \
+    --exclude='engine/vendor/bundle/' \
     --exclude='.bundle/' \
     --exclude='api/.bundle/' \
+    --exclude='engine/.bundle/' \
+    --exclude='.liquid-regression/' \
+    --exclude='*.tgz' \
     --exclude='node_modules/' \
     --exclude='web/node_modules/' \
     --exclude='web/dist/' \
@@ -79,6 +83,10 @@ run_verification() {
   for absent in \
     "$TMP_CHECKOUT/vendor/bundle" \
     "$TMP_CHECKOUT/api/vendor/bundle" \
+    "$TMP_CHECKOUT/engine/vendor/bundle" \
+    "$TMP_CHECKOUT/engine/.bundle" \
+    "$TMP_CHECKOUT/.liquid-regression" \
+    "$TMP_CHECKOUT/node_modules" \
     "$TMP_CHECKOUT/web/node_modules" \
     "$TMP_CHECKOUT/web/dist"
   do
@@ -87,6 +95,10 @@ run_verification() {
       exit 1
     fi
   done
+  if find "$TMP_CHECKOUT" -maxdepth 1 -name '*.tgz' | grep -q .; then
+    echo "ERROR: Clean export unexpectedly contained root .tgz artifact(s)" >&2
+    exit 1
+  fi
 
   cd "$TMP_CHECKOUT"
 
@@ -135,6 +147,11 @@ run_verification() {
     --report-out "$TMP_CHECKOUT/artifacts/tmp/clean-pr-dry-run.json" \
     --summary-out "$TMP_CHECKOUT/artifacts/tmp/clean-pr-dry-run-summary.md"
   echo "[clean-checkout] PR dry run PASS (exit=0)"
+
+  if find "$TMP_CHECKOUT" -maxdepth 1 -name '*.tgz' | grep -q .; then
+    echo "ERROR: Clean-checkout run left unexpected root .tgz artifact(s)" >&2
+    exit 1
+  fi
 
   echo ""
   echo "PASS: Clean-checkout verification succeeded (./bin/setup, ./bin/check all, CLI demo + replay, benchmark, PR dry run)."

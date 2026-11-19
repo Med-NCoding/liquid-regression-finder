@@ -55,80 +55,130 @@ jobs:
         with:
           python-version-file: ".python-version"
 
-      - name: Install root and API bundles from lockfiles
-        run: |
-          bundle config set --local path vendor/bundle
-          BUNDLE_FROZEN=true bundle install
-          (
-            cd api
-            bundle config set --local path vendor/bundle
-            BUNDLE_FROZEN=true bundle install
-          )
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
 
-      - name: Run PR snippet comparison check
-        env:
-          LIQUID_REGRESSION_API_TOKEN: ${{ secrets.LIQUID_REGRESSION_API_TOKEN }}
-          LIQUID_REGRESSION_API_URL: ${{ vars.LIQUID_REGRESSION_API_URL }}
-          LIQUID_REGRESSION_WEB_URL: ${{ vars.LIQUID_REGRESSION_WEB_URL }}
-          GITHUB_EVENT_HEAD_FORK: ${{ github.event.pull_request.head.repo.fork }}
+      - name: Cache Liquid engine gem bundle
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/liquid-regression-finder
+          key: ${{ runner.os }}-lrf-gems-${{ hashFiles('.ruby-version', 'engine/Gemfile.lock') }}
+
+      - name: Pack and install CLI and initialize engine cache
         run: |
           set -euo pipefail
-          API_URL="${LIQUID_REGRESSION_API_URL:-}"
-          WEB_URL="${LIQUID_REGRESSION_WEB_URL:-$API_URL}"
-          SERVER_PID=""
-          WORKER_PID=""
-          TMP_WORK_DIR=""
+          mkdir -p "$RUNNER_TEMP/lrf-pack"
+          TARBALL_NAME="$(npm pack --pack-destination "$RUNNER_TEMP/lrf-pack" | tail -n 1)"
+          TARBALL="$RUNNER_TEMP/lrf-pack/$TARBALL_NAME"
+          npm install --no-save --no-audit --no-fund "$TARBALL"
+          npx --no-install liquid-regression-finder setup
 
-          cleanup() {
-            if [ -n "$SERVER_PID" ]; then
-              kill -TERM "$SERVER_PID" 2>/dev/null || true
-            fi
-            if [ -n "$WORKER_PID" ]; then
-              kill -TERM "$WORKER_PID" 2>/dev/null || true
-            fi
-            if [ -n "$TMP_WORK_DIR" ]; then
-              rm -rf "$TMP_WORK_DIR"
-            fi
-          }
-          trap cleanup EXIT
+      - name: Run CLI snippet regression check
+        id: snippet-check
+        run: |
+          set -euo pipefail
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          OUT_FILE="$RUNNER_TEMP/lrf-check-stdout.txt"
+          ERR_FILE="$RUNNER_TEMP/lrf-check-stderr.txt"
 
-          if [ -z "$API_URL" ]; then
-            TMP_WORK_DIR="$(mktemp -d)"
-            PORT="$(python3.11 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
-            export RAILS_ENV=production
-            export LIQUID_REGRESSION_DB_PATH="$TMP_WORK_DIR/pr_check_production.sqlite3"
-            export LIQUID_REGRESSION_REPO_ROOT="$PWD"
-            export RAILS_FORCE_SSL=false
-            export SOLID_QUEUE_SKIP_RECURRING=true
-            export JOB_CONCURRENCY=1
-            export SECRET_KEY_BASE="$(python3.11 -c 'import secrets; print(secrets.token_hex(64))')"
+          set +e
+          npx --no-install liquid-regression-finder check \
+            --base-ref "$BASE_SHA" \
+            --head-ref "$HEAD_SHA" \
+            --search-pairs 256 \
+            --shrink-pairs 128 \
+            --replay-out .liquid-regression/result.json \
+            >"$OUT_FILE" 2>"$ERR_FILE"
+          RC=$?
+          set -e
 
-            (
-              cd api
-              bundle exec ruby bin/rails db:migrate
-              bundle exec bin/jobs > "$TMP_WORK_DIR/worker.log" 2>&1 &
-              echo $! > "$TMP_WORK_DIR/worker.pid"
-              bundle exec ruby bin/rails server -b 127.0.0.1 -p "$PORT" -P "$TMP_WORK_DIR/puma.pid" > "$TMP_WORK_DIR/server.log" 2>&1 &
-              echo $! > "$TMP_WORK_DIR/server.pid"
-            )
-            WORKER_PID="$(cat "$TMP_WORK_DIR/worker.pid")"
-            SERVER_PID="$(cat "$TMP_WORK_DIR/server.pid")"
-
-            for _ in $(seq 1 60); do
-              if python3.11 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:${PORT}/api/v1/health', timeout=2).read()" >/dev/null 2>&1; then
-                break
-              fi
-              sleep 0.5
-            done
-
-            API_URL="http://127.0.0.1:${PORT}"
-            WEB_URL="${WEB_URL:-$API_URL}"
+          if [ -s "$OUT_FILE" ]; then
+            cat "$OUT_FILE"
+          fi
+          if [ -s "$ERR_FILE" ]; then
+            cat "$ERR_FILE" >&2
           fi
 
-          ./bin/pr-check \
-            --manifest comparison-manifest.json \
-            --base-sha "${{ github.event.pull_request.base.sha }}" \
-            --head-sha "${{ github.event.pull_request.head.sha }}" \
-            --repo "${{ github.repository }}" \
-            --api-url "$API_URL" \
-            --web-url "$WEB_URL"
+          HAS_ARTIFACT="false"
+          if [ "$RC" -eq 0 ]; then
+            {
+              echo "### Liquid Regression Check: Passed (\`no_difference_found\`)"
+              echo ""
+              echo "- **Base**: \`${BASE_SHA}\`"
+              echo "- **Head**: \`${HEAD_SHA}\`"
+              echo "- **Budget**: \`search_pairs=256\`, \`shrink_pairs=128\`"
+              echo "- **Result**: No sale-badge difference found within search budget."
+            } >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$RC" -eq 1 ]; then
+            HAS_ARTIFACT="true"
+            mkdir -p .liquid-regression
+            {
+              echo "Status: difference_found (exit 1)"
+              echo "Base: ${BASE_SHA}"
+              echo "Head: ${HEAD_SHA}"
+              echo "Budget: search_pairs=256, shrink_pairs=128"
+              echo ""
+              cat "$OUT_FILE"
+            } > .liquid-regression/summary.txt
+            {
+              echo "### Liquid Regression Check: Regression Found (exit \`1\`)"
+              echo ""
+              echo "- **Base**: \`${BASE_SHA}\`"
+              echo "- **Head**: \`${HEAD_SHA}\`"
+              echo "- **Budget**: \`search_pairs=256\`, \`shrink_pairs=128\`"
+              echo "- **Artifacts**: \`.liquid-regression/result.json\` and \`.liquid-regression/summary.txt\`"
+              echo ""
+              echo '```text'
+              cat "$OUT_FILE"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            HAS_ARTIFACT="true"
+            mkdir -p .liquid-regression
+            {
+              echo "Status: error (exit ${RC})"
+              echo "Base: ${BASE_SHA}"
+              echo "Head: ${HEAD_SHA}"
+              echo "Budget: search_pairs=256, shrink_pairs=128"
+              echo ""
+              if [ -s "$ERR_FILE" ]; then
+                cat "$ERR_FILE"
+              fi
+              if [ -s "$OUT_FILE" ]; then
+                cat "$OUT_FILE"
+              fi
+            } > .liquid-regression/summary.txt
+            {
+              echo "### Liquid Regression Check: Failed (exit \`${RC}\`)"
+              echo ""
+              echo "- **Base**: \`${BASE_SHA}\`"
+              echo "- **Head**: \`${HEAD_SHA}\`"
+              echo "- **Summary artifact**: \`.liquid-regression/summary.txt\`"
+              echo ""
+              echo '```text'
+              if [ -s "$ERR_FILE" ]; then
+                cat "$ERR_FILE"
+              fi
+              if [ -s "$OUT_FILE" ]; then
+                cat "$OUT_FILE"
+              fi
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          echo "has_artifact=${HAS_ARTIFACT}" >> "$GITHUB_OUTPUT"
+          exit "$RC"
+
+      - name: Upload regression replay and summary artifacts
+        if: always() && steps.snippet-check.outputs.has_artifact == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: liquid-regression-artifacts
+          path: |
+            .liquid-regression/result.json
+            .liquid-regression/summary.txt
+          if-no-files-found: ignore
+          retention-days: 14

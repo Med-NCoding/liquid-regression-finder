@@ -1214,9 +1214,9 @@
   },
   "error": null,
   "timings": {
-    "compile_ms": 259,
+    "compile_ms": 242,
     "custom_render_ms": 0,
     "reference_render_ms": 0,
-    "elapsed_ms": 261
+    "elapsed_ms": 244
   }
 }

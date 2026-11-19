@@ -1,208 +1,271 @@
 # Shopify Liquid Regression Finder
 
-`liquid-regression-finder` is a pull-request and CLI analysis tool that compares `before` and `after` Shopify Liquid product-card snippets, deterministically searches for a product fixture where sale-badge presence (`[data-regression-badge="sale"]`) diverges, verifies both outputs against the official `liquid` Ruby gem (`5.14.0`), minimizes the counterexample, and outputs a replayable bundle with trace-anchored source explanations.
-
-The public API, web UI, and PR workflow analyze standalone product-card fragments for the `sale_badge` observer. The Dawn corpus benchmark extends the same engine with benchmark-only `sold_out_badge` and `price_range` observers.
+`liquid-regression-finder` is a local npm CLI (and optional web demo) that checks Shopify Liquid product-card snippets on save or in CI against a Git baseline, deterministically searches for a product fixture where sale-badge presence (`[data-regression-badge="sale"]`) diverges, verifies both outputs against the official `liquid` Ruby gem (`5.14.0`), minimizes the counterexample, and saves a deterministic replay bundle.
 
 ---
 
-## Architecture
+## Quickstart: npm CLI Developer Workflow
 
-```mermaid
-flowchart TD
-    PR["PR workflow (bin/pr-check) or Local CLI"] --> API["Rails 8 Comparison API"]
-    API --> DB["SQLite + Solid Queue Records"]
-    API --> Job["Active Job Worker (ComparisonRunJob)"]
-    Job --> Search["Python 3.11 Search & Shrink (search/)"]
-    Search --> Worker["Persistent Ruby JSONL Worker (reference/bin/worker)"]
-    Worker --> Custom["Custom LiquidInterpreter (0.1.0)"]
-    Worker --> Ref["Official Liquid Renderer (liquid 5.14.0)"]
-    Search --> Job
-    Job --> DB
-    DB --> API
-    API --> UI["React + TypeScript Results UI (web/)"]
-```
+### 1. Prerequisites
 
-| Path | Purpose |
-| --- | --- |
-| [`interpreter/`](interpreter/) | Custom UTF-8 Liquid lexer, parser, AST, evaluator, tracer, resource limits, and `liquid-spec` adapter |
-| [`reference/`](reference/) | Official `liquid 5.14.0` renderer, `PROJECTION_VERSION = "1.0.0"`, Nokogiri HTML observer, storefront probe, and JSONL worker |
-| [`search/`](search/) | Python 3.11 stdlib-only deterministic generator (`1.0.0`), search engine, lexicographic shrinker, trace-aligned explainer, and CLI (`compare`, `replay`) |
-| [`contracts/`](contracts/) | Draft 2020-12 JSON Schemas, valid/invalid examples, schema tests, and frozen `liquid-spec` conformance manifest |
-| [`bench/`](bench/) | Verified 15-case `Shopify/dawn` corpus, `shopifypartners/product-csvs` sample baseline (`60` products), benchmark runner, and generated reports |
-| [`fixtures/`](fixtures/) | Demo snippets (`fixtures/demo/`), ordinary parity controls (`fixtures/ordinary/`), Dawn witnesses (`fixtures/witnesses/`), and storefront probe matrix |
-| [`snippets/`](snippets/) | Watched repo-relative snippet [`snippets/card-product.liquid`](snippets/card-product.liquid) configured by [`comparison-manifest.json`](comparison-manifest.json) |
-| [`api/`](api/) | Rails `8.1.4.1` API-mode server, SQLite persistence, Solid Queue worker, lease reconciliation, and log redaction |
-| [`web/`](web/) | React `19.3.1` + TypeScript `5.9.3` submission/results UI, Vite dev proxy, Vitest tests, Playwright E2E, and Vercel API handlers |
-| [`bin/`](bin/) | [`bin/setup`](bin/setup), [`bin/check`](bin/check), [`bin/pr-check`](bin/pr-check), [`bin/pr_dry_run`](bin/pr_dry_run), and [`bin/verify_clean_checkout`](bin/verify_clean_checkout) |
-| [`.github/workflows/`](.github/workflows/liquid-regression.yml) | CI verification and fork-safe PR snippet check workflow |
+`liquid-regression-finder` runs locally in your Shopify theme repository without Rails or React. System prerequisites (see [`docs/setup-guide.md`](docs/setup-guide.md) for OS package commands):
 
----
+- **Git** (`git` on `PATH`)
+- **Node.js** `>= 18.0.0` (verified with `v24.15.0` / `npm 11.12.1`)
+- **Python** `>= 3.10` (`python3.11` recommended; macOS `/usr/bin/python3` `3.9` is rejected)
+- **Ruby** `>= 3.1` (`ruby@3.3` recommended; macOS `/usr/bin/ruby` `2.6.10` is rejected) and matching **Bundler** (`>= 2.0.0`)
 
-## Pinned Toolchain & One-Command Setup
+### 2. Install & Initialize Engine Cache
 
-Pinned tool and lockfile versions (full inventory in [`docs/toolchain-versions.md`](docs/toolchain-versions.md)):
-
-- **Ruby**: `3.3.13` (`.ruby-version`), **Bundler**: `4.0.23` (`liquid 5.14.0`, `liquid-spec 2.0.0` @ `84bf25e0edbca5f7e530574788b0f875ab331f50`, `nokogiri 1.19.7`, `json_schemer 2.5.0`, `rails 8.1.4.1`, `solid_queue 1.7.2`, `sqlite3 2.10.2`)
-- **Python**: `3.11.18` (`.python-version`) — 100% standard library across [`search/`](search/) and [`bin/pr-check`](bin/pr-check)
-- **Node.js**: `24.15.0` (`.node-version`), **npm**: `11.12.1` (`react 19.3.1`, `typescript 5.9.3`, `vite 7.3.8`, `vitest 3.2.7`, `playwright-core 1.65.1`)
-
-Install all locked dependencies and verify every stage gate (`stage-1` through `stage-10`) from a clean checkout:
+Install from a packed tarball (or by package name once published to npm):
 
 ```sh
-./bin/setup
-./bin/check all
+npm install -D /path/to/liquid-regression-finder.tgz
+# Or once published to npm:
+# npm install -D liquid-regression-finder
 ```
 
-Run an individual stage gate or standalone clean-checkout verification:
+Verify prerequisites, install locked Ruby engine gems (`engine/Gemfile.lock`) into a versioned user cache (`~/.cache/liquid-regression-finder/...` or `$LRF_CACHE_DIR`) without modifying `node_modules/`, and run the built-in smoke check:
 
 ```sh
-./bin/check stage-10
-./bin/verify_clean_checkout
+npx liquid-regression-finder setup
 ```
 
----
+### 3. Configure Your Theme Repo
 
-## CLI Quickstart (`search`)
+Create `liquid-regression.json` at your Git repository root (copyable from [`liquid-regression.example.json`](liquid-regression.example.json)):
 
-Run deterministic counterexample search + shrink + explanation on the demo snippets (outputs machine-readable JSON to `stdout`, diagnostics to `stderr`):
-
-```sh
-python3.11 -m search compare \
-  --before fixtures/demo/before.liquid \
-  --after fixtures/demo/after.liquid \
-  --observer sale_badge \
-  --seed 0 \
-  --search-pairs 256 \
-  --shrink-pairs 128 \
-  --replay-out artifacts/stage-5/demo-replay.json
+```json
+{
+  "snippet_path": "snippets/card-product.liquid",
+  "observer": "sale_badge",
+  "seed": 0,
+  "budget": {
+    "search_pairs": 256,
+    "shrink_pairs": 128
+  },
+  "watch_budget": {
+    "search_pairs": 32,
+    "shrink_pairs": 16
+  }
+}
 ```
 
-Replay a saved canonical `ReplayBundle` in a fresh process without search or shrink:
+Ignore generated replay artifacts in `.gitignore`:
 
-```sh
-python3.11 -m search replay --bundle artifacts/stage-5/demo-replay.json
+```gitignore
+.liquid-regression/
 ```
 
-From the Stage 5 demo artifacts ([`artifacts/stage-5/demo-compare.json`](artifacts/stage-5/demo-compare.json)):
-- `compare` discovers a counterexample at candidate index `55` (`56` search pairs), minimizes it to `2` variants in `28` shrink pairs (`local_fixed_point: true`), confirms `before.observed=true` vs `after.observed=false` in both `LiquidInterpreter` (`0.1.0`) and official `liquid 5.14.0`, and reports a `structural_change` explanation linking `before` line `3` (`variant_id="v2"`) to `after` line `1`.
-- `replay` reproduces identical HTML outputs, trace events, and official Liquid observations ([`artifacts/stage-5/demo-replay-result.json`](artifacts/stage-5/demo-replay-result.json)).
+Add `liquid:watch` alongside your existing dev scripts in `package.json`:
+
+```json
+{
+  "scripts": {
+    "dev": "shopify theme dev",
+    "liquid:watch": "liquid-regression-finder watch",
+    "liquid:check": "liquid-regression-finder check --base-ref HEAD"
+  }
+}
+```
+
+### 4. Daily Commands
+
+- **Watch on save** (resolves `--base-ref` once at startup, defaults to `HEAD` and `watch_budget` `32`/`16`, debounces `250 ms`, stays quiet on negative checks, writes `.liquid-regression/result.json` on findings, and stops cleanly on `Ctrl-C`):
+
+  ```sh
+  npx liquid-regression-finder watch
+  ```
+
+  > **Tip:** Override budgets per run when needed (for example, `--search-pairs 64 --shrink-pairs 32` to catch multi-variant regressions beyond the first 32 boundary candidates while watching).
+
+- **One-off check** (working tree vs `HEAD` with `budget` `256`/`128`, or two explicit Git commits for CI):
+
+  ```sh
+  npx liquid-regression-finder check --base-ref HEAD
+  npx liquid-regression-finder check --base-ref <base_sha> --head-ref <head_sha> --search-pairs 256 --shrink-pairs 128 --replay-out .liquid-regression/result.json
+  ```
+
+- **Deterministic replay** (verifies saved `.liquid-regression/result.json` in a fresh process against official `liquid 5.14.0` without searching):
+
+  ```sh
+  npx liquid-regression-finder replay .liquid-regression/result.json
+  ```
+
+- **Machine-readable JSON output**: pass `--json` to `setup`, `check`, or `replay`.
 
 ### CLI Exit Codes
 
-| Command | Exit `0` | Exit `1` | Exit `2` |
+| Exit Code | `check` | `watch` | `replay` | `setup` |
+| --- | --- | --- | --- | --- |
+| `0` | `no_difference_found` | Clean `SIGINT`/`SIGTERM` shutdown | `replayed` (parity & hashes verified) | Prerequisites, cache, and smoke check passed |
+| `1` | `difference_found` (official `liquid 5.14.0` confirmed) | — | — | — |
+| `2` | Setup, config, missing Git ref/blob, syntax, or engine error | Startup prerequisite, config, or Git baseline error | Tampered bundle, hash/version mismatch, or execution error | Missing/incompatible tool, Bundler error, or smoke check failure |
+
+---
+
+## Two-Version Sale-Badge Demo
+
+The repository includes a concrete two-version demonstration comparing variant-level sale detection in [`snippets/card-product.liquid`](snippets/card-product.liquid) against a product-level refactor in [`fixtures/demo/after.liquid`](fixtures/demo/after.liquid).
+
+**Before (`snippets/card-product.liquid`, variant-level loop):**
+
+```liquid
+{%- assign on_sale = false -%}
+{%- for variant in product.variants -%}
+  {%- if variant.compare_at_price != nil and variant.compare_at_price > variant.price -%}
+    {%- assign on_sale = true -%}
+  {%- endif -%}
+{%- endfor -%}
+<div class="card-product" data-available="{{ product.available }}">
+  {%- if on_sale -%}
+  <span class="badge" data-regression-badge="sale">Sale</span>
+  {%- endif -%}
+  <span class="price">{{ product.price }}</span>
+</div>
+```
+
+**After (product-level broken edit, matching [`fixtures/demo/after.liquid`](fixtures/demo/after.liquid)):**
+
+```liquid
+{%- if product.compare_at_price != nil and product.compare_at_price > product.price -%}
+<span class="badge" data-regression-badge="sale">Sale</span>
+{%- endif -%}
+```
+
+When `v1` has `price: 0, compare_at_price: 0` and `v2` has `price: 0, compare_at_price: 1` (discovered at candidate index `55` in `56` search pairs and shrunk in `28` shrink pairs), `product.compare_at_price` aggregates to `0` while `v2` is on sale (`1c > 0c`). Running `check --base-ref HEAD` (or `watch --search-pairs 64 --shrink-pairs 32`) outputs:
+
+```text
+snippets/card-product.liquid:1 Sale badge disappeared
+Before: v2 compared 1c > 0c, true. Badge shown.
+After:  product compared 0c > 0c, false. Badge absent.
+Official Liquid confirmed. Replay in .liquid-regression/result.json.
+```
+
+Replaying the saved bundle reproduces the exact same witness and official Liquid confirmation:
+
+```sh
+npx liquid-regression-finder replay .liquid-regression/result.json
+```
+
+---
+
+## Platform & Tool Versions Tested
+
+| Environment | OS / Platform | Verified Toolchain Versions | Notes |
 | --- | --- | --- | --- |
-| `python3.11 -m search compare` | `no_difference_found` (`"no difference found within this search"`) | `difference_found` (confirmed by official Liquid) | Validation/syntax/limit error, `reference_mismatch`, worker/timeout/CLI error |
-| `python3.11 -m search replay` | `replayed` (exact digest, version, HTML, trace, and parity match) | — | Tampered bundle, hash/version mismatch, or execution error |
-| `./bin/pr-check` | `no_difference_found` or `skipped_untrusted_fork` | `difference_found` or terminal job `failed` | Missing/renamed git blob, invalid manifest, poll timeout, HTTP/infra error |
+| **Local Development & Verification** | macOS `26.3` (`Build 25D125`, `arm64`) | Node.js `v24.15.0`, npm `11.12.1`, Ruby `3.3.13` (`arm64-darwin25`), Bundler `4.0.23`, Python `3.11.18`, Git `2.50.1 (Apple Git-155)`, `liquid 5.14.0` (`nokogiri 1.19.7`, `json_schemer 2.5.0`, `regexp_parser 2.12.0` in [`engine/Gemfile.lock`](engine/Gemfile.lock)) | All CLI, engine, clean-checkout, and tarball acceptance gates exercised locally. |
+| **GitHub Actions CI Target** | `ubuntu-latest` ([`.github/workflows/liquid-regression.yml`](.github/workflows/liquid-regression.yml)) | Ruby `3.3` (`.ruby-version` `3.3.13`), Python `3.11` (`.python-version` `3.11.18`), Node `24` (`.node-version` `24.15.0`) | Workflow YAML validated locally; live GitHub Actions execution has not been triggered. |
 
 ---
 
-## Web App & API Local Launch (`api/` + `web/`)
+## Architecture & Verified Engine Metrics
 
-1. Start the Rails API and single Solid Queue worker (terminal 1 & 2):
+### CLI Execution Flow
 
-```sh
-cd api
-bundle exec bin/rails db:prepare
-bundle exec bin/jobs
+```text
+liquid-regression-finder (cli/, Node >= 18 stdlib-only)
+  ├── git cat-file / working tree raw UTF-8 bytes
+  ├── search/ (Python 3.11 stdlib-only: generator 1.0.0, shrinker, trace alignment, replay)
+  └── reference/bin/worker (Ruby 3.3 JSONL IPC)
+        ├── LiquidInterpreter (0.1.0) — AST evaluation + trace side-channel
+        └── Official liquid (5.14.0) + Nokogiri HTML5 observer ([data-regression-badge="sale"])
 ```
 
-```sh
-cd api
-bundle exec bin/rails server -b 127.0.0.1 -p 3000
-```
-
-2. Start the React + Vite frontend (terminal 3; `/api` requests proxy to `VITE_API_ORIGIN`, defaulting to `http://127.0.0.1:3000`):
-
-```sh
-cd web
-npm run dev
-```
-
-3. Endpoints:
-   - `GET /api/v1/health` -> `200 {"status":"ok"}`
-   - `POST /api/v1/comparisons` -> `202` queued `ComparisonJob` (`200` on terminal idempotency replay, `409` on same `Idempotency-Key` with different whitespace-sensitive request digest, `422` on schema/size/observer errors, `401` if `LIQUID_REGRESSION_API_TOKEN` is set and bearer auth fails)
-   - `GET /api/v1/comparisons/:id` -> `200 ComparisonJob` or `404`
-   - UI routes: `/` (submission form) and `/comparisons/:id` (polling status, variant table, derived `product` fields, safely escaped HTML outputs, highlighted source anchors, expandable event traces, and `replay.json` download).
+- **HTML Observer Contract**: [`observer.rb`](reference/lib/liquid_reference/observer.rb) parses fragments with `Nokogiri::HTML5.fragment` and matches `[data-regression-badge="sale"]`. Plain text, HTML comments, escaped HTML, `<script>`/`<style>`/`<textarea>` raw text, and `sold_out` badges do not match. Snippets must be valid UTF-8 and `<= 16 KiB` (`16,384` bytes), evaluated under `depth <= 32`, `steps <= 50,000`, `output <= 128 KiB`, and `trace_events <= 10,000`.
+- **Conformance Coverage (`liquid-spec`)**: Against pinned `liquid-spec` (`84bf25e0edbca5f7e530574788b0f875ab331f50`) and `liquid 5.14.0` ([`artifacts/stage-7/conformance-report.txt`](artifacts/stage-7/conformance-report.txt)):
+  - Selected & passing: **`399 / 399` (`100.00%`**, `fail=0`, `error=0`; `basics` `155 / 955`, `liquid_ruby` `244 / 2106`)
+  - Inventoried (`basics + liquid_ruby`, `3,061`): **`13.03%`**; All 8 `liquid-spec` suites (`7,395`): **`5.40%`**
+- **Dawn Benchmark Summary**: Across **15 verified `Shopify/dawn` cases** (`10` supported, `5` unsupported; `seeds 0..4`, `search_pairs=256`, `shrink_pairs=128`) vs `shopifypartners/product-csvs` sample baseline (`60` products / `66` variants at `045fb432d85dc59d558717208399176d62bf106d`; [`bench/reports/benchmark.md`](bench/reports/benchmark.md)):
+  - Supported 10 cases detected: **`10 / 10` (`100.0%`, `50 / 50` runs)** vs **`9 / 10` (`90.0%`)** sample baseline
+  - All 15 cases detected: **`10 / 15` (`66.7%`, `50 / 75` runs, `0` error)** vs **`9 / 15` (`60.0%`, `1` `budget_exhausted`, `0` error)**
+  - Median pairs (detected): **`3.5` search / `1` shrink** vs **`22` search / `2` shrink** (sub-second `first_difference_ms` and `shrink_ms` recorded per run in [`bench/reports/benchmark.md`](bench/reports/benchmark.md))
+  - Instrumented JSONL IPC overhead (`256` pairs on `dawn_pr_794_price_badge_sale_aria_hidden`): sub-tenth-millisecond per-pair serialization overhead (`< 0.1 ms/pair`; exact `custom` and `reference` measurements recorded in [`bench/reports/benchmark.md`](bench/reports/benchmark.md))
 
 ---
 
-## HTML Observer Contract
+## Pull-Request CI Workflow
 
-Public `sale_badge` comparisons parse rendered HTML fragments with Nokogiri (`Nokogiri::HTML5.fragment`, implemented in [`observer.rb`](reference/lib/liquid_reference/observer.rb)) and query:
+[`.github/workflows/liquid-regression.yml`](.github/workflows/liquid-regression.yml) defines two jobs on `ubuntu-latest` (`Ruby 3.3`, `Python 3.11`, `Node 24`):
 
-```css
-[data-regression-badge="sale"]
-```
+1. **`verify`**: Runs `./bin/setup && ./bin/check all` on `push` and `pull_request`, exercising both the engine/API/web stage gates (`stage-1`..`stage-10`) and the npm CLI gates (`cli-stage-1`..`cli-stage-4`).
+2. **`pr-snippet-check`**: On same-repository `pull_request` events (`fetch-depth: 0`), packs and installs the npm CLI locally, runs `npx --no-install liquid-regression-finder setup`, and runs the same CLI check command against the PR base and head SHAs:
 
-Integration rules for watched snippets (see [`snippets/card-product.liquid`](snippets/card-product.liquid)):
-- Emit a standalone product-card fragment whose active sale badge element carries `data-regression-badge="sale"`.
-- **Decoy protection**: plain text (`Sale`), HTML comments (`<!-- <span data-regression-badge="sale"> -->`), escaped HTML (`&lt;span data-regression-badge="sale"&gt;`), raw-text tags (`<script>`, `<style>`, `<textarea>`), and other markers (`data-regression-badge="sold_out"`) do **not** match.
-- Snippets must be valid UTF-8 and at most `16 KiB` (`16,384` bytes), evaluated with resource limits (`depth <= 32`, `steps <= 50,000`, `output <= 128 KiB`, `trace_events <= 10,000`).
+   ```sh
+   npx --no-install liquid-regression-finder check \
+     --base-ref "${{ github.event.pull_request.base.sha }}" \
+     --head-ref "${{ github.event.pull_request.head.sha }}" \
+     --search-pairs 256 \
+     --shrink-pairs 128 \
+     --replay-out .liquid-regression/result.json
+   ```
 
----
+   Exit codes `0`, `1`, and `2` are preserved explicitly, a Markdown summary is written to `$GITHUB_STEP_SUMMARY`, and `.liquid-regression/result.json` + `.liquid-regression/summary.txt` are uploaded via `actions/upload-artifact@v4` whenever a finding (`1`) or error (`2`) occurs.
 
-## Conformance Coverage (`liquid-spec`)
-
-Measured against pinned `liquid-spec` SHA `84bf25e0edbca5f7e530574788b0f875ab331f50` and `liquid 5.14.0` using [`contracts/conformance-manifest.json`](contracts/conformance-manifest.json) (report saved in [`artifacts/stage-7/conformance-report.txt`](artifacts/stage-7/conformance-report.txt)):
-
-| Metric | Stage 2 Baseline | Stage 7+ Extended |
-| --- | ---: | ---: |
-| **Selected & Passing (`pass/selected`)** | `359 / 359` (`100.00%`) | `399 / 399` (`100.00%`, `fail=0`, `error=0`) |
-| `basics` selected | `141 / 955` | `155 / 955` |
-| `liquid_ruby` selected | `218 / 2106` | `244 / 2106` |
-| **Inventoried (`basics + liquid_ruby`, `3,061`)** | `11.73%` | `13.03%` |
-| **All 8 `liquid-spec` suites (`7,395`)** | `4.85%` | `5.40%` |
-
-Skip reasons (drops/Ruby objects, unsupported filters/tags, partials/filesystem, ranges, floats, `lax` parsing, `inline` error modes, Shopify theme extensions) are explicitly inventoried in [`artifacts/stage-7/conformance-report.txt`](artifacts/stage-7/conformance-report.txt).
+*(The legacy Rails-backed [`bin/pr-check`](bin/pr-check) and [`bin/pr_dry_run`](bin/pr_dry_run) scripts remain intact for the optional Rails API workflow.)*
 
 ---
 
-## Dawn Benchmark Summary
+## Optional Rails + React Web App Demo
 
-Measured across **15 verified real `Shopify/dawn` cases** (`4 sale_badge`, `5 sold_out_badge`, `6 price_range`; `10` supported, `5` unsupported due to CSS stylesheet visibility coupling, B2B context, inventory tracking, or variant target semantics; [`bench/corpus/manifest.json`](bench/corpus/manifest.json)) comparing `generated_search` (`seeds 0..4`, `search_pairs=256`, `shrink_pairs=128`) against the official `shopifypartners/product-csvs` sample baseline (`60` products / `66` variants at SHA `045fb432d85dc59d558717208399176d62bf106d`; [`bench/sample_baseline/PROVENANCE.md`](bench/sample_baseline/PROVENANCE.md)). Full results in [`bench/reports/benchmark.md`](bench/reports/benchmark.md):
+The repository also includes a full-stack web companion (`api/` Rails `8.1.4.1` + SQLite + Solid Queue, `web/` React `19.3.1` + TypeScript `5.9.3` + Vite `7.3.8`, plus Node serverless companion handlers in `web/api/`).
 
-| Metric | Generated Search (`seeds 0..4`) | Sample Baseline (`60` CSV products) |
-| --- | --- | --- |
-| **All 15 Verified Cases** | `10/15` (`66.7%`) [`50/75` runs, `0` error] | `9/15` (`60.0%`) [`9/15` runs, `0` error] |
-| **Supported 10 Cases** | `10/10` (`100.0%`, `50/50` runs) | `9/10` (`90.0%`, `1` `budget_exhausted`) |
-| **Median Evaluated Pairs (Detected)** | `3.5` | `22` |
-| **Median Shrink Pairs (Detected)** | `1` | `2` |
-| **Time to First Difference & Shrink** | Sub-second (`first_difference_ms` & `shrink_ms` recorded per run in [`benchmark.md`](bench/reports/benchmark.md)) | Sub-second (`first_difference_ms` & `shrink_ms` recorded per run in [`benchmark.md`](bench/reports/benchmark.md)) |
+- **Live Vercel Demo**: https://liquid-regression-finder.vercel.app (`web/` + `web/api/` Node serverless companion)
+- **Local Full-Stack Launch**:
 
-- **JSONL IPC Overhead** (256 `render_pair` calls on `dawn_pr_794_price_badge_sale_aria_hidden`): sub-tenth-millisecond per-pair pipe/JSON serialization overhead (`< 0.1 ms/pair`; exact per-run `custom` and `reference` measurements recorded in [`bench/reports/benchmark.md`](bench/reports/benchmark.md)), keeping full 256-pair searches sub-second while preserving Ruby as the single Liquid behavior boundary.
-- **Unverified Dawn Leads**: `7` closed/unmerged/duplicate candidates without an upstream reproducible commit pair are documented separately in [`bench/corpus/unverified_candidates.json`](bench/corpus/unverified_candidates.json).
+  1. Install all Ruby (`Gemfile.lock`, `engine/Gemfile.lock`, `api/Gemfile.lock`) and npm (`web/package-lock.json`) dependencies and prepare SQLite databases:
+
+     ```sh
+     ./bin/setup
+     ```
+
+  2. Start the Solid Queue worker and Rails API server (`api/`):
+
+     ```sh
+     cd api
+     bundle exec bin/jobs
+     ```
+
+     ```sh
+     cd api
+     bundle exec bin/rails server -b 127.0.0.1 -p 3000
+     ```
+
+  3. Start the React + Vite frontend (`web/`, proxying `/api` to `http://127.0.0.1:3000`):
+
+     ```sh
+     cd web
+     npm run dev
+     ```
+
+- **Full Verification & Clean-Checkout Check**:
+
+  ```sh
+  ./bin/check cli-stage-4        # Migration Stages 1–4 CLI gates + acceptance walkthrough
+  ./bin/check all                # All original (1–10) + CLI migration (1–4) stage gates
+  ./bin/verify_clean_checkout    # Clean source export -> ./bin/setup -> ./bin/check all -> standalone checks
+  ```
 
 ---
 
-## Pull-Request Integration
+## Repository Layout, Scope & Verification Status
 
-- **Manifest & Watched Snippet**: [`comparison-manifest.json`](comparison-manifest.json) configures `snippets/card-product.liquid` with observer `sale_badge`, marker `[data-regression-badge="sale"]`, `seed: 0`, `budget: {search_pairs: 256, shrink_pairs: 128}`, and `poll_timeout_seconds: 90`.
-- **PR Check CLI ([`bin/pr-check`](bin/pr-check))**:
-  - Reads exact UTF-8 bytes from `--base-sha` and `--head-sha` via `git` argv subprocesses (`git cat-file`, `git diff --name-status -M -z`) with zero shell interpolation of Liquid content.
-  - Emits structured JSON diagnostics (`missing_blob`, `renamed_blob`, `invalid_manifest`, `poll_timeout`, `http_error`) and exits `2` on diagnostic/infrastructure failures, `1` on confirmed difference or job failure, and `0` on `no_difference_found` (or clean fork skip).
-  - Computes a deterministic `Idempotency-Key` (`sha256` of canonical `{repo, base_sha, head_sha, manifest_sha256}`).
-  - Appends formatted Markdown metrics, explanation anchors, and `result_url` to `$GITHUB_STEP_SUMMARY`.
-  - Suppresses `LIQUID_REGRESSION_API_TOKEN` whenever `--is-fork` or `GITHUB_EVENT_HEAD_FORK=true` is set (running against public/local APIs or cleanly skipping token-gated external submission).
-- **Workflow ([`.github/workflows/liquid-regression.yml`](.github/workflows/liquid-regression.yml))**:
-  - `verify`: runs `./bin/setup && ./bin/check all` on `push` and `pull_request`.
-  - `pr-snippet-check`: runs on same-repository `pull_request` events (`if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository`) so repository secrets are never exposed to untrusted fork PRs.
-- **Local PR Dry Run**: `./bin/pr_dry_run` boots an isolated Rails Puma + Solid Queue worker and tests benign (`exit 0`), regression (`exit 1`), untrusted-fork (`exit 0`), renamed-blob (`exit 2`), and deleted-blob (`exit 2`) PR scenarios, saving evidence to [`artifacts/stage-10/pr-dry-run-report.json`](artifacts/stage-10/pr-dry-run-report.json) and [`artifacts/stage-10/pr-dry-run-summary.md`](artifacts/stage-10/pr-dry-run-summary.md).
+| Path | Purpose |
+| --- | --- |
+| [`cli/`](cli/) | Node.js `>= 18` stdlib-only CLI (`setup`, `check`, `watch`, `replay`), config loader, Git reader, 4-line formatter, and Stage 1–4 tests |
+| [`engine/`](engine/) | Minimal 4-gem runtime bundle (`engine/Gemfile`, `engine/Gemfile.lock`) for the packaged CLI |
+| [`interpreter/`](interpreter/) | Custom UTF-8 Liquid lexer, parser, AST, evaluator, tracer, resource limits, and `liquid-spec` adapter |
+| [`reference/`](reference/) | Official `liquid 5.14.0` renderer, `PROJECTION_VERSION = "1.0.0"`, Nokogiri HTML5 observer, and JSONL worker |
+| [`search/`](search/) | Python 3.11 stdlib-only deterministic generator (`1.0.0`), search engine, lexicographic shrinker, trace explainer, and replay |
+| [`contracts/`](contracts/) | Draft 2020-12 JSON Schemas, schema tests, and frozen `liquid-spec` conformance manifest |
+| [`bench/`](bench/) | Verified 15-case `Shopify/dawn` corpus, `shopifypartners/product-csvs` baseline, benchmark runner, and generated reports |
+| [`fixtures/`](fixtures/) & [`snippets/`](snippets/) | Demo snippets, ordinary controls, Dawn witnesses, and watched [`snippets/card-product.liquid`](snippets/card-product.liquid) |
+| [`api/`](api/) & [`web/`](web/) | Optional Rails `8.1.4.1` + Solid Queue API and React `19.3.1` + TypeScript `5.9.3` UI |
+| [`bin/`](bin/) | [`bin/setup`](bin/setup), [`bin/check`](bin/check), [`bin/verify_clean_checkout`](bin/verify_clean_checkout), [`bin/pr-check`](bin/pr-check), [`bin/pr_dry_run`](bin/pr_dry_run) |
 
----
+### Scope & External-Host Status
 
-## Scope, Limitations & External-Host Verification Status
-
-### Current Release Scope & Limitations
-- Public API, UI, and PR workflow support only the `sale_badge` observer (`[data-regression-badge="sale"]`) on a configured standalone snippet (`<= 16 KiB`), integer USD cents fixtures (`1..8` variants), and `search_pairs <= 5000` / `shrink_pairs <= 1000` within a `90s` hard job deadline.
-- Whole-theme rendering, Shopify object Drops beyond `product` / `product.variants`, external CSS stylesheet visibility evaluation, arbitrary CSS selectors, and multi-user authentication/admin are out of scope for v1.
-
-### External-Host Verification Matrix
-
-| Verification Target | Status | Evidence & Notes |
-| --- | --- | --- |
-| **Local full pipeline & clean checkout** | Exercised & Passed | `./bin/check all` (Stages 1–10), `./bin/verify_clean_checkout` (`artifacts/stage-10/clean-checkout-verification.txt`), Rails E2E (`artifacts/stage-8/e2e-smoke-report.json`), Playwright Chrome E2E (`artifacts/stage-9/browser-e2e-report.json`), and PR dry run (`artifacts/stage-10/pr-dry-run-report.json`). |
-| **Storefront fixture probe** | `storefront_unverified` (Not Exercised) | Probe template ([`product-projection-probe.liquid`](reference/probe/product-projection-probe.liquid)), instructions ([`docs/storefront-probe.md`](docs/storefront-probe.md)), and 6-case matrix ([`fixtures/storefront_probe_matrix.json`](fixtures/storefront_probe_matrix.json)) are shipped; no live Shopify development store was provisioned, so `product.*` aggregate rules are scoped to local projection model `1.0.0`. |
-| **Live GitHub repository PR run** | Not Exercised | Workflow [`.github/workflows/liquid-regression.yml`](.github/workflows/liquid-regression.yml) is validated syntactically and tested locally via `./bin/pr_dry_run`, not triggered on a live GitHub pull request event. Note `api/bin/rails` and `web/tests/e2e_browser.mjs` from Stages 8–9 retain local macOS Homebrew/Chrome paths if run unmodified on Linux GitHub runners. |
-| **Shared hosted deployment (Vercel)** | Exercised & Verified (`web/` + `web/api/`) | Production UI and Node serverless companion deployed at https://liquid-regression-finder.vercel.app (project `med-ncodings-projects/liquid-regression-finder`, `rootDirectory: "web"`). Verified live `GET /` (`200`), `GET /api/v1/health` (`200`), `POST /api/v1/comparisons` (`202` `difference_found`), and end-to-end headless Chrome demo submission + reload (`0` page errors). Note that Vercel hosts the React + Node serverless companion (`web/api/`), whereas the Rails 8 + Solid Queue + Python + official Liquid gem backend (`api/` + `search/` + `reference/`) was verified locally via `./bin/check all` and `./bin/verify_clean_checkout`. |
+- **Release Scope**: One configured standalone snippet (`<= 16 KiB`), one `sale_badge` observer (`[data-regression-badge="sale"]`), integer USD cents fixtures (`1..8` variants), and daily commands `watch`, `check`, and `replay` (`setup` for engine cache initialization). Whole-theme dependency tracking, external CSS visibility evaluation, and Shopify object Drops beyond `product` / `product.variants` are out of scope.
+- **Storefront Probe**: `storefront_unverified` — probe template ([`product-projection-probe.liquid`](reference/probe/product-projection-probe.liquid)) and 6-case matrix ([`fixtures/storefront_probe_matrix.json`](fixtures/storefront_probe_matrix.json)) ship with the repo, scoped to local projection model `1.0.0`.
+- **GitHub Actions PR Run**: [`.github/workflows/liquid-regression.yml`](.github/workflows/liquid-regression.yml) is validated syntactically with Ruby `YAML.safe_load_file`; its `check` command (`--base-ref` / `--head-ref` / `--search-pairs 256` / `--shrink-pairs 128` / `--replay-out`) is verified locally in [`cli/tests/test_stage4_acceptance_walkthrough.mjs`](cli/tests/test_stage4_acceptance_walkthrough.mjs), not triggered on a live GitHub pull request event.
+- **Hosted Vercel Web Demo**: Exercised and verified (`web/` + `web/api/`) at `https://liquid-regression-finder.vercel.app`.

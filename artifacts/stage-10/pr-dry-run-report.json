@@ -8,33 +8,33 @@
     "benign_head": {
       "exit_code": 0,
       "status": "no_difference_found",
-      "job_id": "59146a06-697b-4349-a0ef-802128b0665d",
-      "result_url": "http://127.0.0.1:60712/comparisons/59146a06-697b-4349-a0ef-802128b0665d",
-      "idempotency_key": "52655b125b51af0630b60c41698fc256522dc7ef5f45254f41842e66cb17b9ff",
+      "job_id": "648be493-9211-4aa5-9a93-54ccf2dfdc1d",
+      "result_url": "http://127.0.0.1:52599/comparisons/648be493-9211-4aa5-9a93-54ccf2dfdc1d",
+      "idempotency_key": "913d8ad1a4e7d6a28676fa83308bd56db1bc7e64a0f76afde692b9c6548e1995",
       "stats": {
         "search_pairs": 256,
         "shrink_pairs": 0,
         "parity_rejections": 0,
         "exhausted_by": "pair_limit",
         "first_difference_ms": null,
-        "elapsed_ms": 315
+        "elapsed_ms": 399
       },
       "message": "no difference found within this search"
     },
     "regression_head": {
       "exit_code": 1,
       "status": "difference_found",
-      "job_id": "a8b810d7-f690-4ca4-8e72-f174ad6d0840",
-      "result_url": "http://127.0.0.1:60712/comparisons/a8b810d7-f690-4ca4-8e72-f174ad6d0840",
-      "idempotency_key": "fd02efcd22940d5162a54606f60f2db713059337a7219f1e2a31ed17349e2fad",
-      "idempotent_replay_job_id": "a8b810d7-f690-4ca4-8e72-f174ad6d0840",
+      "job_id": "cd3550fe-5f5b-45e2-a108-9f9e89c6af72",
+      "result_url": "http://127.0.0.1:52599/comparisons/cd3550fe-5f5b-45e2-a108-9f9e89c6af72",
+      "idempotency_key": "2abf4e0ebcbaf4323e7ad5adfb4cb542085466a1ea135363afb05410f53a496a",
+      "idempotent_replay_job_id": "cd3550fe-5f5b-45e2-a108-9f9e89c6af72",
       "stats": {
         "search_pairs": 56,
         "shrink_pairs": 28,
         "parity_rejections": 0,
         "exhausted_by": null,
-        "first_difference_ms": 267,
-        "elapsed_ms": 275
+        "first_difference_ms": 273,
+        "elapsed_ms": 283
       },
       "explanation_kind": "structural_change",
       "explanation_summary": "Structural change: before at line 3 in variant_id=\"v2\" via line 8 (if on_sale=true, assigned at line 4) [variant.compare_at_price != nil and variant.compare_at_price > variant.price] -> true (variant.compare_at_price=1, variant.price=0); after at line 2 in product/context [product.compare_at_price != nil and product.compare_at_price > product.price] -> false (product.compare_at_price=0, product.price=0).",
@@ -55,12 +55,12 @@
     "renamed_blob": {
       "exit_code": 2,
       "error_code": "renamed_blob",
-      "message": "Watched snippet 'snippets/card-product.liquid' was renamed between 75d4ee4f8eb780854a1712aa1be305bed9235ec0 and 7f7358cbfd5c6952c62cb541ae1921f2dda167bf (snippets/card-product.liquid -> snippets/card-product-renamed.liquid, status=R100); update comparison-manifest.json or restore path."
+      "message": "Watched snippet 'snippets/card-product.liquid' was renamed between e3afa6de3b04714c03fd453c47c865852b5eb8f8 and 87a95a49b01e35e82a0a5407f3bc00012c9b639b (snippets/card-product.liquid -> snippets/card-product-renamed.liquid, status=R100); update comparison-manifest.json or restore path."
     },
     "missing_blob": {
       "exit_code": 2,
       "error_code": "missing_blob",
-      "message": "Watched snippet 'snippets/card-product.liquid' is missing on head (37dc41fa6ed12255dc17752a6c23515f49096cc8) (diff status: D)."
+      "message": "Watched snippet 'snippets/card-product.liquid' is missing on head (019b1ef8a4b3348f0667491f7dd63b81f821c816) (diff status: D)."
     }
   }
 }

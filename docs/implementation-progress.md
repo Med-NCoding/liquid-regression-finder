@@ -1,7 +1,7 @@
 # Implementation Progress — Shopify Liquid Regression Finder
 
-- **Current Stage**: Stage 10 (`passed` — all 10 stages complete)
-- **Last Completed Stage**: Stage 10 — PR workflow and release
+- **Current Stage**: Migration Stage 4 (`passed` — Stages 1–10 and CLI Migration Stages 1–4 complete)
+- **Last Completed Stage**: Migration Stage 4 — CLI entry point, unified CI, clean-checkout acceptance, and registry tarball readiness
 - **Repository**: https://github.com/Med-NCoding/liquid-regression-finder
 
 ## Stage Tracker
@@ -21,6 +21,7 @@
 | CLI-1 | Connect one-off checks to existing engine | passed | `bin/check cli-stage-1` | 0 | `engine/Gemfile`, `engine/Gemfile.lock`, `liquid-regression.json`, `cli/`, `cli/tests/test_stage1_check_and_replay.mjs` |
 | CLI-2 | Add watch mode | passed | `bin/check cli-stage-2` | 0 | `search/engine.py`, `search/cli.py`, `search/tests/test_priority_fixtures.py`, `cli/lib/watch.mjs`, `cli/tests/test_stage2_watch.mjs` |
 | CLI-3 | Package and install from npm | passed | `bin/check cli-stage-3` | 0 | `package.json`, `LICENSE`, `docs/setup-guide.md`, `cli/lib/setup.mjs`, `cli/tests/test_stage3_npm_package.mjs` |
+| CLI-4 | Make CLI documented entry point, unify CI & acceptance | passed | `bin/check all` | 0 | `README.md`, `.github/workflows/liquid-regression.yml`, `bin/setup`, `bin/check`, `bin/verify_clean_checkout`, `cli/tests/test_stage4_acceptance_walkthrough.mjs` |
 
 ## Stage Details & Checkpoint Log
 
@@ -284,3 +285,26 @@
   - `./bin/check cli-stage-2` -> exit `0` (includes `cli-stage-1` + `cli/tests/test_stage2_watch.mjs`: `7/7 tests pass`).
   - `./bin/check cli-stage-3` -> exit `0` (includes `cli-stage-1` + `cli-stage-2` + `cli/tests/test_stage3_npm_package.mjs`: `3/3 tests pass`).
 - **Next Command**: `./bin/check cli-stage-3` (Migration Stage 4: Make the CLI the documented entry point).
+
+### Migration Stage 4 — Make the CLI the Documented Entry Point
+- **Status**: `passed`
+- **Completed Tasks**:
+  - **Primary CLI Documentation (`README.md`, `docs/setup-guide.md`, `liquid-regression.example.json`, `package.json`)**:
+    - Overhauled `README.md` around the npm CLI developer workflow (`npm install`, `npx liquid-regression-finder setup`, copyable `liquid-regression.json` with `snippets/card-product.liquid`, `sale_badge`, `seed: 0`, `budget: {search_pairs: 256, shrink_pairs: 128}`, `watch_budget: {search_pairs: 32, shrink_pairs: 16}`, `.gitignore` `.liquid-regression/`, `liquid:watch` script, daily `watch`/`check`/`replay`/`--json` commands, exit codes `0`/`1`/`2`, and the two-version sale-badge demo with the exact 4-line finding output).
+    - Documented verified local macOS arm64 platform/tool versions (`macOS 26.3`, Node `v24.15.0`, npm `11.12.1`, Ruby `3.3.13`, Bundler `4.0.23`, Python `3.11.18`, Git `2.50.1 (Apple Git-155)`, `liquid 5.14.0` from `engine/Gemfile.lock`) alongside the `ubuntu-latest` CI target, verified conformance/benchmark summaries, and the optional Rails + React web demo (Vercel + local launch) as a separate secondary section.
+    - Updated `liquid-regression.example.json` and `docs/setup-guide.md` to include `watch_budget`, and updated `package.json` `"test"` script to `./bin/check cli-stage-4`.
+  - **Unified GitHub Actions PR Workflow (`.github/workflows/liquid-regression.yml`)**:
+    - Kept the `verify` job (`./bin/setup && ./bin/check all`, Ruby `3.3`, Python `3.11`, Node `24`) and updated `pr-snippet-check` (`fetch-depth: 0`, Ruby `3.3`, Python `3.11`, Node `24`) to pack and install the CLI tarball locally, initialize the versioned gem cache via `npx --no-install liquid-regression-finder setup`, and run `npx --no-install liquid-regression-finder check --base-ref "$BASE_SHA" --head-ref "$HEAD_SHA" --search-pairs 256 --shrink-pairs 128 --replay-out .liquid-regression/result.json` while capturing exit codes `0`/`1`/`2`, writing `$GITHUB_STEP_SUMMARY` and `.liquid-regression/summary.txt`, uploading `.liquid-regression/result.json` + `.liquid-regression/summary.txt` on findings/errors (`actions/upload-artifact@v4`), and exiting with the captured exit code. Preserved `bin/pr-check` and `bin/pr_dry_run` intact for `stage-10`.
+  - **Clean Checkout, Setup & Gate Integration (`bin/setup`, `bin/verify_clean_checkout`, `bin/check`, `cli/tests/test_stage1_check_and_replay.mjs`)**:
+    - Updated `bin/setup` to install `engine/Gemfile.lock` into `engine/vendor/bundle` (`BUNDLE_FROZEN=true`) alongside root and `api/` bundles.
+    - Updated `bin/verify_clean_checkout` to exclude and verify absence of `engine/vendor/bundle/`, `engine/.bundle/`, `.liquid-regression/`, and `*.tgz` in the clean export, and verify no stray root `.tgz` remains after execution.
+    - Updated `bin/check` with `cli-stage-4` (`run_cli_stage_4`: `run_cli_stage_3`, `YAML.safe_load_file` workflow check, `package.json` metadata + `npm pack --dry-run --json` validation, and `cli/tests/test_stage4_acceptance_walkthrough.mjs`) and updated `all` to run both `run_stage_10` and `run_cli_stage_4`.
+    - Updated `cli/tests/test_stage1_check_and_replay.mjs` test `1` to fall back to a temporary git repository when run inside a `.git`-excluded clean export (`bin/verify_clean_checkout`).
+  - **Clean-Checkout Acceptance Walkthrough & Registry Tarball Verification (`cli/tests/test_stage4_acceptance_walkthrough.mjs`)**:
+    - Added `cli/tests/test_stage4_acceptance_walkthrough.mjs` exercising clean source export, `package.json` metadata and `npm pack --dry-run --json` / `npm pack`, external theme repo install + `setup`, `watch --seed 0 --search-pairs 64 --shrink-pairs 32`, line 1 breaking finding, frozen baseline across `HEAD` commit + 2-comment line shift to line 3, quiet revert, `<150 ms` rapid broken->clean save coalescing, clean `SIGINT` process-tree exit, fresh-process `replay`, and CI `check --base-ref --head-ref --seed 0 --search-pairs 256 --shrink-pairs 128` parity (exit `0` identical, exit `1` matching minimized fixture & product projection + exact 4-line text output, exit `2` on missing baseline ref and invalid syntax).
+- **Verified Commands & Outcomes**:
+  - `./bin/check cli-stage-4` -> exit `0` (`contracts/test_contracts.rb`: `6 runs, 196 assertions, 0 failures`; `search/tests`: `48 tests OK`; `test_stage1_check_and_replay.mjs`: `10/10 pass`; `test_stage2_watch.mjs`: `7/7 pass`; `test_stage3_npm_package.mjs`: `3/3 pass`; `test_stage4_acceptance_walkthrough.mjs`: `1/1 pass`; workflow YAML + `npm pack --dry-run --json` valid).
+  - `./bin/check all` -> exit `0` (`stage-1`..`stage-10` + `cli-stage-1`..`cli-stage-4` all pass).
+  - `./bin/verify_clean_checkout` -> exit `0` (clean source export -> `./bin/setup` -> `./bin/check all` -> standalone compare/replay/benchmark/PR dry run).
+  - `npm publish --dry-run` -> exit `0` (`liquid-regression-finder@0.1.0`, `56` files, tarball ready for registry release).
+- **Next Command**: `./bin/check all`

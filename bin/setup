@@ -62,6 +62,13 @@ echo "Installing root gems from Gemfile.lock into vendor/bundle..."
 "$BUNDLE_BIN" config set --local path vendor/bundle
 BUNDLE_FROZEN=true "$BUNDLE_BIN" install
 
+echo "Installing engine/ gems from engine/Gemfile.lock into engine/vendor/bundle..."
+(
+  cd "$ROOT_DIR/engine"
+  "$BUNDLE_BIN" config set --local path vendor/bundle
+  BUNDLE_FROZEN=true "$BUNDLE_BIN" install
+)
+
 echo "Installing api/ gems from api/Gemfile.lock into api/vendor/bundle..."
 (
   cd "$ROOT_DIR/api"

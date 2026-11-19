@@ -32,7 +32,7 @@
     "liquid:setup": "liquid-regression-finder setup",
     "liquid:watch": "liquid-regression-finder watch",
     "liquid:check": "liquid-regression-finder check --base-ref HEAD",
-    "test": "./bin/check cli-stage-3"
+    "test": "./bin/check cli-stage-4"
   },
   "files": [
     "LICENSE",

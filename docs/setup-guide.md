@@ -60,6 +60,10 @@ npx liquid-regression-finder setup
      "budget": {
        "search_pairs": 256,
        "shrink_pairs": 128
+     },
+     "watch_budget": {
+       "search_pairs": 32,
+       "shrink_pairs": 16
      }
    }
    ```

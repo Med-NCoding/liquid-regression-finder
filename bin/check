@@ -22,7 +22,8 @@ Targets:
   cli-stage-1  Run Migration Stage 1 checks (engine/Gemfile.lock, contracts, search/tests, and Node CLI Stage 1 check/replay tests)
   cli-stage-2  Run Migration Stage 1 checks plus Node CLI Stage 2 watch mode tests
   cli-stage-3  Run Migration Stage 1-2 checks plus Node CLI Stage 3 npm pack, setup, and external theme tests
-  all          Run all stage gates (stage-1 through stage-10)
+  cli-stage-4  Run Migration Stage 1-3 checks plus clean-checkout acceptance walkthrough, workflow YAML, and package metadata validation
+  all          Run all stage gates (stage-1 through stage-10 and cli-stage-1 through cli-stage-4)
 USAGE
 }
 
@@ -636,6 +637,50 @@ run_cli_stage_3() {
   echo "PASS: bin/check cli-stage-3 succeeded."
 }
 
+run_cli_stage_4() {
+  local bundle_bin node_bin npm_bin
+  bundle_bin="$(resolve_bundle)"
+  node_bin="$(resolve_node)"
+  npm_bin="$(resolve_npm)"
+
+  run_cli_stage_3
+
+  echo "==> CLI Stage 4 Gate: Validate GitHub Actions Workflow YAML & CLI Package Metadata"
+  "$bundle_bin" exec ruby -ryaml -e 'YAML.safe_load_file(ARGV[0], aliases: true)' "$ROOT_DIR/.github/workflows/liquid-regression.yml"
+  (
+    export PATH="$(dirname "$node_bin"):$(dirname "$npm_bin"):$PATH"
+    "$node_bin" -e '
+      const fs = require("node:fs");
+      const path = require("node:path");
+      const { execFileSync } = require("node:child_process");
+      const root = process.argv[1];
+      const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+      if (pkg.name !== "liquid-regression-finder") throw new Error(`Unexpected pkg.name: ${pkg.name}`);
+      if (pkg.version !== "0.1.0") throw new Error(`Unexpected pkg.version: ${pkg.version}`);
+      if (pkg.license !== "MIT") throw new Error(`Unexpected pkg.license: ${pkg.license}`);
+      if (pkg.author !== "Medhansh Negi") throw new Error(`Unexpected pkg.author: ${pkg.author}`);
+      if (pkg.private !== false) throw new Error(`Expected pkg.private === false, got ${pkg.private}`);
+      if (!String(pkg.repository?.url || "").includes("Med-NCoding/liquid-regression-finder")) {
+        throw new Error(`Unexpected repository.url: ${pkg.repository?.url}`);
+      }
+      const dryRunRaw = execFileSync(process.argv[2], ["pack", "--dry-run", "--json"], { cwd: root, encoding: "utf8" });
+      const dryRun = JSON.parse(dryRunRaw);
+      if (!Array.isArray(dryRun) || dryRun.length !== 1 || dryRun[0].filename !== "liquid-regression-finder-0.1.0.tgz") {
+        throw new Error(`Unexpected npm pack --dry-run output: ${dryRunRaw}`);
+      }
+      console.log(`[cli-stage-4] Verified package metadata (${pkg.name}@${pkg.version}, ${dryRun[0].entryCount} files, ${dryRun[0].size} B packed)`);
+    ' "$ROOT_DIR" "$npm_bin"
+  )
+
+  echo "==> CLI Stage 4 Gate: End-to-End Clean-Checkout Acceptance Walkthrough"
+  (
+    export PATH="$(dirname "$node_bin"):$(dirname "$npm_bin"):$PATH"
+    "$node_bin" --test "$ROOT_DIR/cli/tests/test_stage4_acceptance_walkthrough.mjs"
+  )
+
+  echo "PASS: bin/check cli-stage-4 succeeded."
+}
+
 if [ $# -ne 1 ]; then
   usage
   exit 2
@@ -681,8 +726,12 @@ case "$1" in
   cli-stage-3)
     run_cli_stage_3
     ;;
+  cli-stage-4)
+    run_cli_stage_4
+    ;;
   all)
     run_stage_10
+    run_cli_stage_4
     echo "PASS: bin/check all succeeded."
     ;;
   -h|--help)

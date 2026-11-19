@@ -1,8 +1,8 @@
 {
   "status": "passed",
-  "demo_job_id": "08d38ee8-40e6-4b76-809a-9ed604cf655c",
-  "demo_result_url": "/comparisons/08d38ee8-40e6-4b76-809a-9ed604cf655c",
-  "xss_job_id": "239a7726-ee43-4e5a-83c0-2beceeef2547",
+  "demo_job_id": "e1e9be9d-0d08-4614-9a6d-74be4660c7fd",
+  "demo_result_url": "/comparisons/e1e9be9d-0d08-4614-9a6d-74be4660c7fd",
+  "xss_job_id": "62297b34-3ef8-451e-b70e-0bcb68bb3423",
   "screenshot": "artifacts/stage-9/demo-result-page.png",
   "second_page_load_reconstructed": true,
   "xss_non_execution_verified": true,

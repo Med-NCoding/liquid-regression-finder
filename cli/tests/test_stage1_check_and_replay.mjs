@@ -120,7 +120,16 @@ describe("Migration Stage 1: CLI check and replay", () => {
   });
 
   it("1. returns exit 0 for unchanged snippets/card-product.liquid vs HEAD", async () => {
-    const res = await runCliBin(["check"], { cwd: REPO_ROOT });
+    let targetDir = REPO_ROOT;
+    if (!fs.existsSync(path.join(REPO_ROOT, ".git"))) {
+      targetDir = makeTempDir("lrf-unchanged-repo-");
+      initGitRepo(targetDir);
+      fs.mkdirSync(path.join(targetDir, "snippets"), { recursive: true });
+      fs.copyFileSync(CARD_PRODUCT_PATH, path.join(targetDir, "snippets", "card-product.liquid"));
+      fs.copyFileSync(path.join(REPO_ROOT, "liquid-regression.json"), path.join(targetDir, "liquid-regression.json"));
+      commitAll(targetDir, "Initial clean baseline");
+    }
+    const res = await runCliBin(["check"], { cwd: targetDir });
     assert.equal(res.code, 0, `Unexpected stderr: ${res.stderr}`);
     assert.equal(res.stdout, "");
     assert.equal(res.stderr, "");
