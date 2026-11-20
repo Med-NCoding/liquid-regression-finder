@@ -1,6 +1,6 @@
 {
   "name": "liquid-regression-finder",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "type": "module",
   "description": "Check Shopify Liquid product-card snippets on save against a Git baseline and catch sale-badge regressions.",
