@@ -95,6 +95,58 @@ def build_phase1_boundary_fixtures() -> list[dict[str, Any]]:
             seen.add(key)
             fixtures.append(fixture)
 
+    # 0. Stratified fast-watch prefix (25 core 1-, 2-, and 3-variant boundaries from
+    # sections 1-3 below so default 32-pair watch mode covers multi-variant and
+    # availability regressions immediately without changing the Phase 1 fixture set).
+    fast_prefix: list[Sequence[tuple[int, int | None, bool]]] = [
+        # 1-variant core categories & availability (zero-price first to match BOUNDARY_PRICES)
+        [(0, compare_at_for_category(0, "zero"), True)],
+        [(0, compare_at_for_category(0, "above"), True)],
+        [(1000, compare_at_for_category(1000, "missing"), True)],
+        [(1000, compare_at_for_category(1000, "zero"), True)],
+        [(1000, compare_at_for_category(1000, "below"), True)],
+        [(1000, compare_at_for_category(1000, "equal"), True)],
+        [(1000, compare_at_for_category(1000, "above"), True)],
+        [(1000, compare_at_for_category(1000, "above"), False)],
+        # 2-variant position, zero-vs-sale, varied price, and availability boundaries
+        [(0, compare_at_for_category(0, "zero"), True), (0, compare_at_for_category(0, "above"), True)],
+        [(0, compare_at_for_category(0, "above"), True), (0, compare_at_for_category(0, "zero"), True)],
+        [(0, compare_at_for_category(0, "missing"), True), (0, compare_at_for_category(0, "above"), True)],
+        [(0, compare_at_for_category(0, "above"), True), (0, compare_at_for_category(0, "missing"), True)],
+        [(1000, compare_at_for_category(1000, "missing"), True), (1000, compare_at_for_category(1000, "above"), True)],
+        [(1000, compare_at_for_category(1000, "above"), True), (1000, compare_at_for_category(1000, "missing"), True)],
+        [(1000, compare_at_for_category(1000, "zero"), True), (1000, compare_at_for_category(1000, "above"), True)],
+        [(1000, compare_at_for_category(1000, "above"), True), (1000, compare_at_for_category(1000, "zero"), True)],
+        [(1000, compare_at_for_category(1000, "below"), True), (1000, compare_at_for_category(1000, "above"), True)],
+        [(1000, compare_at_for_category(1000, "above"), True), (1000, compare_at_for_category(1000, "missing"), False)],
+        [(1000, compare_at_for_category(1000, "above"), False), (1000, compare_at_for_category(1000, "missing"), True)],
+        [(1000, compare_at_for_category(1000, "missing"), True), (2000, compare_at_for_category(2000, "above"), True)],
+        [(2000, compare_at_for_category(2000, "above"), True), (1000, compare_at_for_category(1000, "missing"), True)],
+        # 3-variant position shift & availability mask
+        [
+            (1000, compare_at_for_category(1000, "above"), True),
+            (1000, compare_at_for_category(1000, "missing"), True),
+            (1000, compare_at_for_category(1000, "missing"), True),
+        ],
+        [
+            (1000, compare_at_for_category(1000, "missing"), True),
+            (1000, compare_at_for_category(1000, "above"), True),
+            (1000, compare_at_for_category(1000, "missing"), True),
+        ],
+        [
+            (1000, compare_at_for_category(1000, "missing"), True),
+            (1000, compare_at_for_category(1000, "missing"), True),
+            (1000, compare_at_for_category(1000, "above"), True),
+        ],
+        [
+            (100, compare_at_for_category(100, "missing"), False),
+            (1000, compare_at_for_category(1000, "zero"), True),
+            (2500, compare_at_for_category(2500, "above"), False),
+        ],
+    ]
+    for specs in fast_prefix:
+        add_specs(specs)
+
     # 1. Single-variant boundary coverage: prices around zero & simple monetary amounts,
     # all relative compare-at categories, and both availability values.
     for price in BOUNDARY_PRICES:

@@ -77,7 +77,7 @@ Add `liquid:watch` alongside your existing dev scripts in `package.json`:
   npx liquid-regression-finder watch
   ```
 
-  > **Tip:** Override budgets per run when needed (for example, `--search-pairs 64 --shrink-pairs 32` to catch multi-variant regressions beyond the first 32 boundary candidates while watching).
+  > **Tip:** Override budgets per run when needed (for example, `--search-pairs 256 --shrink-pairs 128` to match full CI search depth while watching).
 
 - **One-off check** (working tree vs `HEAD` with `budget` `256`/`128`, or two explicit Git commits for CI):
 
@@ -133,7 +133,7 @@ The repository includes a concrete two-version demonstration comparing variant-l
 {%- endif -%}
 ```
 
-When `v1` has `price: 0, compare_at_price: 0` and `v2` has `price: 0, compare_at_price: 1` (discovered at candidate index `55` in `56` search pairs and shrunk in `28` shrink pairs), `product.compare_at_price` aggregates to `0` while `v2` is on sale (`1c > 0c`). Running `check --base-ref HEAD` (or `watch --search-pairs 64 --shrink-pairs 32`) outputs:
+When `v1` has `price: 0, compare_at_price: 0` and `v2` has `price: 0, compare_at_price: 1` (discovered at candidate index `8` in `9` search pairs and shrunk in `15` shrink pairs), `product.compare_at_price` aggregates to `0` while `v2` is on sale (`1c > 0c`). Running `watch` or `check --base-ref HEAD` outputs:
 
 ```text
 snippets/card-product.liquid:1 Sale badge disappeared

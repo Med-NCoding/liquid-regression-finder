@@ -369,14 +369,14 @@ describe("Migration Stage 2: Watch mode", () => {
 
       // Verify warm fixture cache calls in wrapper log:
       // Call 0: initial clean (no priority)
-      // Call 1: breaking line 1 (no priority, 56 pairs)
+      // Call 1: breaking line 1 (no priority, 9 pairs via Phase 1 stratified prefix)
       // Call 2: line 1 commented (has priority, 1 pair!)
       // Call 3: line 2 shifted (has priority, 1 pair!)
       const pyCalls = fs.readFileSync(pyLogPath, "utf8").trim().split("\n").map((l) => JSON.parse(l));
       assert.equal(pyCalls.length, 4);
       assert.equal(pyCalls[0].has_priority, false);
       assert.equal(pyCalls[1].has_priority, false);
-      assert.equal(pyCalls[1].search_pairs, 56);
+      assert.equal(pyCalls[1].search_pairs, 9);
       assert.equal(pyCalls[2].has_priority, true);
       assert.equal(pyCalls[2].search_pairs, 1);
       assert.equal(pyCalls[3].has_priority, true);
@@ -724,7 +724,7 @@ describe("Migration Stage 2: Watch mode", () => {
   });
 
   it("honors default watch budget (32/16), config watch_budget override, and CLI --search-pairs / --shrink-pairs / --base-ref / --config / --replay-out overrides", async () => {
-    // A. Default watch budget = 32 / 16 (demo 56-pair bug stays quiet, 1-variant bug confirms with budget 32/16 in replay)
+    // A. Default watch budget = 32 / 16 (4-variant-only Phase 2 edit stays quiet under 32 pairs, while 2-variant demo bug confirms within default 32/16 in replay)
     {
       const repoDir = makeTempDir("lrf-watch-default-budget-");
       initGitRepo(repoDir);
@@ -746,14 +746,22 @@ describe("Migration Stage 2: Watch mode", () => {
         await watcher.waitForStdout((s) => s.startsWith(banner));
         await waitForChildIdle(watcher.pid);
 
-        // Save 56-pair demo edit -> outside default 32-pair watch budget, stays quiet.
-        fs.writeFileSync(absSnippet, fs.readFileSync(DEMO_AFTER_PATH));
+        // Save 4-variant-only edit (Phase 1 only tests 1..3 variants, so Phase 2 4-variant trigger is outside default 32-pair watch budget).
+        const fourVariantEdit = [
+          '{%- if product.variants.size >= 4 -%}',
+          '<span class="badge" data-regression-badge="sale">Bulk Sale</span>',
+          '{%- else -%}',
+          fs.readFileSync(DEMO_BEFORE_PATH, "utf8").trimEnd(),
+          '{%- endif -%}',
+          "",
+        ].join("\n");
+        fs.writeFileSync(absSnippet, fourVariantEdit, "utf8");
         await waitForChildIdle(watcher.pid, { settleMs: 400 });
         assert.equal(watcher.stdout, banner);
 
-        // Save 1-variant bug (shows badge even when compare_at_price is nil/0) -> confirms within 32 pairs!
-        fs.writeFileSync(absSnippet, '<span class="badge" data-regression-badge="sale">Always Sale</span>\n', "utf8");
-        await watcher.waitForStdout((s) => s.includes("Sale badge appeared"));
+        // Save 2-variant demo bug -> confirms directly within default 32/16 watch budget!
+        fs.writeFileSync(absSnippet, fs.readFileSync(DEMO_AFTER_PATH));
+        await watcher.waitForStdout((s) => s.includes("Sale badge disappeared"));
         await waitForChildIdle(watcher.pid, { settleMs: 100 });
 
         const replay = JSON.parse(

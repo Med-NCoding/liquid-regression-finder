@@ -497,6 +497,12 @@ describe("Migration Stage 1: CLI check and replay", () => {
     assert.equal(repFlag.code, 0, repFlag.stderr);
     assert.equal(repFlag.stdout, repPos.stdout);
 
+    // Subdirectory cwd replay (resolves repo-root .liquid-regression/result.json cleanly)
+    const snippetsSubdir = path.join(repoDir, "snippets");
+    const repSubdir = await runCliBin(["replay", ".liquid-regression/result.json"], { cwd: snippetsSubdir });
+    assert.equal(repSubdir.code, 0, repSubdir.stderr);
+    assert.equal(repSubdir.stdout, repPos.stdout);
+
     // Tampered hash -> exit 2
     const replayPath = path.join(repoDir, ".liquid-regression", "result.json");
     const tampered = JSON.parse(fs.readFileSync(replayPath, "utf8"));

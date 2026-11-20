@@ -3,10 +3,10 @@
   "status": "difference_found",
   "generator_version": "1.0.0",
   "seed": 0,
-  "candidate_index": 55,
+  "candidate_index": 8,
   "direction": "before_only",
   "reference_status": "confirmed",
-  "message": "Confirmed sale_badge difference (before_only) at candidate index 55 after 56 search pair(s); minimized fixture to 2 variant(s) in 28 shrink pair(s).",
+  "message": "Confirmed sale_badge difference (before_only) at candidate index 8 after 9 search pair(s); minimized fixture to 2 variant(s) in 15 shrink pair(s).",
   "request": {
     "schema_version": 1,
     "before": {
@@ -626,17 +626,17 @@
   },
   "shrink": {
     "budget": 128,
-    "shrink_pairs": 28,
-    "shrink_ms": 7,
-    "accepted_steps": 6,
+    "shrink_pairs": 15,
+    "shrink_ms": 4,
+    "accepted_steps": 3,
     "parity_rejections": 0,
     "local_fixed_point": true,
     "pre_shrink_measure": [
       2,
       2,
-      3500,
+      100,
       2,
-      179
+      172
     ],
     "post_shrink_measure": [
       2,
@@ -649,12 +649,12 @@
     "post_shrink_variants": 2
   },
   "stats": {
-    "search_pairs": 56,
-    "shrink_pairs": 28,
+    "search_pairs": 9,
+    "shrink_pairs": 15,
     "parity_rejections": 0,
     "exhausted_by": null,
-    "first_difference_ms": 258,
-    "elapsed_ms": 266
+    "first_difference_ms": 252,
+    "elapsed_ms": 258
   },
   "error": null
 }

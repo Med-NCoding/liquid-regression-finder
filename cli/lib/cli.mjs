@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { loadConfig } from "./config.mjs";
 import { runCompare, runReplay } from "./engine_runner.mjs";
@@ -359,7 +360,18 @@ async function handleReplay(args, { cwd, stdout, stderr }) {
   }
 
   try {
-    const absBundlePath = path.resolve(cwd, opts.bundlePath);
+    let absBundlePath = path.resolve(cwd, opts.bundlePath);
+    if (!fs.existsSync(absBundlePath) && !path.isAbsolute(opts.bundlePath)) {
+      try {
+        const gitRoot = resolveGitRoot(cwd);
+        const repoBundlePath = path.resolve(gitRoot, opts.bundlePath);
+        if (fs.existsSync(repoBundlePath)) {
+          absBundlePath = repoBundlePath;
+        }
+      } catch {
+        // Fall back to cwd-resolved path so replay fails cleanly with bundle_read_error.
+      }
+    }
     const engineRoot = resolveEngineRoot();
     const { exitCode, report } = await runReplay({
       bundlePath: absBundlePath,
